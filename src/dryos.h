@@ -243,6 +243,7 @@ uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint
 #define WEAK_FUNC(name)  __attribute__((weak,alias(#name))) 
 static unsigned int ret_0() { return 0; }
 static unsigned int ret_1() { return 1; }
+static unsigned int ret_minus1() { return -1; }
 
 /** AF microadjustment **/
 int get_afma(int mode);

@@ -85,6 +85,7 @@ void _shoot_free_suite(struct memSuite *hSuite)
     {
         // FreeMemoryResource is not null pointer safe on D678, crashes
         FreeMemoryResource(hSuite, freeCBR, 0);
+        hSuite = NULL;
     }
     take_semaphore_nc(free_sem, 0);
 }
@@ -451,7 +452,12 @@ static GUARDED_BY(mem_sem) struct
     void *buffer;
     int used: 1;
     int use_after_free: 1;
-} srm_buffers[16] = {{0}};
+} srm_buffers[1] = {{0}}; // this is the max in vid mode to avoid NG AllocMem1
+//} srm_buffers[4] = {{0}}; // this is okay from Don't Click if not in LV
+//} srm_buffers[16] = {{0}};
+// SJE FIXME the above is hard-coded for 200D limits,
+// this must be fixed before merge to dev, it will
+// hurt other cams.
 
 /* used to know when allocation was done */
 static struct semaphore *srm_alloc_sem = 0;

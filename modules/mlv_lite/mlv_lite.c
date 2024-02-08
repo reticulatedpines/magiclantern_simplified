@@ -86,6 +86,13 @@ static GUARDED_BY(GuiMainTask) int show_edmac = 0;
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
+// SJE FIXME hack; avoid the dependency on silent/lossless.c (why does lossless live inside silent??)
+// This is just to get it included for 200D, don't try to use lossless modes.
+extern WEAK_FUNC(ret_minus1) int lossless_compress_raw_rectangle(struct memSuite * dst_suite, void * src,
+                                                                 int src_width, int src_x, int src_y,
+                                                                 int width, int height);
+extern WEAK_FUNC(ret_1) int lossless_init();
+
 /* camera-specific tricks */
 static int cam_eos_m = 0;
 static int cam_5d2 = 0;
@@ -264,7 +271,7 @@ static int raw_digital_gain_ok()
 #define indicator_display (show_graph ? INDICATOR_RAW_BUFFER : get_global_draw() ? INDICATOR_IN_LVINFO : INDICATOR_ON_SCREEN)
 
 /* state variables */
-static struct semaphore * settings_sem = 0;
+static struct semaphore *settings_sem = NULL;
 
 /* fixme: resolution parameters are updated from multiple tasks */
 /* (though they do not run all at the same time) */
@@ -1490,8 +1497,10 @@ void realloc_buffers()
     srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
     info_led_off();
 
-    printf("Shoot memory: %s\n", shoot_mem_suite ? format_memory_size(shoot_mem_suite->size) : "N/A");
-    printf("SRM memory: %s\n", srm_mem_suite ? format_memory_size(srm_mem_suite->size) : "N/A");
+    if (shoot_mem_suite != NULL)
+        printf("Shoot memory: %s\n", shoot_mem_suite ? format_memory_size(shoot_mem_suite->size) : "N/A");
+    if (srm_mem_suite != NULL)
+        printf("SRM memory: %s\n", srm_mem_suite ? format_memory_size(srm_mem_suite->size) : "N/A");
 }
 
 /* internal memory management - allocate frame slots and fullsize raw buffers
@@ -2554,6 +2563,9 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
     SetHPTimerNextTick(last_expiry, LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
 
     /* this routine requires LCLK enabled */
+    // SJE FIXME this MMIO seems the same on 200D and old cams,
+    // but it should still be turned into a named constant or something.
+    // See usage near string "hSemSio[channel]" by both 200D and 5D3.
     if (!(MEM(0xC0400008) & 0x2))
     {
         return;
@@ -2735,9 +2747,9 @@ static void compress_task()
             edmac_active = 1;
             edmac_copy_rectangle_cbr_start(
                 (void*)out_ptr, fullSizeBuffer,
-                raw_info.pitch,
-                (skip_x+7)/8*BPP, skip_y/2*2,
-                res_x*BPP/8, 0, 0, res_x*BPP/8, res_y,
+                raw_info.pitch, (skip_x+7)/8*BPP, skip_y/2*2,
+                res_x*BPP/8, 0, 0,
+                res_x*BPP/8, res_y,
                 &edmac_cbr_r, &edmac_cbr_w, NULL
             );
         }
@@ -2939,6 +2951,10 @@ static char* get_next_raw_movie_file_name()
 static char* get_next_chunk_file_name(char* base_name, int chunk)
 {
     static char filename[100];
+    if (base_name == NULL)
+    {
+        return NULL;
+    }
 
     /* change file extension, according to chunk number: RAW, R00, R01 and so on */
     snprintf(filename, sizeof(filename), "%s", base_name);
@@ -2966,6 +2982,8 @@ static REQUIRES(RawRecTask)
 void init_mlv_chunk_headers(struct raw_info * raw_info)
 {
     mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+    if (raw_info == NULL)
+        return;
     
     memset(&file_hdr, 0, sizeof(mlv_file_hdr_t));
     mlv_init_fileheader(&file_hdr);
@@ -3306,6 +3324,10 @@ void raw_video_rec_task()
 
     /* create output file */
     raw_movie_filename = get_next_raw_movie_file_name();
+    if (raw_movie_filename == NULL)
+    {
+        goto cleanup;
+    }
     chunk_filename = raw_movie_filename;
     f = FIO_CreateFile(raw_movie_filename);
     if (!f)
@@ -4311,7 +4333,7 @@ static unsigned int raw_rec_init()
 
     lossless_init();
 
-    settings_sem = create_named_semaphore(0, 1);
+    settings_sem = create_named_semaphore(NULL, 1); // initially unlocked
 
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
 
