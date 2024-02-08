@@ -125,6 +125,9 @@
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x2a9c000   /* print it from srm_malloc_cbr */
 
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xd0058000 // channel 24
+#define SHAD_GAIN_REGISTER 0xd0008030 // plausible looking from ROM code, though untested
+
 //#define MALLOC_FREE_MEMORY 0
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
