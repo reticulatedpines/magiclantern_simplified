@@ -142,6 +142,8 @@ void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
     hdr->tm_gmtoff = now.tm_gmtoff;
 
     memset(hdr->tm_zone, 0x00, 8);
+    if (now.tm_zone == NULL)
+        return;
     strncpy((char *)hdr->tm_zone, now.tm_zone, 8);
 }
 
