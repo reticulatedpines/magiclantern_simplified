@@ -2,6 +2,7 @@
 #define _edmac_c
 
 #include "module.h"
+#include "compiler.h" // for SIZE_CHECK_STRUCT
 
 #define EDMAC_WRITE_0  0
 #define EDMAC_WRITE_1  1
