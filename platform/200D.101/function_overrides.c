@@ -94,10 +94,12 @@ void _EngDrvOut(uint32_t reg, uint32_t value)
     return;
 }
 
+/*
 uint32_t shamem_read(uint32_t addr)
 {
     return 0;
 }
+*/
 
 void _engio_write(uint32_t* reg_list)
 {
