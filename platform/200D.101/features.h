@@ -45,6 +45,10 @@
 // optionally sticky halfshutter
 #define FEATURE_STICKY_HALFSHUTTER
 
+// These two needed to enable mlv_lite
+#define FEATURE_PICSTYLE
+#define CONFIG_RAW_LIVEVIEW
+
 // enable global draw
 #define FEATURE_GLOBAL_DRAW
 #define FEATURE_CROPMARKS
