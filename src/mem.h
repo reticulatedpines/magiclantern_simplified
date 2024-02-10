@@ -104,7 +104,7 @@ extern uint32_t shamem_read(uint32_t addr);
 #define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
 #else
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) | (((uint32_t)(x)) < 0x40000000 ?  0x40000000 : 0)))
 #define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
 #endif
 
