@@ -2339,6 +2339,13 @@ static void raw_lv_enable()
     lv_raw_enabled = 1;
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
+#ifdef CONFIG_DIGIC_VIII
+    // sets output to RAW, default is YUV
+    call("lv_set_mm", 1);
+    // This is not needed (for now?) seems to set where in processing path the data is sourced.
+    // Defaults to 0, SAP::HEAD
+    //call("lv_set_raw_wp", 0);
+#endif
     call("lv_save_raw", 1);
 #endif
 
