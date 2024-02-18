@@ -44,6 +44,8 @@ def main():
 
 def convert_14_to_16(buf):
     image_bytes = np.frombuffer(buf, dtype=np.ubyte)
+    # ensure divisible by 2 for dtype change
+    image_bytes = extend_np_array(image_bytes, 2)
 
     image_bytes.dtype = np.uint16
     image_bytes = image_bytes.byteswap()
