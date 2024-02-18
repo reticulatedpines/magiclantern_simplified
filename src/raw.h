@@ -41,14 +41,26 @@
 /**
 * 14-bit encoding:
 
-hi          lo
-aaaaaaaaaaaaaabb
-bbbbbbbbbbbbcccc
-ccccccccccdddddd
-ddddddddeeeeeeee
-eeeeeeffffffffff
-ffffgggggggggggg
-gghhhhhhhhhhhhhh
+hi             lo
+aaaaaaaa aaaaaabb
+bbbbbbbb bbbbcccc
+cccccccc ccdddddd
+dddddddd eeeeeeee
+eeeeeeff ffffffff
+ffffgggg gggggggg
+gghhhhhh hhhhhhhh
+
+The above is 16 bit big endian.
+Linear bytes in a file look like this:
+aaaaaabb aaaaaaaa
+bbbbcccc bbbbbbbb
+ccdddddd cccccccc
+eeeeeeee dddddddd
+ffffffff eeeeeeff
+gggggggg ffffgggg
+hhhhhhhh gghhhhhh
+
+Which better explains the layout of the following raw_pixblock struct.
 */
 
 #ifndef _raw_h_
