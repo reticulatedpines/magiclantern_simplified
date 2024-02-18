@@ -13,8 +13,7 @@ MAX_ASPECT = 20
 def main():
     args = parse_args()
 
-#    image_bytes = np.fromfile(args.filename, dtype=np.ubyte)
-    image_bytes = np.fromfile(args.filename, dtype=np.uint16)
+    image_bytes = np.fromfile(args.filename, dtype=np.ubyte)
 
     top_20_dims = get_size_guesses(image_bytes)
     # filter out outlandish aspect ratios
