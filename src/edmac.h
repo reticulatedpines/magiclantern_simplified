@@ -48,6 +48,27 @@
 #define EDMAC_4_BYTES_PER_TRANSFER          0x40000000
 #define EDMAC_2_BYTES_PER_TRANSFER          0x20000000
 
+#if defined(CONFIG_DIGIC_8X)
+struct edmac_info
+{
+    // Extra "S" fields, probably 3rd dimension?
+    unsigned int off1s; //D8+
+    unsigned int off1a;
+    unsigned int off1b;
+    unsigned int off2s; //D8+
+    unsigned int off2a;
+    unsigned int off2b;
+    unsigned int off3;
+    unsigned int xs; //D8+
+    unsigned int xa;
+    unsigned int xb;
+    unsigned int ys; //D8+
+    unsigned int ya;
+    unsigned int yb;
+    unsigned int xn;
+    unsigned int yn;
+};
+#else
 struct edmac_info
 {
     unsigned int off1a;
@@ -62,17 +83,48 @@ struct edmac_info
     unsigned int xn;
     unsigned int yn;
 };
+#endif
 
-// For some more, not terribly clear info, see:
+
+// This represents an EDmac "channel", also called a "port"
+// from Digic 8 onwards.  These are very likely not really 0x100
+// in size, probably the DMA controller aligns to this value
+// for hardware reasons.  I sized it that way to allow easy
+// pointer increment, etc.
+#if defined(CONFIG_DIGIC_8X)
+// Digic 8 uses a new EDMAC controller.
+struct edmac_mmio
+{
+    uint32_t unk_01[0xb];
+    uint32_t ModeInfo;
+    uint32_t unk_02[0x3];
+    uint32_t cbr_registered;
+    uint32_t unk03[0x2];
+    uint32_t ys_xs;
+    uint32_t ya_xa;
+    uint32_t yb_xb;
+    uint32_t yn_xn;
+    uint32_t off1s;
+    uint32_t off2s;
+    uint32_t off1a;
+    uint32_t off2a;
+    uint32_t off1b;
+    uint32_t off2b;
+    uint32_t off3;
+    uint32_t unk_04[0xb];
+    uint32_t ram_addr;
+    uint32_t unk_05[0x7];
+    uint32_t trasfer_mode;
+    uint32_t unk_06[0x3];
+    uint32_t PackUnpackInfo;
+    uint32_t unk_07[0xb]; // some of this is padding, but I don't know how much
+};
+#else
+// For some more, not terribly clear info on pre-DIGIC8, see:
 // https://magiclantern.fandom.com/wiki/Register_Map#EDMAC
 // near "SDRAM destination offset"
 struct edmac_mmio
 {
-    // This represents an EDmac "channel", also called a "port"
-    // from Digic 8 onwards.  These are very likely not really 0x100
-    // in size, probably the DMA controller aligns to this value
-    // for hardware reasons.  I sized it that way to allow easy
-    // pointer increment, etc.
     uint32_t dma_state;
     uint32_t dma_flags;
     uint32_t ram_addr;
@@ -92,6 +144,7 @@ struct edmac_mmio
     uint32_t fencing_related_maybe;
     uint32_t unk_04[0x2f]; // some of this is padding, but I don't know how much
 };
+#endif
 SIZE_CHECK_STRUCT(edmac_mmio, 0x100);
 
 void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
