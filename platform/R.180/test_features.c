@@ -109,6 +109,19 @@ static MENU_UPDATE_FUNC(temp_display)
 extern void DISP_SetHighLight(int);
 int highlight_flag = 0;
 
+/*
+ * This could be controlled directly via code below:
+ *  #define D8_ZEBRA_EN_REG 0xD0304220
+ *  #define D8_ZEBRA_EN_R_OFF 0x2000
+ *  #define D8_ZEBRA_EN_R_MASK 0x100
+ *  #define D8_ZEBRA_THRESHOLD_REG 0xD0304488
+ *  #define D8_ZEBRA_COLOUR_REG 0xD030448C
+ *
+ *  // turns on highlights
+ *  *(uint*)D8_ZEBRA_COLOUR_REG = 0x00008080;
+ *  *(uint*)D8_ZEBRA_THRESHOLD_REG = 0x800700FF;
+ *  *(uint*)D8_ZEBRA_EN_REG = 0x100;
+ */
 static void overexpo_toggle()
 {
     highlight_flag = !highlight_flag;
