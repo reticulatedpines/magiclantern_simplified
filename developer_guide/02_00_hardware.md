@@ -19,17 +19,27 @@ Also see:\
 [https://en.wikipedia.org/wiki/DIGIC](https://en.wikipedia.org/wiki/DIGIC)\
 [https://wiki.magiclantern.fm/digic](https://wiki.magiclantern.fm/digic)
 
-#### Main CPU(s)
+#### "Supervisor" CPU (MPU)
 
-The main CPU, from an ML perspective, is termed the ICU.  Our code runs here.  A lot of DryOS code runs here, also.  An important secondary CPU is termed the MPU.  An approximate split of their duties is that the ICU handles UI and CPU intensive tasks, while the MPU handles low-level tasks such as battery management, switch and button handling.  In some senses, the MPU is the primary CPU: it is responsible for detecting power on events and bringing the ICU up.  The MPU is also responsible for turning the cam off should e.g., the battery door be opened.
+An important CPU is termed the MPU. It is present in most if not all of DSLRs, and DSLR-based mirrorless models.  In the past it's (lack of) presence combined with "firmware flavour" was the distinction between DSLR-style models (covered by Magic Lantern) and point-and-shots, covered by CHDK project.
+
+MPU runs DryOS, like the Main CPU. Its architecture changed at least 3 times over the years. We don't run any custom code there.
+
+An approximate split of duties is that the ICU handles UI and CPU intensive tasks, while the MPU handles low-level tasks such as battery management, switch and button handling.  In some senses, the MPU is the primary CPU: it is responsible for detecting power on events and bringing the ICU up.  The MPU is also responsible for turning the cam off should e.g., the battery door be opened. 
+
+MPU-less models use a simplified approach, where a small controller IC (in SX70/SX740 identified to be Cortex M0) is responsible only of low level power handling.  In those cameras "traditional MPU" tasks are handled directly on Main CPU.
+
+Since Digic 8 Canon merged both software stacks into one, based on DSLR variant - but two distinct hardware designs remain.  For this reason we still call those "PowerShots", from their hardware legacy.  Examples of this category are EOS M50, PowerShot SX740 and SX70.
+
+#### Main CPU (ICU)
+
+The main CPU, from an ML perspective, is termed the ICU.  Our code runs here.  A lot of DryOS code runs here, also.
 
 There are three main families of ARM used across Digic gens that we care about.  D45 uses ARMv5TE.  D6 uses ARMv7-R.  This has a Memory Protection Unit (MPU!  But not the same MPU as above).  D78X use ARMv7-A and have a full MMU.
 
-D45 are single core parts.
-
-D6 are less well understood.  There's a Master and Slave CPU, both ARMv7-R.  These might be on the same chip.
-
-D78X parts are true dual-core, with shared RAM.  They have ARM GIC and can communicate in a standard manner via interrupts.  In addition, DryOS provides at least two RPC mechanisms.
+ - D45 are single core parts.
+ - D6 are less well understood.  There's a Master and Slave CPU, both ARMv7-R.  These might be on the same chip.
+ - D78X parts are true dual-core, with shared RAM.  They have ARM GIC and can communicate in a standard manner via interrupts.  In addition, DryOS provides at least two RPC mechanisms.
 
 Some cams are described by Canon as Dual Digic.  E.g. the 7D Mark II, which has two independent Digic 6 ASICs.  This probably makes it somewhat equivalent to a dual-socket, dual-core system.
 
@@ -43,12 +53,14 @@ Points of note:
 - D45 can use cache locking to "edit" instructions in code ROM
 - D78X have MMU so can "edit" large regions of code ROM
 - D6 doesn't have a proven way to "edit" ROM
+- Dual-core ICUs run single OS instance dual core.
+- In dual/triple ICU configurations, each ICU runs own separate OS instance.
 
-#### Secondary processors
+#### Secondary cores and processors
 
-There are further processors for specialised tasks.  Since these are utilised via APIs and / or message passing, their internals are poorly understood.
+There are further cores for specialised tasks.  Since these are utilised via APIs and / or message passing, their internals are poorly understood.  Most of those run separate instances of DryOS.
 
-Tasks that are performance critical (either throughput or latency) may run on some accelerator.  E.g., JPEG compression, video compression.  These are likely ASICs, though there are signs that FPGAs are used in some generations.  Possibly, early implementations use FPGA, which are later converted to ASICs.
+Tasks that are performance critical (either throughput or latency) may run on some accelerator.  E.g., JPEG compression, video compression.  These are likely ASICs, though there are signs that external FPGAs are used in some generations.  Possibly, early implementations use FPGA, which are later converted to ASICs.
 
 Cams with integrated networking typically delegate this to another part.  On D78X this is Xtensa ISA and internally named "Lime".  The ICU can command Lime, which, presumably, directly controls some WiFi SoC.
 
