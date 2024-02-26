@@ -15,9 +15,9 @@ Digic exists in many generations, with ML having good support for Digic 4 and 5.
 
 This document may use D4 to indicate Digic 4, or D678 to indicate any generation from 6 to 8, inclusive - or other similar constructions.
 
-Also see:
-<a>https://en.wikipedia.org/wiki/DIGIC</a>
-<a>https://wiki.magiclantern.fm/digic</a>
+Also see:\
+[https://en.wikipedia.org/wiki/DIGIC](https://en.wikipedia.org/wiki/DIGIC)\
+[https://wiki.magiclantern.fm/digic](https://wiki.magiclantern.fm/digic)
 
 #### Main CPU(s)
 
