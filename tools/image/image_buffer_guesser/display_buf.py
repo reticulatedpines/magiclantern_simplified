@@ -2,6 +2,7 @@
 
 import os
 import argparse
+import functools
 
 import cv2
 import numpy as np
@@ -9,7 +10,7 @@ import numpy as np
 import width_guesser
 import convert_14_to_16
 
-MAX_ASPECT = 30
+MAX_ASPECT = 60
 MAX_DISPLAY_WIDTH = 1920
 
 
@@ -32,61 +33,63 @@ def main():
     best_yuv = [x for x in top_20_yuv if ((max(x[0], x[1]) // min(x[0], x[1]) < MAX_ASPECT))]
     best_bayer = [x for x in top_20_bayer if ((max(x[0], x[1]) // min(x[0], x[1]) < MAX_ASPECT))]
     
-    print("Top 4 guesses for RGB w*h: %s" % best_rgb[:4])
-    buf_rgb_w_h = None
-    if (best_rgb):
-        buf_rgb_w_h = best_rgb[0] # (w, h) tuple
+    bufs = [{"top_4": best_rgb[:4],
+             "desc": "24bpp RGB",
+             "bgr_func": functools.partial(bgr_from_rgb, buf_8)},
+            {"top_4": best_yuv[:4],
+             "desc": "16bpp YUV",
+             "bgr_func": functools.partial(bgr_from_yuv, buf_8)},
+            {"top_4": best_bayer[:4],
+             "desc": "42bpp Bayer",
+             "bgr_func": functools.partial(bgr_from_bayer, buf_16)},
+            ]
 
-    print("Top 4 guesses for YUV w*h: %s" % best_yuv[:4])
-    buf_yuv_w_h = None
-    if (best_yuv):
-        buf_yuv_w_h = best_yuv[0]
+    for b in bufs:
+        print("Top 4 guesses for %s, w*h: %s" % (b["desc"], b["top_4"]))
 
-    print("Top 4 guesses for Bayer w*h: %s" % best_bayer[:4])
-    buf_bayer_w_h = None
-    if (best_bayer):
-        buf_bayer_w_h = best_bayer[0]
+    bufs = [b for b in bufs if b["top_4"]]
 
-    # convert each to BGR
-    rgb = None
-    if (buf_rgb_w_h):
-        rgb = bgr_from_rgb(buf_8, buf_rgb_w_h[0])
-        if buf_rgb_w_h[0] > MAX_DISPLAY_WIDTH:
-            ratio = buf_rgb_w_h[1] / buf_rgb_w_h[0]
-            rgb = cv2.resize(rgb, (MAX_DISPLAY_WIDTH, int(MAX_DISPLAY_WIDTH * ratio)))
+    # Allow user to select between decodings and w*h guesses
+    # with wasd
+    buf_i = 0
+    dims_i = 0
+    while True:
+        b = bufs[buf_i]
+        w_h = bufs[buf_i]["top_4"][dims_i]
 
-    yuv = None
-    if (buf_yuv_w_h):
-        yuv = bgr_from_yuv(buf_8, buf_yuv_w_h[0])
-        if buf_yuv_w_h[0] > MAX_DISPLAY_WIDTH:
-            ratio = buf_yuv_w_h[1] / buf_yuv_w_h[0]
-            yuv = cv2.resize(yuv, (MAX_DISPLAY_WIDTH, int(MAX_DISPLAY_WIDTH * ratio)))
+        bgr = b["bgr_func"](w_h[0])
 
-    bayer = None
-    if (buf_bayer_w_h):
-        bayer = bgr_from_bayer(buf_16, buf_bayer_w_h[0])
-        if buf_bayer_w_h[0] > MAX_DISPLAY_WIDTH:
-            ratio = buf_bayer_w_h[1] / buf_bayer_w_h[0]
-            bayer = cv2.resize(bayer, (MAX_DISPLAY_WIDTH, int(MAX_DISPLAY_WIDTH * ratio)))
+        if w_h[0] > MAX_DISPLAY_WIDTH:
+            ratio = w_h[1] / w_h[0]
+            bgr = cv2.resize(bgr, (MAX_DISPLAY_WIDTH, int(MAX_DISPLAY_WIDTH * ratio)))
 
-    # if multiple plausible width guesses,
-    # cycle on key press?
+        print("Showing " + b["desc"]
+              + ": %d * %d" % (w_h[0], w_h[1]))
+        cv2.imshow("frame", bgr)
 
-    if (rgb is not None):
-        print("Showing 24bpp RGB")
-        cv2.imshow("frame", rgb)
-        cv2.waitKey()
-
-    if (yuv is not None):
-        print("Showing 16bpp YUV")
-        cv2.imshow("frame", yuv)
-        cv2.waitKey()
-
-    if (bayer is not None):
-        print("Showing 42bpp Bayer")
-        cv2.imshow("frame", bayer)
-        cv2.waitKey()
-
+        # wasd keys control what is displayed,
+        # anything else exits
+        key = chr(cv2.waitKey(0) & 0xff)
+        if key not in ['w', 'a', 's', 'd']:
+            exit(0)
+        else:
+            if key == 'w':
+                buf_i += 1
+                if buf_i == len(bufs):
+                    buf_i = 0
+            elif key == 's':
+                buf_i -= 1
+                if buf_i < 0:
+                    buf_i = len(bufs) - 1
+            elif key == 'd':
+                dims_i += 1
+                if dims_i == len(b["top_4"]) - 1:
+                    dims_i = 0
+            elif key == 'a':
+                dims_i -= 1
+                if dims_i < 0:
+                    dims_i = len(b["top_4"]) - 1
+            
 
 def bgr_from_bayer(buf, width):
     # expects a buf composed of uint16s
@@ -121,6 +124,7 @@ def bgr_from_yuv(buf, width):
     # Reshape for display
     buf2 = buf2.swapaxes(0, 1)
     buf2 = buf2.reshape(-1, width, 2)
+    buf2 = buf2 * 4
 
     return cv2.cvtColor(buf2, cv2.COLOR_YUV2BGR_UYVY)
 
@@ -150,14 +154,19 @@ def extend_np_array(buf, factor):
 
 def parse_args():
     description = """
-    Attempts to guess dimensions of dumped data,
-    displaying as RGB, YUV and Bayer.
+Attempts to guess dimensions of dumped data,
+displaying as RGB, YUV and Bayer.
 
-    Useful for quickly checking unknown data
-    that you hope is an image.
-    """
+Useful for quickly checking unknown data
+that you hope is an image.
 
-    parser = argparse.ArgumentParser(description=description)
+WASD controls.  WS cycle through decoding modes,
+AD through guessed resolutions.  Any other key
+to exit.
+"""
+
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("filename",
                         help="image buffer dump")
@@ -165,7 +174,7 @@ def parse_args():
     args = parser.parse_args()
     if not os.path.isfile(args.filename):
         print("file didn't exist: '%s'" % args.filename)
-        exit()
+        exit(-1)
 
     return args
 
