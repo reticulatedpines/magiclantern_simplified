@@ -383,8 +383,7 @@ DATA_PTR(    0x412c,  task_dispatch_hook)
 //NSTUB(    0x7674,  mvr_config)
 //NSTUB(0xC0220000,  camera_engine)
 //NSTUB(0xDEADBEEF,  ErrCardForLVApp_handler)
-NSTUB(0x56500000,  PlayMovieGuideApp_handler) // needed for CONFIG_QEMU, unknown
-                                              // SJE FIXME
+NSTUB(0xe04d669e,  PlayMovieGuideApp_handler) // "StartPlayMovieGuideApp" string, address passed to CreateDialogBox
 DATA_PTR(    0xe731,  additional_version) // this gets written to in early code.  Pick a safe area!
 //NSTUB(0xFF8542C4,  PowerAudioOutput)
 //NSTUB(0xFF85460C,  SetAudioVolumeOut)
