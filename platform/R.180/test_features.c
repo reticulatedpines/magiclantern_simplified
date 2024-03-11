@@ -29,9 +29,6 @@
 #include <property.h>
 #include <bmp.h>
 
-// random props I found
-#define PROP_BATTERY_CHECK 0x8030013
-
 /*
  * Temperature monitoring.
  * See props registerd in TempSvc task (e01ae332). Names come from function
@@ -62,11 +59,6 @@ uint32_t rawTempToDegrees(uint raw)
     return ((((raw - 0x80) << 0x14) / 0x10000) - 8) >> 4;
 }
 
-void printTemp(char * msg, uint32_t raw)
-{
-    uint32_t tmp = rawTempToDegrees(raw);
-}
-
 PROP_HANDLER(PROP_R_TEMP_SH)
 {
     eosr_temperatures[0] = rawTempToDegrees(buf[0]);
@@ -94,7 +86,7 @@ PROP_HANDLER(PROP_R_TEMP_BACK)
 
 static MENU_UPDATE_FUNC(temp_display)
 {
-    int sensor_id = (int) entry->priv;
+    uint32_t sensor_id = (uint32_t) entry->priv;
     if (sensor_id >= sizeof(eosr_temperatures))
       return;
 
