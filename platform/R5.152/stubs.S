@@ -40,7 +40,7 @@ THUMB_FN(0xe0272a60,  create_init_task)                     // call from cstart(
 THUMB_FN(0xe010021e,  init_task)                            // 2nd param to create_init_task(); xrefs strings like USER_MEM size checking, dmSetup, termDriverInit...
 
 /** Startup - Digic X specials **/
-THUMB_FN(0xE0005B79,  reinit_autoexec_memory)               // called from 1st stage loader, just before decision where to jump next.
+THUMB_FN(0xE0005B79,  fixup_boot_memory)                    // called from 1st stage loader, just before decision where to jump next.
 
 /** Tasks **/
 DATA_PTR(    0x1010,  current_interrupt)                    // DryosDebugMsg() prints "TASK Name:Interrupt" and "Vector:0x%l", argument to 2nd print.

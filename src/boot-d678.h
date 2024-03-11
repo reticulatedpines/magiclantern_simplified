@@ -72,4 +72,11 @@ struct dryos_init_info
 };
 #endif
 
+#ifdef CONFIG_FIXUP_BOOT_MEMORY
+    extern void fixup_boot_memory(void);
+#endif
+
+
+
 #endif // __BOOT_D678_H
+

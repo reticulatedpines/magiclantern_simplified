@@ -46,6 +46,11 @@
   #define CONFIG_NEW_DRYOS_TASK_HOOKS
 #endif
 
+#ifdef CONFIG_DIGIC_X
+  /* DX models will crash on boot otherwise - see boot-d678.c */
+  #define CONFIG_FIXUP_BOOT_MEMORY
+#endif
+
 #if defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678X)
   /* Assuming all recent models use REC.709 */
   /* TODO: need a trained eye to check :) */

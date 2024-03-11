@@ -117,23 +117,53 @@ static void my_bzero32(void *buf, size_t len)
 
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
-#ifdef CONFIG_DIGIC_X
-    // DIGIC X re-use the same memory range for coprocessors and autoexec.bin
+#ifdef CONFIG_FIXUP_BOOT_MEMORY
+    // DIGIC X (and 8?) re-use the same memory range for coprocessors and autoexec.bin
+    // This leads into unexpected behaviour (camera crashes), as described below.
     //
-    // On regular first stage boot, that memory chunk is initialized, then
-    // decision is made where to go next: autoexex, firmware update, fromutil,
-    // main firmware...
+    // DIGIC has multiple secondary cores, those depends on Digic generation.
+    // There are some cores related to networking, graphic acceleration, etc.
     //
-    // If any file is loaded from card, it not only uses that buffer to load,
-    // but Canon code also erases all unused part of a buffer.
+    // There's also a group of cores related to lens communication, IBIS, etc.
+    // Canon names: Shirahama, Arima, Kutatsu (DX only). They refer to those as CamIF.
     //
-    // This call executes the function that originally initializes that memory.
+    // On Digic 6 and 7 models, CamIF cores (Shirahama, Arima, Kutatsu) were initialized
+    // by DryOS, like other cores. On D8 and newer models this initialization was moved
+    // before DryOS loader ( firmware_entry() ) is even executed or autoexec.bin loaded.
+    //
+    // Secondary cores seems to use memory range close to 0x4100_0000 - 0x4300_0000
+    // as a shared memory with main core where we run on.
+    //
+    // =====
+    //
+    // Now here's what we believe to be a non-intentional Canon bug:
+    //
+    // Bootloader loads autoexec.bin at 0x4080_0000. Up to, and including early
+    // Digic 8 it just loaded the file and jump code execution there.
+    //
+    // Somewhere near 250D/850D bootloader got updated. Now there's a maximum
+    // file size check in place. And additionally, whole buffer starting from
+    // 0x4080_0000 to max file size is erased when autoexec.bin is loaded.
+    //
+    // This is not an issue on Digic 8 models as buffer size doesn't interfere
+    // with anything. However on Digic X buffer size increased, conflicting with
+    // CamIF core regions described before.
+    // Thus, if you run autoexec.bin - CamIF region gets wiped just after it was
+    // initialized.
+    //
+    // We have hard evidence that DX models require this re-init. Without this, camera
+    // crashes early in DryOS (after we transfer to Canon init task). Crash comes from
+    // CamIF subsystem - Shirahama and/or Kutatsu cores "die".
+    // However on EOS R (D8) calling this function results in a hard lock.
+    //
+    // =====
+    //
+    // This call executes the function that initializes CamIF cores.
     // Call is required here (and not in reboot.c) for safety reasons - reboot.c
     // runs still from buffer in question.
-    // Here we already run from relocated code, so it is safe to reinitialize
-    // memory.
-    extern void reinit_autoexec_memory(void);
-    reinit_autoexec_memory();
+    //
+    // Here we already run from relocated code, so it is safe to reinitialize memory.
+    fixup_boot_memory();
 #endif
 
     // We wrap Canon's create_init_task, allowing us to modify the
