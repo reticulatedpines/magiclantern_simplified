@@ -19,6 +19,7 @@
 #define SIG_1100D_105 0x46de7624 // from FF010000
 #define SIG_6D_116   0x11cb1ed2 // from FF0C0000
 #define SIG_6D2_105  0x0c042362 // from E0040000
+#define SIG_6D2_111  0x7dc0d132 // from E0040000
 #define SIG_5D3_113  0x2e2f65f5 // from FF0C0000
 #define SIG_5D3_123  0x672EEACE // from FF0C0000
 #define SIG_EOSM_202 0x2D7c6dcf // from FF0C0000

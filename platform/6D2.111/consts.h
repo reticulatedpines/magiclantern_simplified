@@ -1,35 +1,34 @@
 /*
- *  6D2 1.0.5 consts
+ *  6D2 1.1.1 consts
  */
 
 
 // Divided into sections to show confidence in the found value.
 
 // High confidence:
-#define HALFSHUTTER_PRESSED (*(int *)0x53f8) // Found via function 0xe009600c with refs to strings "cam event metering start",
+#define HALFSHUTTER_PRESSED (*(int *)0x53f8) // Found via function 0xe0096010 with refs to strings "cam event metering start",
                                              // "MeteringStart" and similar
-#define DRYOS_ASSERT_HANDLER 0x4000 // Used early in debug_assert()
+#define DRYOS_ASSERT_HANDLER 0x4000 // Used early in debug_assert() (0xe0617620)
 #define CURRENT_GUI_MODE (*(int*)0x6760) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
 
-// FIXME: this should follow the conditional definition to handle LV etc, see other cams
-#define GUIMODE_ML_MENU 3
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 9
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)
+// In 200D.101 this is valid from case 0x4E to case 0x5B
+// skip RECORDING variant for now
+#define GUIMODE_ML_MENU (lv ? 0x4E : GUIMODE_PLAY)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x4E : GUIMODE_MENU)
 
 // Medium confidence:
-#define DISPLAY_SENSOR_POWERED (*(int *))(0xcadc) // From 0xe0177a5e
-#define DISPLAY_IS_ON (*(int *)0xcaec) // unsure if this is backlight, menu, or what.
-                                       // But seems when I can view menu, it's 1, when I can't it's 0.
-                                       // See 0xe0177922, which looks to check other variables
-                                       // to see when screen should be turned on or off?
-                                       //
-                                       // Should probably do more work to find a value via a similar
-                                       // route to other cams.
-#define MALLOC_STRUCT 0x6702c // via malloc_info(), the call inside the main if block
+#define DISPLAY_SENSOR_POWERED (*(int *))(0xcadc) // From 0xe0177ae4
+#define DISPLAY_IS_ON (*(int *)0xcb28) // from func with "[DLIC] EnableDLIC",
+                                       // should be 2 when display on, in Menu, LV and Play modes.
+#define MALLOC_STRUCT 0x6702c // via malloc_info() (see 0xe02898d8), the call inside the main if block
                               // initialises a struct and MALLOC_STRUCT itself is a short
                               // distance away.
 
-#define GMT_FUNCTABLE 0xe0836ab8
+#define GMT_FUNCTABLE 0xe0836ef4
 #define GMT_NFUNCS 0x7
 
 #define LVAE_STRUCT 0x7f6f4 // eg see 0xe02ccc1e for Tv, Av, ISO found via string search on EP_SetControlParam
@@ -42,8 +41,8 @@
 #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0x0))  // offset 0x0; at 3 it changes iso very slowly
                                                          // SJE: assuming the 0 offset is correct, not sure on this one.
                                                          // But see e02ce0c8, where r4 <- 0x86308, then [r4] <- 0
-#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // string: ISOMin:%d
-#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // 10DFC 88 ISO LIMIT
+//#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // string: ISOMin:%d
+//#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // 10DFC 88 ISO LIMIT
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x44)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0xXX)) // lvae_setmoviemanualcontrol, possibly EP_SetMovieManualExp below?
 // others found but maybe not needed:
@@ -68,7 +67,7 @@
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "FUNC"
+#define Q_BTN_NAME "[Q]"
 
 // Low confidence:
 #define MIN_MSLEEP 11
@@ -88,13 +87,17 @@
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-#define YUV422_LV_BUFFER_1 0x41B00000
-#define YUV422_LV_BUFFER_2 0x5C000000
-#define YUV422_LV_BUFFER_3 0x5F600000
+#define YUV422_LV_BUFFER_1 0x7f3e9600 // these three from srmGetShootMemAreaAddress()
+#define YUV422_LV_BUFFER_2 0x7f7eec00
+#define YUV422_LV_BUFFER_3 0x7fbf4200
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
+
+// See malloc_info, func with "Malloc Information" string, but be aware
+// there are two malloc related structs.  One appears to be kernel level and is used inside
+// the function malloc_info calls, at e0301470.  This is the one we care about.
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
-//#define MALLOC_FREE_MEMORY 0
+
 // below definitely wrong, just copied from 50D
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
 #define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
@@ -149,7 +152,6 @@
 #define PTR_USER_MEM_SIZE           0xE00401D0   /* easier to patch the size; start address is computed */
 #define PTR_SYS_OFFSET              0xe00401c8   // offset from DryOS base to sys_mem start
 #define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
-#define PTR_DRYOS_BASE              0xe00401b4
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
