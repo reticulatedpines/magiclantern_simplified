@@ -195,6 +195,8 @@ static void mem_benchmark_run(char *msg, int *y, int bufsize,
         bmp_printf(FONT_MONO_20, 0, *y += 20, "%s   %4d.%02d MB/s     (test skipped)       ",
                    msg, speeds[1]/100, speeds[1]%100);
     }
+    DryosDebugMsg(0, 15, "%s %4d.%02d MB/s %4d.%02d MB/s",
+                  msg, speeds[1]/100, speeds[1]%100, speeds[0]/100, speeds[0]%100);
 
     display_on();
 
@@ -228,6 +230,96 @@ static void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3
 
     /* careful - do not mix cacheable and uncacheable pointers unless you know what you are doing */
     edmac_copy_rectangle_adv(UNCACHEABLE(idle), UNCACHEABLE(real), 960, 0, 0, 960, 0, 0, 720, 480);
+}
+
+static void mem_benchmark_simple_task()
+{
+    // A simple, fast test, to indicate highest speed possible
+    // for different copy subsystems
+    //
+    // memcpy: DryOS memcpy
+    // memcpy64: ML memcpy64 in stdio.c
+    // dma_memcpy: DryOS dma_memcpy
+    // DMA unit
+    // EDMAC unit
+
+    msleep(500);
+
+    if (!lv)
+    {
+        /* run the benchmark in either LV on PLAY mode */
+        /* (photo mode is not very interesting) */
+        enter_play_mode();
+    }
+
+    canon_gui_disable_front_buffer();
+    clrscr();
+    print_benchmark_header();
+
+    int bufsize = 1*1024*1024;
+
+    void *buf1, *raw_buf1 = NULL;
+    void *buf2, *raw_buf2 = NULL;
+    uint32_t align = 0x1000;
+    raw_buf1 = fio_malloc(bufsize + align);
+    raw_buf2 = fio_malloc(bufsize + align);
+
+    // these casts are ugly and kind of dumb, uint32_t * should always
+    // be aligned to sizeof(uint32_t) but whatever
+    buf1 = raw_buf1;
+    if ((uint32_t)raw_buf1 % align != 0)
+        buf1 = (void *)((uint32_t)raw_buf1 + (align - (uint32_t)raw_buf1 % align));
+    buf2 = raw_buf2;
+    if ((uint32_t)raw_buf2 % align != 0)
+        buf2 = (void *)((uint32_t)raw_buf2 + (align - (uint32_t)raw_buf2 % align));
+
+    if (!buf1 || !buf2)
+    {
+        bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
+        goto cleanup;
+    }
+    DryosDebugMsg(0, 15, "r_buf1, r_buf2: 0x%x, 0x%x", raw_buf1, raw_buf2);
+    DryosDebugMsg(0, 15, "buf1, buf2:     0x%x, 0x%x", buf1, buf2);
+
+    int y = 100;
+
+    mem_benchmark_run("    memcpy              ", &y, bufsize, memcpy_wrapper,
+                      (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+    mem_benchmark_run("    memcpy64            ", &y, bufsize, memcpy64_wrapper,
+                      (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+
+    if (HAS_DMA_MEMCPY)
+    {
+        mem_benchmark_run("dma_memcpy, uncache, align   ", &y, bufsize, dma_memcpy_wrapper,
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+        mem_benchmark_run("dma_memcpy, cache, align     ", &y, bufsize, dma_memcpy_wrapper,
+                          (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+        mem_benchmark_run("dma_memcpy, uncache, unalign ", &y, bufsize, dma_memcpy_wrapper,
+                          (intptr_t)UNCACHEABLE(raw_buf1), (intptr_t)UNCACHEABLE(raw_buf2), bufsize, 0, 1);
+        mem_benchmark_run("dma_memcpy, cache, unalign   ", &y, bufsize, dma_memcpy_wrapper,
+                          (intptr_t)CACHEABLE(raw_buf1), (intptr_t)CACHEABLE(raw_buf2), bufsize, 0, 1);
+    }
+
+    if (HAS_EDMAC_MEMCPY)
+    {
+        mem_benchmark_run("edmac_memcpy        ", &y, bufsize, edmac_memcpy_wrapper,
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+        mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle,
+                          0, 0, 0, 0, 0);
+    }
+
+    bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
+    bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
+
+    take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
+    msleep(1500);
+    canon_gui_enable_front_buffer(0);
+
+cleanup:
+    if (raw_buf1)
+        free(raw_buf1);
+    if (raw_buf2)
+        free(raw_buf2);
 }
 
 static void mem_benchmark_task()
