@@ -3082,7 +3082,11 @@ static LVINFO_UPDATE_FUNC(iso_update)
             item->color_fg = COLOR_ORANGE;
         }
 
+        #ifdef FRAME_ISO
         int lv_iso = (FRAME_ISO & 0xFF) + (get_htp() ? 8 : 0);
+        #else
+        int lv_iso = lens_info.raw_iso;
+        #endif
 
         if (ABS(lv_iso - lens_info.raw_iso) > 3)
         {
