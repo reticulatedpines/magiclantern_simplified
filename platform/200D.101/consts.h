@@ -77,7 +77,7 @@
 // the same function that returns 0xaf2d0.  Some kind of double buffering?  50D looks quite different.
 // I can't see why two functions is the best way of doing it (or, one for each core??)
 // The closest 50D match I could find has the same PAL / NTSC / HDMI style strings.
-#define LV_STRUCT_PTR 0xaf2d0
+//#define LV_STRUCT_PTR 0xaf2d0
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
 //Replaced by CONFIG_NO_BFNT in internals.h
@@ -126,12 +126,6 @@
 #define SRM_BUFFER_SIZE 0x2a9c000   /* print it from srm_malloc_cbr */
 
 //#define MALLOC_FREE_MEMORY 0
-// below definitely wrong, just copied from 50D
-#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2

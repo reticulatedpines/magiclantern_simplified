@@ -115,18 +115,10 @@
 
     /* WRONG: copied straight from 200d/50d */
     // Definitely wrong / hacks / no testing at all:
-    #define LV_STRUCT_PTR 0xaf2d0
-
     #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
     #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 
     #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-    // below definitely wrong, just copied from 50D
-    #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-    #define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
-    #define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-    #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-    #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
     // this block all copied from 50D, and probably wrong, though likely safe
     #define FASTEST_SHUTTER_SPEED_RAW 160
     #define MAX_AE_EV 2
