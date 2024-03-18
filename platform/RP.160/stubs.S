@@ -57,6 +57,8 @@ THUMB_FN(0xE006C3B8,  vsnprintf)                       // prints "!!! ERROR !!!\
 // Tier 1
 //*************************************************************************************************************
 
+THUMB_FN(0xE067E696,  ptp_register_handler)
+
 /** Interrupts **/
 // THUMB_FN(0xE01F3584,  cli_spin_lock)                   /* used in AllocateMemory/FreeMemory and others */
 // DATA_PTR(   0x287FC,  isr_table_handler)               /* from interrupt handler; address of the ISR handler */
