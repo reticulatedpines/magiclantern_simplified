@@ -429,6 +429,8 @@ THUMB_FN(0xe07159e8, nif_setup); // initialises network interface, set_IP_addres
                                  // wlanipset calls this for us, but that doesn't set gateway IP.
 
 THUMB_FN(0xe00c0484,  mem_to_mem_edmac_copy)
+THUMB_FN(0xe032a86e, _get_fps_register_b)
+THUMB_FN(0xe032a8c8, _get_fps_register_a)
 //THUMB_FN(0xe04b39c0,  UnLockEngineResources)
 
 // SJE couldn't find it, some other cameras don't have it, looks like

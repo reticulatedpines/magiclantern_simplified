@@ -140,6 +140,7 @@ ML_SRC_OBJS = \
 	imath.o \
 	electronic_level.o \
 	cfn.o \
+	fps-engio_per_cam.o \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \
 	exmem.o \

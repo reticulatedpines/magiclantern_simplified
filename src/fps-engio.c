@@ -40,18 +40,30 @@
 #include "math.h"
 #include "raw.h"
 #include "fps.h"
+#include "fps-engio_per_cam.h"
 #include "shoot.h"
-
-
-#define FPS_REGISTER_A 0xC0F06008
-#define FPS_REGISTER_B 0xC0F06014
-#define FPS_REGISTER_CONFIRM_CHANGES 0xC0F06000
 
 #define PACK(lo, hi) ((lo) & 0x0000FFFF) | (((hi) & 0x0000FFFF) << 16)
 
-#define FPS_REGISTER_A_VALUE ((int) shamem_read(FPS_REGISTER_A))
-#define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
-#define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
+// The following constants used to be in here, but have been split
+// out into per cam defines, since D678X cams don't all use the same
+// values as D45.
+//
+//#define FPS_REGISTER_A 0xC0F06008
+//#define FPS_REGISTER_B 0xC0F06014
+//#define FPS_REGISTER_CONFIRM_CHANGES 0xC0F06000
+//#define FPS_REGISTER_A_VALUE ((int) shamem_read(FPS_REGISTER_A))
+//#define FPS_REGISTER_A_DEFAULT_VALUE ((int) shamem_read(FPS_REGISTER_A+4))
+//#define FPS_REGISTER_B_VALUE ((int) shamem_read(FPS_REGISTER_B))
+//
+// In rom, our FPS_REGISTER_A is called AccumH, or sometimes AccumGain.
+// This is presumably an accumulator for sensor data that acts on horizontal rows.
+//
+// FPS_REGISTER_B is known as VSize.  Sometimes this is the actual row count,
+// but not always.  Modified by skipping / binning factor maybe?
+//
+// TG_FREQ_BASE is fps * AccumH * VSize (and some other minor adjustments).
+// Measure in a few video modes, you should find a nearby round value to use.
 
 #ifdef CONFIG_7D
 uint32_t *buf = NULL;
@@ -92,10 +104,14 @@ static void fps_disable_timers_evfstate();
 
 static void EngDrvOutFPS(uint32_t reg, uint32_t val)
 {
-    #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
+#ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
     // some cameras seem to prefer changing FPS registers from EVF (LiveView) task
-    static int a;
-    static int b;
+    static int a = 1; // Avoid uninit usage if somebody calls with CONFIRM_CHANGES
+    static int b = 1; // before the register vals.
+
+#if defined(FPS_REGISTER_A) || defined(FPS_REGISTER_B) || defined(FPS_REGISTER_CONFIRM_CHANGES)
+    #if defined(FPS_REGISTER_A) && defined(FPS_REGISTER_B) && defined(FPS_REGISTER_CONFIRM_CHANGES)
+    // good: all are defined if any are
     if (reg == FPS_REGISTER_A)
     {
         EngDrvOutLV(reg, val);
@@ -111,8 +127,13 @@ static void EngDrvOutFPS(uint32_t reg, uint32_t val)
         fps_set_timers_from_evfstate(a, b, 1);
     }
     #else
-    EngDrvOutLV(reg, val);
+        #error "Missing at least one definition from FPS register set"
     #endif
+#endif
+
+#else
+    EngDrvOutLV(reg, val);
+#endif
 }
 
 static int fps_reg_a_orig = 0;
@@ -355,7 +376,7 @@ static int calc_fps_x1000(int timerA, int timerB)
 
 int get_current_tg_freq()
 {
-    int timerA = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
+    int timerA = (get_fps_register_a() & 0xFFFF) + 1;
     if (timerA == 1) return 0;
     int f = calc_tg_freq(timerA);
     return f;
@@ -491,7 +512,7 @@ int get_current_shutter_reciprocal_x1000()
     #endif
 
     /* read the FPS timer B directly from ENGIO shadow memory to have the latest value */
-    int timerB = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
+    int timerB = (get_fps_register_b() & 0xFFFF) + 1;
     int max = timerB;
 
     if (blanking == max - 1)
@@ -720,10 +741,10 @@ static int fps_needs_updating = 0;
 /*int fps_was_changed_by_canon()
 {
     int ans =
-        written_value_a != FPS_REGISTER_A_VALUE ||
-        written_value_b != FPS_REGISTER_B_VALUE;
+        written_value_a != get_fps_register_a() ||
+        written_value_b != get_fps_register_b();
 
-    //~ if (ans) NotifyBox(2000, "wa=%8x wb=%8x\nra=%8x rb=%8x", written_value_a, written_value_b, FPS_REGISTER_A_VALUE, FPS_REGISTER_B_VALUE);
+    //~ if (ans) NotifyBox(2000, "wa=%8x wb=%8x\nra=%8x rb=%8x", written_value_a, written_value_b, get_fps_register_a(), get_fps_register_b());
     return ans;
 }*/
 
@@ -763,7 +784,9 @@ static void fps_setup_timerB(int fps_x1000)
             // phuck! CTRL-Z, CTRL-Z!
             //~ beep();
             written_value_a = 0;
+        #ifdef FPS_REGISTER_A
             EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
+        #endif
             return;
         }
 
@@ -771,7 +794,9 @@ static void fps_setup_timerB(int fps_x1000)
         // output the value to register
         timerB -= 1;
         written_value_b = PACK(timerB, fps_reg_b_orig);
+        #ifdef FPS_REGISTER_B
         EngDrvOutFPS(FPS_REGISTER_B, written_value_b);
+        #endif
         fps_needs_updating = 0;
     #if defined(NEW_FPS_METHOD)
     }
@@ -791,7 +816,9 @@ static void fps_setup_timerB(int fps_x1000)
         fps_read_default_timer_values();
         if (defA_before_patching == fps_reg_a_orig && defB_before_patching == fps_reg_b_orig)
         {
+        #ifdef FPS_REGISTER_A
             EngDrvOutFPS(FPS_REGISTER_A, written_value_a);
+        #endif
             fps_needs_updating = 0;
         }
         else // something went wrong, will fix at next iteration
@@ -804,13 +831,15 @@ static void fps_setup_timerB(int fps_x1000)
     #endif
 
     // apply changes
+#ifdef FPS_REGISTER_CONFIRM_CHANGES
     EngDrvOutFPS(FPS_REGISTER_CONFIRM_CHANGES, 1);
+#endif
 }
 
 int fps_get_current_x1000()
 {
     if (!lv) return 0;
-    int fps_timer = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
+    int fps_timer = (get_fps_register_b() & 0xFFFF) + 1;
     int fps_x1000 = TIMER_TO_FPS_x1000(fps_timer);
     return fps_x1000;
 }
@@ -1070,9 +1099,11 @@ static void fps_register_reset()
     {
         written_value_a = 0;
         written_value_b = 0;
+    #if defined(FPS_REGISTER_A) && defined(FPS_REGISTER_B) && defined(FPS_REGISTER_CONFIRM_CHANGES)
         EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
         EngDrvOutFPS(FPS_REGISTER_B, fps_reg_b_orig);
         EngDrvOutFPS(FPS_REGISTER_CONFIRM_CHANGES, 1);
+    #endif
     }
 }
 
@@ -1385,7 +1416,9 @@ static void fps_setup_timerA(int fps_x1000)
     int val_a = PACK(timerA-1, fps_timer_a_orig-1);
     written_value_a = val_a;
 
+#ifdef FPS_REGISTER_A
     EngDrvOutFPS(FPS_REGISTER_A, val_a);
+#endif
 }
 
 static void fps_criteria_change(void* priv, int delta)
@@ -1595,8 +1628,8 @@ static void fps_read_current_timer_values()
 {
     if (!lv) { fps_timer_a = fps_timer_b = 0; return; }
 
-    fps_timer_a = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
-    fps_timer_b = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
+    fps_timer_a = (get_fps_register_a() & 0xFFFF) + 1;
+    fps_timer_b = (get_fps_register_b() & 0xFFFF) + 1;
 }
 
 /*static int fps_check_if_current_timer_values_changed()
@@ -1619,14 +1652,14 @@ static void fps_read_default_timer_values()
 
     if (RECORDING_H264_STARTING) return;
     //~ info_led_blink(1,10,10);
-    fps_reg_a_orig = FPS_REGISTER_A_DEFAULT_VALUE;
+    fps_reg_a_orig = get_fps_register_a_default();
     #if defined(NEW_FPS_METHOD)
     int mode = get_fps_video_mode();
     unsigned int pos = get_table_pos(mode, video_mode_crop, 0, lv_dispsize);
     fps_reg_b_orig = sensor_timing_table_original[pos] - 1; // nobody will change it from here :)
     //bmp_printf(FONT_LARGE, 50, 50, "%08x %08x %08x", fps_reg_a_orig, bmp_vram_real(), bmp_vram_idle());
     #else
-    int val = FPS_REGISTER_B_VALUE;
+    int val = get_fps_register_b();
     if (val & 0xFFFF0000)
         fps_reg_b_orig = val >> 16; // timer value written by ML - contains original value in highest 16 bits
     else {
@@ -1650,11 +1683,11 @@ static void fps_check_refresh()
 #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
 static int fps_video_mode_changed()
 {
-    if (written_value_a != FPS_REGISTER_A_VALUE)
+    if (written_value_a != get_fps_register_a())
         return 1;
 /* false positives on 6D
     int wb = written_value_b & 0xFFFF;
-    int WB = FPS_REGISTER_B_VALUE & 0xFFFF;
+    int WB = get_fps_register_b() & 0xFFFF;
 
     if (ABS(wb - WB) > 2)
         return 1;
@@ -2088,8 +2121,10 @@ static void fps_patch_timerB(int timer_value)
 
     fps_unpatch_table(0);
     fps_read_default_timer_values();
+    #ifdef FPS_REGISTER_A
     EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
     EngDrvOutFPS(FPS_REGISTER_A, fps_reg_a_orig);
+    #endif
 
     flip_zoom_twostage(1);
 
