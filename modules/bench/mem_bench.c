@@ -275,28 +275,28 @@ static void mem_benchmark_simple_task()
 
     int y = 100;
 
-    mem_benchmark_run("    memcpy              ", &y, bufsize, memcpy_wrapper,
+    mem_benchmark_run("memcpy                   ", &y, bufsize, memcpy_wrapper,
                       (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
-    mem_benchmark_run("    memcpy64            ", &y, bufsize, memcpy64_wrapper,
+    mem_benchmark_run("memcpy64                 ", &y, bufsize, memcpy64_wrapper,
                       (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
 
     if (HAS_DMA_MEMCPY)
     {
-        mem_benchmark_run("dma_memcpy, uncache, align   ", &y, bufsize, dma_memcpy_wrapper,
+        mem_benchmark_run("dma_memcpy, unc, align   ", &y, bufsize, dma_memcpy_wrapper,
                           (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
-        mem_benchmark_run("dma_memcpy, cache, align     ", &y, bufsize, dma_memcpy_wrapper,
+        mem_benchmark_run("dma_memcpy, cac, align   ", &y, bufsize, dma_memcpy_wrapper,
                           (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
-        mem_benchmark_run("dma_memcpy, uncache, unalign ", &y, bufsize, dma_memcpy_wrapper,
+        mem_benchmark_run("dma_memcpy, unc, unalign ", &y, bufsize, dma_memcpy_wrapper,
                           (intptr_t)UNCACHEABLE(raw_buf1), (intptr_t)UNCACHEABLE(raw_buf2), bufsize, 0, 1, 250);
-        mem_benchmark_run("dma_memcpy, cache, unalign   ", &y, bufsize, dma_memcpy_wrapper,
+        mem_benchmark_run("dma_memcpy, cac, unalign ", &y, bufsize, dma_memcpy_wrapper,
                           (intptr_t)CACHEABLE(raw_buf1), (intptr_t)CACHEABLE(raw_buf2), bufsize, 0, 1, 250);
     }
 
     if (HAS_EDMAC_MEMCPY)
     {
-        mem_benchmark_run("edmac_memcpy        ", &y, bufsize, edmac_memcpy_wrapper,
+        mem_benchmark_run("edmac_memcpy             ", &y, bufsize, edmac_memcpy_wrapper,
                           (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
-        mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle,
+        mem_benchmark_run("edmac_copy_rectangle     ", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle,
                           0, 0, 0, 0, 0, 250);
     }
 
