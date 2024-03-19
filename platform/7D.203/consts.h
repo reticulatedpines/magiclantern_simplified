@@ -57,7 +57,7 @@
 // stateobj_disp[1]
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2190+something))
 
-#define RAW_LV_EDMAC 0xC0F26008
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xC0F26000
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
