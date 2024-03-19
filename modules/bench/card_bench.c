@@ -6,7 +6,7 @@
  */
 #define CARD_BENCHMARK_FILE "DCIM/bench.tmp"
 
-static void card_benchmark_wr(int bufsize, int K, int N)
+static void card_benchmark_wr(uint32_t bufsize, int K, int N, int test_length)
 {
     int x = 0;
     static int y = 80;
@@ -15,53 +15,81 @@ static void card_benchmark_wr(int bufsize, int K, int N)
 
     FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
-    int filesize = 1024; // MB
-    int n = filesize * 1024 * 1024 / bufsize;
-    FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
+    uint32_t filesize = 1024; // MB
+    uint32_t max_loops = (filesize * 1024 * 1024) / bufsize; // full filesize only written if max_loops hit
+    FILE *f = FIO_CreateFile(CARD_BENCHMARK_FILE);
     if (f)
     {
         int t0 = get_ms_clock();
-        int i;
-        for (i = 0; i < n; i++)
+        uint32_t n;
+        uint32_t times = 0;
+        for (n = 0; n < max_loops; n++)
         {
             uint32_t start = 0x50000000;
-            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
-            FIO_WriteFile( f, (const void *) start, bufsize );
+            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ",
+                       K, N, n * 100 / max_loops, bufsize/1024);
+            FIO_WriteFile(f, (const void *) start, bufsize);
+
+            // run until max_loops, or we go over requested time,
+            // whichever happens first
+            if (get_ms_clock() - t0 > test_length)
+            {
+                break;
+            }
         }
+        times = n + 1;
         FIO_CloseFile(f);
         int t1 = get_ms_clock();
-        int speed = 0;
+        uint32_t speed = 0;
         if (t0 != t1)
-            speed = filesize * 1000 * 10 / (t1 - t0);
-        bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+            speed = (((uint64_t)bufsize * times * 10) / 1000) / (t1 - t0);
+        bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n",
+                   bufsize/1024, speed/10, speed % 10);
+        DryosDebugMsg(0, 15, "Write speed (buffer=%dk):\t %d.%d MB/s",
+                      bufsize/1024, speed/10, speed % 10);
     }
 
     msleep(2000);
 
+    void *buf = fio_malloc(bufsize);
+    if (buf)
     {
-        void* buf = fio_malloc(bufsize);
-        if (buf)
+        FILE *f = FIO_OpenFile(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
+        // The write run above may not finish the full size in the time limit.
+        // Ensure we don't try to read more than exists.
+        FIO_GetFileSize(CARD_BENCHMARK_FILE, &filesize);
+        max_loops = filesize / bufsize; // full filesize only written if max_loops hit
+        int t0 = get_ms_clock();
+        uint32_t n;
+        uint32_t times = 0;
+        for (n = 0; n < max_loops; n++)
         {
-            FILE* f = FIO_OpenFile(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
-            int t0 = get_ms_clock();
-            int i;
-            for (i = 0; i < n; i++)
+            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ",
+                       K, N, n * 100 / max_loops, bufsize/1024);
+            FIO_ReadFile(f, UNCACHEABLE(buf), bufsize);
+
+            // run until max_loops, or we go over requested time,
+            // whichever happens first
+            if (get_ms_clock() - t0 > test_length)
             {
-                bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ", K, N, i * 100 / n, bufsize/1024);
-                FIO_ReadFile(f, UNCACHEABLE(buf), bufsize );
+                break;
             }
-            FIO_CloseFile(f);
-            fio_free(buf);
-            int t1 = get_ms_clock();
-            int speed = 0;
-            if (t0 != t1)
-                speed = filesize * 1000 * 10 / (t1 - t0);
-            bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
-        else
-        {
-            bmp_printf(FONT_MONO_20, x, y += 20, "malloc error: buffer=%d\n", bufsize);
-        }
+        times = n + 1;
+        FIO_CloseFile(f);
+        fio_free(buf);
+        int t1 = get_ms_clock();
+        uint32_t speed = 0;
+        if (t0 != t1)
+            speed = (((uint64_t)bufsize * times * 10) / 1000) / (t1 - t0);
+        bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n",
+                   bufsize/1024, speed/10, speed % 10);
+        DryosDebugMsg(0, 15, "Read speed (buffer=%dk):\t %d.%d MB/s",
+                      bufsize/1024, speed/10, speed % 10);
+    }
+    else
+    {
+        bmp_printf(FONT_MONO_20, x, y += 20, "malloc error: buffer=%d\n", bufsize);
     }
 
     FIO_RemoveFile(CARD_BENCHMARK_FILE);
@@ -105,17 +133,17 @@ static void card_benchmark_run(int full_test)
         bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
     }
 
-    card_benchmark_wr(16*1024*1024, 1, full_test ? 8 : 2);  /* warm-up test */
-    card_benchmark_wr(16*1024*1024, 2, full_test ? 8 : 2);
+    card_benchmark_wr(16*1024*1024, 1, full_test ? 8 : 2, 5000);  /* warm-up test */
+    card_benchmark_wr(16*1024*1024, 2, full_test ? 8 : 2, 5000);
     
     if (full_test)
     {
-        card_benchmark_wr(16000000,     3, 8);
-        card_benchmark_wr(4*1024*1024,  4, 8);
-        card_benchmark_wr(4000000,      5, 8);
-        card_benchmark_wr(2*1024*1024,  6, 8);
-        card_benchmark_wr(2000000,      7, 8);
-        card_benchmark_wr(128*1024,     8, 8);
+        card_benchmark_wr(16000000,     3, 8, 5000);
+        card_benchmark_wr(4*1024*1024,  4, 8, 5000);
+        card_benchmark_wr(4000000,      5, 8, 5000);
+        card_benchmark_wr(2*1024*1024,  6, 8, 5000);
+        card_benchmark_wr(2000000,      7, 8, 5000);
+        card_benchmark_wr(128*1024,     8, 8, 5000);
     }
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");

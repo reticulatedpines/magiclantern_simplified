@@ -43,79 +43,64 @@ static void mem_benchmark_check(void *dst, void *src, int size, int x, int y)
 
 static uint64_t FAST DUMP_ASM mem_test_read64(uint64_t *buf, uint32_t n)
 {
-    /** GCC output with -Os attribute(O3):
-     * loc_7433C
-     * LDMIA   R0!, {R2,R3}
-     * CMP     R0, R1
-     * BNE     loc_7433C
-     */
-
-    /* note: this kind of loops are much faster with -funroll-all-loops */
     register uint64_t tmp = 0;
     for (uint32_t i = 0; i < n/8; i++)
-        tmp = buf[i];
+        tmp += buf[i];
     return tmp;
 }
 
 static uint32_t FAST DUMP_ASM mem_test_read32(uint32_t *buf, uint32_t n)
 {
-    /** GCC output with -Os attribute(O3):
-     * loc_74310
-     * LDR     R0, [R3],#4
-     * CMP     R3, R2
-     * BNE     loc_74310
-     */
-
     register uint32_t tmp = 0;
     for (uint32_t i = 0; i < n/4; i++)
-        tmp = buf[i];
+        tmp += buf[i];
     return tmp;
 }
 
 // A set of wrapper functions to work with mem_benchmark_fun().
-// That expects a void (*)(int, int, int, int), and casting
+// That expects a uint32_t (*)(int, int, int, int), and casting
 // random functions would be undefined behaviour.
-static void memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
+static uint32_t memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
 {
-    memcpy((void *)dst, (const void *)src, (size_t)count);
+    return (uint32_t)memcpy((void *)dst, (const void *)src, (size_t)count);
 }
 
-static void memcpy64_wrapper(intptr_t dst, intptr_t src, int count, int unused)
+static uint32_t memcpy64_wrapper(intptr_t dst, intptr_t src, int count, int unused)
 {
-    memcpy64((void *)dst, (void *)src, (size_t)count);
+    return (uint32_t)memcpy64((void *)dst, (void *)src, (size_t)count);
 }
 
-static void dma_memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
+static uint32_t dma_memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
 {
-    dma_memcpy((void *)dst, (void *)src, (size_t)count);
+    return (uint32_t)dma_memcpy((void *)dst, (void *)src, (size_t)count);
 }
 
-static void edmac_memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
+static uint32_t edmac_memcpy_wrapper(intptr_t dst, intptr_t src, int count, int unused)
 {
-    edmac_memcpy((void *)dst, (void *)src, (size_t)count);
+    return (uint32_t)edmac_memcpy((void *)dst, (void *)src, (size_t)count);
 }
 
-static void memset_wrapper(intptr_t dst, int ch, int count, int unused)
+static uint32_t memset_wrapper(intptr_t dst, int ch, int count, int unused)
 {
-    memset((void *)dst, ch, (size_t)count);
+    return (uint32_t)memset((void *)dst, ch, (size_t)count);
 }
 
-static void memset64_wrapper(intptr_t dst, int ch, int count, int unused)
+static uint32_t memset64_wrapper(intptr_t dst, int ch, int count, int unused)
 {
-    memset64((void *)dst, ch, (size_t)count);
+    return (uint32_t)memset64((void *)dst, ch, (size_t)count);
 }
 
-static void mem_test_read32_wrapper(intptr_t buf, int n, int unused1, int unused2)
+static uint32_t mem_test_read32_wrapper(intptr_t buf, int n, int unused1, int unused2)
 {
-    mem_test_read32((uint32_t *)buf, (uint32_t)n);
+    return mem_test_read32((uint32_t *)buf, (uint32_t)n);
 }
 
-static void mem_test_read64_wrapper(intptr_t buf, int n, int unused1, int unused2)
+static uint32_t mem_test_read64_wrapper(intptr_t buf, int n, int unused1, int unused2)
 {
-    mem_test_read64((uint64_t *)buf, (uint32_t)n);
+    return mem_test_read64((uint64_t *)buf, (uint32_t)n);
 }
 
-typedef void (*mem_bench_fun)(
+typedef uint32_t (*mem_bench_fun)(
     int arg0,
     int arg1,
     int arg2,
@@ -125,12 +110,12 @@ typedef void (*mem_bench_fun)(
 static void mem_benchmark_run(char *msg, int *y, int bufsize,
                               mem_bench_fun bench_fun,
                               int arg0, int arg1, int arg2, int arg3,
-                              int is_memcpy)
+                              int is_memcpy, int test_length)
 {
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "%s", msg);
 
-    int speeds[2];
+    uint32_t speeds[2];
 
     for (int display = 1; display >= 0; display--)
     {
@@ -148,14 +133,15 @@ static void mem_benchmark_run(char *msg, int *y, int bufsize,
         else
         {
             bmp_printf(FONT_LARGE, 0, 0, "%s (display off)", msg);
-            msleep(500);
+            msleep(250);
             display_off();
         }
         msleep(200);
 
         int times = 0;
         int t0m = get_ms_clock();
-        int64_t t0 = get_us_clock();
+        uint64_t t0 = get_us_clock();
+        uint32_t res = 0;
         for (int i = 0; i < INT_MAX; i++)
         {
             if (i % 2)
@@ -163,39 +149,44 @@ static void mem_benchmark_run(char *msg, int *y, int bufsize,
             else
                 info_led_on();
 
-            bench_fun(arg0, arg1, arg2, arg3);
+            // we accumulate the result to avoid gcc optimising away
+            // the benchmark function body
+            res += bench_fun(arg0, arg1, arg2, arg3);
 
-            /* run the benchmark for roughly 1 second */
-            if (get_ms_clock() - t0m > 1000)
+            /* run the benchmark for specified time */
+            if (get_ms_clock() - t0m > test_length)
             {
                 times = i + 1;
                 break;
             }
         }
-        int64_t t1 = get_us_clock();
-        int64_t dt = t1 - t0;
+        uint64_t t1 = get_us_clock();
+        DryosDebugMsg(0, 1, "Meaningless test result: %d", res);
+
+        uint64_t dt = t1 - t0;
 
         info_led_off();
 
         /* units: KB/s */
-        int speed = (int64_t) bufsize * times * 1000000ull / dt / 1024;
+        // float cast is to avoid int overflow, which can happen even with uint64_t
+        uint64_t speed = ((float)bufsize * times * 1000000) / dt / 1024;
 
         /* transform in MB/s x100 */
         speeds[display] = speed * 100 / 1024;
     }
-    
+
     if (speeds[0])
     {
         bmp_printf(FONT_MONO_20, 0, 100, "Test function:          Display on:    Display off:         ");
-        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s   %4d.%02d MB/s   %4d.%02d MB/s          ",
+        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s   %d.%02d MB/s   %d.%02d MB/s          ",
                    msg, speeds[1]/100, speeds[1]%100, speeds[0]/100, speeds[0]%100);
     }
     else
     {
-        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s   %4d.%02d MB/s     (test skipped)       ",
+        bmp_printf(FONT_MONO_20, 0, *y += 20, "%s   %d.%02d MB/s     (test skipped)       ",
                    msg, speeds[1]/100, speeds[1]%100);
     }
-    DryosDebugMsg(0, 15, "%s %4d.%02d MB/s %4d.%02d MB/s",
+    DryosDebugMsg(0, 15, "%s %d.%02d MB/s %d.%02d MB/s",
                   msg, speeds[1]/100, speeds[1]%100, speeds[0]/100, speeds[0]%100);
 
     display_on();
@@ -212,24 +203,25 @@ static void mem_benchmark_run(char *msg, int *y, int bufsize,
         mem_benchmark_check((void*)arg0, (void*)arg1, arg2, 720, *y);
         info_led_off();
     }
-    
-    msleep(200);
+
+    msleep(100);
 }
 
-static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
+static uint32_t mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
 {
     bmp_draw_to_idle(1);
     bmp_fill(COLOR_BLACK, arg0, arg1, arg2, arg3);
     bmp_draw_to_idle(0);
+    return 0;
 }
 
-static void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
+static uint32_t mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
 {
     uint8_t *real = BMP_VRAM_START(bmp_vram_real());
     uint8_t *idle = BMP_VRAM_START(bmp_vram_idle());
 
     /* careful - do not mix cacheable and uncacheable pointers unless you know what you are doing */
-    edmac_copy_rectangle_adv(UNCACHEABLE(idle), UNCACHEABLE(real), 960, 0, 0, 960, 0, 0, 720, 480);
+    return (uint32_t)edmac_copy_rectangle_adv(UNCACHEABLE(idle), UNCACHEABLE(real), 960, 0, 0, 960, 0, 0, 720, 480);
 }
 
 static void mem_benchmark_simple_task()
@@ -284,28 +276,28 @@ static void mem_benchmark_simple_task()
     int y = 100;
 
     mem_benchmark_run("    memcpy              ", &y, bufsize, memcpy_wrapper,
-                      (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
     mem_benchmark_run("    memcpy64            ", &y, bufsize, memcpy64_wrapper,
-                      (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
 
     if (HAS_DMA_MEMCPY)
     {
         mem_benchmark_run("dma_memcpy, uncache, align   ", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("dma_memcpy, cache, align     ", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("dma_memcpy, uncache, unalign ", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)UNCACHEABLE(raw_buf1), (intptr_t)UNCACHEABLE(raw_buf2), bufsize, 0, 1);
+                          (intptr_t)UNCACHEABLE(raw_buf1), (intptr_t)UNCACHEABLE(raw_buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("dma_memcpy, cache, unalign   ", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)CACHEABLE(raw_buf1), (intptr_t)CACHEABLE(raw_buf2), bufsize, 0, 1);
+                          (intptr_t)CACHEABLE(raw_buf1), (intptr_t)CACHEABLE(raw_buf2), bufsize, 0, 1, 250);
     }
 
     if (HAS_EDMAC_MEMCPY)
     {
         mem_benchmark_run("edmac_memcpy        ", &y, bufsize, edmac_memcpy_wrapper,
-                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle,
-                          0, 0, 0, 0, 0);
+                          0, 0, 0, 0, 0, 250);
     }
 
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
@@ -360,52 +352,52 @@ static void mem_benchmark_task()
 #endif
 
     mem_benchmark_run("memcpy cacheable    ", &y, bufsize, memcpy_wrapper,
-                      (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
     mem_benchmark_run("memcpy uncacheable  ", &y, bufsize, memcpy_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
     mem_benchmark_run("memcpy64 cacheable  ", &y, bufsize, memcpy64_wrapper,
-                      (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)CACHEABLE(buf1),   (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
     mem_benchmark_run("memcpy64 uncacheable", &y, bufsize, memcpy64_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                      (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
     
     if (HAS_DMA_MEMCPY)
     {
         mem_benchmark_run("dma_memcpy cacheable", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)CACHEABLE(buf1), (intptr_t)CACHEABLE(buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("dma_memcpy uncacheab", &y, bufsize, dma_memcpy_wrapper,
-                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
     }
     
     if (HAS_EDMAC_MEMCPY)
     {
         mem_benchmark_run("edmac_memcpy        ", &y, bufsize, edmac_memcpy_wrapper,
-                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1);
+                          (intptr_t)UNCACHEABLE(buf1), (intptr_t)UNCACHEABLE(buf2), bufsize, 0, 1, 250);
         mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle,
-                          0, 0, 0, 0, 0);
+                          0, 0, 0, 0, 0, 1000);
     }
     
     mem_benchmark_run("memset cacheable    ", &y, bufsize, memset_wrapper,
-                      (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0);
+                      (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0, 250);
     mem_benchmark_run("memset uncacheable  ", &y, bufsize, memset_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0);
+                      (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0, 250);
     mem_benchmark_run("memset64 cacheable  ", &y, bufsize, memset64_wrapper,
-                      (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0);
+                      (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0, 250);
     mem_benchmark_run("memset64 uncacheable", &y, bufsize, memset64_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0);
+                      (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0, 250);
     mem_benchmark_run("read32 cacheable    ", &y, bufsize, mem_test_read32_wrapper,
-                      (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0, 0);
+                      (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0, 0, 250);
     mem_benchmark_run("read32 uncacheable  ", &y, bufsize, mem_test_read32_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0, 0);
+                      (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0, 0, 250);
     mem_benchmark_run("read64 cacheable    ", &y, bufsize, mem_test_read64_wrapper,
-                      (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0, 0);
+                      (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0, 0, 250);
     mem_benchmark_run("read64 uncacheable  ", &y, bufsize, mem_test_read64_wrapper,
-                      (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0, 0);
+                      (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0, 0, 250);
     if (get_digic_version() < 6)
     {
         // On modern cams, FEATURE_VRAM_RGBA, there's no idle buffer,
         // so this fill would erase the benchmark result before the screenshot.
         mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, mem_test_bmp_fill,
-                          0, 0, 720, 480, 0);
+                          0, 0, 720, 480, 0, 250);
     }
 
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
