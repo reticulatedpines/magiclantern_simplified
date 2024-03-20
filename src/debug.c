@@ -1475,7 +1475,7 @@ static struct menu_entry debug_menus[] = {
     {
         .name   = "Screenshot - 10s",
         .select = screenshot_start,
-        .help   = "Screenshot after 10 seconds => VRAMx.PPM.",
+        .help   = "Screenshot after 10 seconds => VRAMx.BMP.",
         .help2  = "The screenshot will contain BMP and YUV overlays."
     },
     #endif
