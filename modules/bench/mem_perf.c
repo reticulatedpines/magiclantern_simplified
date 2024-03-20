@@ -168,7 +168,7 @@ static void mem_perf_test(uint32_t address)
     }
     
     bmp_printf(FONT_MONO_20, 5, 5, "Benchmarking from address 0x%X done.", address);
-    take_screenshot("cache%d.ppm", SCREENSHOT_BMP);
+    take_screenshot("cache%d.bmp", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(1);
 }

@@ -319,7 +319,7 @@ static void mem_benchmark_task()
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
 
-    take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
+    take_screenshot("bench%d.bmp", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
 

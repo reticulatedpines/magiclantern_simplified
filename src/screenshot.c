@@ -1,4 +1,4 @@
-/* PPM screenshots */
+/* BMP screenshots */
 
 #include "dryos.h"
 #include "bmp.h"
@@ -7,6 +7,130 @@
 #include "screenshot.h"
 
 #ifdef FEATURE_SCREENSHOT
+
+// Takes a buffer containing 24-bpp RGB data, 3 bytes per pixel,
+// saves to BMP format through the provided file handle.
+// Width and height are in pixels.
+// Caller is responsible for ensuring buffer is large enough!
+// Caller is responsible for closing handle.
+static int save_bmp_file(FILE *fp, uint8_t *rgb, uint32_t width, uint32_t height)
+{
+    // working from:
+    // https://cdn.hackaday.io/files/274271173436768/Simplified%20Windows%20BMP%20Bitmap%20File%20Format%20Specification.htm
+
+    // For BMP, scanlines must be padded so each line is a multiple of 4 bytes.
+    uint32_t pad_len = 4 - (width % 4);
+    if (pad_len == 4)
+        pad_len = 0;
+    uint32_t file_size = 54 // fixed header size
+                         + (height * width * 3)
+                         + (height * pad_len);
+
+    uint8_t *buf = malloc(file_size);
+    if (buf == NULL)
+        return -1;
+    uint8_t *buf_start = buf;
+
+    // fixed header with BMP magic
+/*
+    struct bmp_file_header bmp_file_header =
+    {
+        .type = {'B', 'M'},
+        .size = file_size,
+        .reserved = 0,
+        .off_bits = 54
+    };
+*/
+    // Copy to buffer.  NB un-aligned access to buffers is weird on
+    // some ARM archs, and we care about endianness, so, write it all as bytes.
+    *buf++ = 'B';
+    *buf++ = 'M';
+    *buf++ = (uint8_t)(file_size & 0xff);
+    *buf++ = (uint8_t)((file_size >> 8) & 0xff);
+    *buf++ = (uint8_t)((file_size >> 16) & 0xff);
+    *buf++ = (uint8_t)((file_size >> 24) & 0xff);
+    *buf++ = 0;; // reserved, always 0
+    *buf++ = 0;
+    *buf++ = 0;
+    *buf++ = 0;
+    *buf++ = 54; // image data offset from file start
+    *buf++ = 0;
+    *buf++ = 0;
+    *buf++ = 0;
+
+    // image header
+/*
+    struct bmp_image_header bmp_image_header =
+    {
+        .size = 40,
+        .width = width,
+        .height = height,
+        .planes = 1,
+        .bit_count = 24,
+        .compression = 0,
+        .size_image = 0,
+        .x_pixels_per_meter = 0,
+        .y_pixels_per_meter = 0,
+        .colour_used = 0,
+        .colour_important = 0
+    };
+*/
+    // BMP data is stored from bottom row to top.
+    // Inverting the height allows us to store "normally"
+    // and display normally.
+    height = -height;
+
+    *buf++ = 40; // uint32_t header size
+    *buf++ = 0;
+    *buf++ = 0;
+    *buf++ = 0;
+    *buf++ = (uint8_t)(width & 0xff);
+    *buf++ = (uint8_t)((width >> 8) & 0xff);
+    *buf++ = (uint8_t)((width >> 16) & 0xff);
+    *buf++ = (uint8_t)((width >> 24) & 0xff);
+    *buf++ = (uint8_t)(height & 0xff);
+    *buf++ = (uint8_t)((height >> 8) & 0xff);
+    *buf++ = (uint8_t)((height >> 16) & 0xff);
+    *buf++ = (uint8_t)((height >> 24) & 0xff);
+    *buf++ = 1; // uint16_t planes
+    *buf++ = 0;
+    *buf++ = 24; // uint16_t bpp
+    *buf++ = 0;
+    // 6 dwords, all 0:
+    // compression type, image size, x pix per m, y pix per m,
+    // colours used, important colours
+    for (int n = 0; n < 6; n++)
+    {
+        *(buf + 0) = 0;
+        *(buf + 1) = 0;
+        *(buf + 2) = 0;
+        *(buf + 3) = 0;
+    }
+
+    height = -height; // restore, so we can loop using it
+
+    // now, the padded image data
+    for (uint32_t r = 0; r < height; r++)
+    {
+        for (uint32_t c = 0; c < width; c++)
+        {
+            // saved as RGB, but little-endian
+            *buf++ = *(rgb + 2);
+            *buf++ = *(rgb + 1);
+            *buf++ = *rgb;
+            rgb += 3;
+        }
+        for (uint32_t p = 0; p < pad_len; p++)
+        {
+            *buf++ = 0;
+        }
+    }
+
+    FIO_WriteFile(fp, buf_start, file_size);
+
+    free(buf);
+    return 0;
+}
 
 #ifdef CONFIG_DIGIC_45
 int take_screenshot( char* filename, uint32_t mode )
@@ -137,7 +261,7 @@ int take_screenshot( char* filename, uint32_t mode )
     
     if (filename == SCREENSHOT_FILENAME_AUTO)
     {
-        get_numbered_file_name("VRAM%d.PPM", 9999, path, sizeof(path));
+        get_numbered_file_name("VRAM%d.BMP", 9999, path, sizeof(path));
     }
     else
     {
@@ -157,9 +281,8 @@ int take_screenshot( char* filename, uint32_t mode )
         goto err;
     }
     
-    /* 8-bit RGB */
-    my_fprintf(f, "P6\n720 480\n255\n");
-    FIO_WriteFile(f, rgb, 720*480*3);
+    /* 8-bit RGB BMP */
+    save_bmp_file(f, rgb, 720, 480);
     FIO_CloseFile(f);
     free(rgb);
     return 1;
@@ -289,7 +412,7 @@ int take_screenshot( char* filename, uint32_t mode )
 
     if (filename == SCREENSHOT_FILENAME_AUTO)
     {
-        get_numbered_file_name("VRAM%d.PPM", 9999, path, sizeof(path));
+        get_numbered_file_name("VRAM%d.BMP", 9999, path, sizeof(path));
     }
     else
     {
@@ -309,9 +432,8 @@ int take_screenshot( char* filename, uint32_t mode )
         goto err;
     }
 
-    /* 8-bit RGB */
-    my_fprintf(f, "P6\n720 480\n255\n");
-    FIO_WriteFile(f, rgb, 720*480*3);
+    /* 8-bit RGB BMP */
+    save_bmp_file(f, rgb, 720, 480);
     FIO_CloseFile(f);
     free(rgb);
     return 1;
@@ -327,7 +449,7 @@ err:
     return 0;
 }
 #else
-    #error "Expected Digic 4-8 inclusive"
+    #error "Expected Digic 4-X inclusive"
 #endif // Digic version checks
 
 #endif // FEATURE_SCREENSHOT
