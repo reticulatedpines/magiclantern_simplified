@@ -105,6 +105,7 @@ static int save_bmp_file(FILE *fp, uint8_t *rgb, uint32_t width, uint32_t height
         *(buf + 1) = 0;
         *(buf + 2) = 0;
         *(buf + 3) = 0;
+        buf += 4;
     }
 
     height = -height; // restore, so we can loop using it
