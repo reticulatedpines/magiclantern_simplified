@@ -15,17 +15,18 @@ def main():
     input_markdown_files = sorted(glob.glob("*.md"))
     print(input_markdown_files)
 
-    pandoc_pdf_command = ["pandoc", "--pdf-engine", "weasyprint",
-                          "-c", "style.css",
-                          "--metadata", "title=Magic Lantern Developer Guide",
-                          "--number-sections",
-                          "-s", "-o", "developer_guide.pdf"]
+    shared_command = ["pandoc",
+                      "-c", "style.css",
+                      "--metadata", "title=Magic Lantern Developer Guide",
+                      "--number-sections",
+                      "-s"]
 
-    pandoc_html_command = ["pandoc",
-                           "-c", "style.css",
-                           "--metadata", "title=Magic Lantern Developer Guide",
-                           "--number-sections",
-                           "-s", "-o", "developer_guide.html"]
+    pdf_options = ["--pdf-engine", "weasyprint",
+                   "-o", "developer_guide.pdf"]
+    html_options = ["-o", "developer_guide.html"]
+
+    pandoc_pdf_command = shared_command + pdf_options
+    pandoc_html_command = shared_command + html_options
 
     pandoc_pdf_command.extend(input_markdown_files)
     pandoc_html_command.extend(input_markdown_files)
