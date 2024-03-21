@@ -12,7 +12,23 @@
 html {
     font-family: 'DejaVuSans';
     line-height: 1.45em;
+    font-size: small;
 }
+
+/* for changing background of code blocks */
+pre {
+    background-color: LightGray;
+    font-family: 'DejaVuMono';
+    line-height: 1.2em;
+    font-size: xx-small;
+}
+
+/* you'd think things in here would apply
+   to code blocks, but they don't seem to,
+   whereas pre does.
+code {
+}
+*/
 
 .title {
     text-align: center;
