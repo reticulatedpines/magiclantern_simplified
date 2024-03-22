@@ -28,7 +28,7 @@ With the camera boot flag set, DryOS will look for a boot disk. Behaviour is as 
 
 - If a boot disk is found, but there is no autoexec.bin, the camera will hang.  This is deliberate error handling.  The cam must be powered down and battery removed.  This means if you simply delete ML content from a card, a boot flag enabled camera can appear broken, when it isn't.  Formatting the card removes the boot disk magic.
 
-- If a boot disk is found, and autoexec.bin exists on the root of the filesystem, the contents are copied to address 0x800\_0000 and control is transferred to that address.
+- If a boot disk is found, and autoexec.bin exists on the root of the filesystem, the contents are copied to address 0x80\_0000 and control is transferred to that address.
 
 The final executable output of the build system for ML is autoexec.bin.  However, our code runs before the OS has started, which includes hardware initialisation.  We want DryOS to do the hard work of bringing the camera fully up.  We inject enough code so that later on we maintain visibility and control.
 
@@ -36,9 +36,9 @@ The final executable output of the build system for ML is autoexec.bin.  However
 
 It's important to understand how the boot process works if you're interested in porting ML to a new cam, since debugging these early stages is hard without a good mental model.  If you're working on a well supported cam, this is less relevant, since dev work is much closer to "normal": you're writing code that will run at the application layer, on top of a running OS.
 
-DryOS always starts execution at offset 0 of autoexec.bin, and this always occurs at 0x800\_0000 in ram.  This code is in reboot.c, located via symbol name "\_start".  The early asm code does some safety checks, and if they pass transfers control to cstart(), in the same file.
+DryOS always starts execution at offset 0 of autoexec.bin, and this always occurs at 0x80\_0000 in ram.  This code is in reboot.c, located via symbol name "\_start".  The early asm code does some safety checks, and if they pass transfers control to cstart(), in the same file.
 
-cstart() checks that we're running on the expected cam, erroring if not.  Assuming success, we copy a large portion of autoexec.bin to another location, because the 0x800\_0000 area is used for multiple purposes - later on, DryOS will re-use this region and delete our initial code.  The destination for the copy is cam specific, it must be somewhere safe that the OS won't touch.  Finding such a location is made easier by the fact that we can modify OS initialisation, often we can steal memory from the OS heap, meaning ML will be located before or after heap space.
+cstart() checks that we're running on the expected cam, erroring if not.  Assuming success, we copy a large portion of autoexec.bin to another location, because the 0x80\_0000 area is used for multiple purposes - later on, DryOS will re-use this region and delete our initial code.  The destination for the copy is cam specific, it must be somewhere safe that the OS won't touch.  Finding such a location is made easier by the fact that we can modify OS initialisation, often we can steal memory from the OS heap, meaning ML will be located before or after heap space.
 
 That copy happens here:
 
@@ -54,7 +54,7 @@ blob\_start and blob\_end are addresses that cover a region in autoexec.bin.  Th
 
 We then do a small amount of hardware specific initialisation, found via reverse engineering normal DryOS startup.  Finally, autoexec.bin transfers control to RESTARTSTART; the address in mem of our copied magiclantern.bin.  RESTARTSTART is defined in platform/XXXD.YYY/Makefile.platform.default.  It's used in src/magiclantern.lds.S when linking magiclantern.
 
-Which code is at the start of magiclantern.bin and therefore called as RESTARTSTART is defined by entry.S - a function called copy\_and\_restart().  We're now running from the new location and the copy of autoexec.bin at 0x800\_0000 is no longer needed.
+Which code is at the start of magiclantern.bin and therefore called as RESTARTSTART is defined by entry.S - a function called copy\_and\_restart().  We're now running from the new location and the copy of autoexec.bin at 0x80\_0000 is no longer needed.
 
 There are multiple source files containing a copy\_and\_restart() function, but only one is used per cam.  Selection occurs as part of the per platform config, e.g.:
 
@@ -74,7 +74,7 @@ We've got out of the bootloader!  Things are simpler from now on.
 
 To summarise:
 
-- autoexec.bin loads at 0x800\_0000, running code from reboot.c
+- autoexec.bin loads at 0x80\_0000, running code from reboot.c
 - magiclantern.bin, contained in autoexec.bin, copied to a safe location in ram
 - RESTARTSTART() called, which is an alias for copy\_and\_restart(), from boot-XX.c
 - Canon init code relocated to a safe writable location, modified to inject ML
