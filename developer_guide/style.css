@@ -1,7 +1,11 @@
 .center img {        
-  display:block;
-  margin-left:auto;
-  margin-right:auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@page {
+    size: A4 portrait;
 }
 
 @font-face {
@@ -18,7 +22,7 @@ html {
 /* for changing background of code blocks */
 pre {
     background-color: LightGray;
-    font-family: 'DejaVuMono';
+    font-family: 'DejaVuMono', monospace;
     line-height: 1.2em;
     font-size: xx-small;
 }
@@ -29,6 +33,14 @@ pre {
 code {
 }
 */
+
+img.wide {
+    width: 90%;
+}
+
+img.narrow {
+    width: 50%;
+}
 
 .title {
     text-align: center;

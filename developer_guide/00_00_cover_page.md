@@ -1,6 +1,6 @@
 
 <span class="center">
-![](../doc/logo-trans.png)
+![](../doc/logo-trans.png){.narrow}
 </span>
 
 Some text for section 00.
