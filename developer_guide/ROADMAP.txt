@@ -32,39 +32,51 @@ Hardware
     ICU, MPU, network, JPCORE, etc
     DMA controller - has channels which can be remapped
 
-Magiclantern - the code that runs on the cam
-    Architecture
-        Boot process, incl diagram
-            Camera boot flag
-            Bootable card
-            autoexec.bin
-            Injecting ML then transferring control to DryOS
-        Major resident parts
-            Init task hijack?
-            OS task hijack (TASK_OVERRIDE)
-            Persistent ML tasks?
-            Assert handler(s)
-            Interrupt handler(s)?
-        Per cam stuff
-            platform dirs
-            FEATURE vs CONFIG vs internals.h
-        Modules
-            Presumed rationale
-            Limitations / problems
+ML Architecture
+    Boot process, incl diagram
+        Camera boot flag
+        Bootable card
+        autoexec.bin
+        Injecting ML then transferring control to DryOS
+    Major resident parts
+        Init task hijack?
+        OS task hijack (TASK_OVERRIDE)
+        Persistent ML tasks?
+        Assert handler(s)
+        Interrupt handler(s)?
+    Per cam stuff
+        platform dirs
+        FEATURE vs CONFIG vs internals.h
+    Modules
+        Presumed rationale
+        Limitations / problems
 
-    Build guide
-        Requirements
-        platform make, make zip        
-        Extra options
-            CONFIG_QEMU - enable extra debug logging when run in Qemu, incompatible with phys cam
-    Debugging
-        bmp_printf
-        console_puts - looks useful but it's disabled by undef CONSOLE_DEBUG, why?
-        DryosDebugMsg - dumpf() allegedly writes these to disk?  Needs checking
-        uart_printf
-        early_printf
-        LED blinking
-        Qemu
+Build guide
+    Requirements
+    platform make, make zip
+    Extra options
+        CONFIG_QEMU - enable extra debug logging when run in Qemu, incompatible with phys cam
+        FATAL_WARNINGS
+
+Debugging
+    LED blinking
+    early_printf
+    uart_printf
+    DryosDebugMsg - dumpf() allegedly writes these to disk?  Needs checking
+    console_puts - looks useful but it's disabled by undef CONSOLE_DEBUG, why?
+    Printing to console (which funcs even do this?) + display of console
+    bmp_printf
+    Don't Click Me
+    Qemu
+
+Feature Implementation: Details & Walkthroughs
+- a place for more detailed look at code,
+  something like walkthroughs for important / confusing areas,
+  especially things needed during new ports
+
+    Enabling a simple feature example (30 min timer?)
+        Find feature flag, check usage in code, find deps, test
+    EDMAC
 
 Qemu-eos - forked Qemu with additional EOS support
     Qemu regression testing system - check if ML or Qemu changes broke expected behaviour
