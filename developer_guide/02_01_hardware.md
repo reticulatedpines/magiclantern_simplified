@@ -91,6 +91,44 @@ requirements for alignment of buffers, etc.
 
 ### EDMAC
 
+EDMAC is the "Engine DMA Controller".  Unlike XDMAC, it can efficiently copy a sub-region, which
+represents a rectangular image, out of a larger area.  Imagine an image with black borders on
+all edges, stored linearly.  EDMAC can be configured to offset a series of copies by the size
+of the borders, allowing stripping out the borders at almost the full speed of the memory bus.
+Other operations are also possible.
+
+This is a Canon patented part, so the capabilities are well understood:\
+[https://www.google.com/patents/US7817297](https://www.google.com/patents/US7817297)
+
+A simplified version of figure 11a from the patent:
+![EDMAC copy region](images/edmac_diagram.png){.wide}
+
+The configuration for a copy defines a set of tiles, via a struct defined in edmac.h:
+
+```
+struct edmac_info
+{
+    unsigned int off1a;
+    unsigned int off1b;
+    unsigned int off2a;
+    unsigned int off2b;
+    unsigned int off3;
+    unsigned int xa;
+    unsigned int xb;
+    unsigned int ya;
+    unsigned int yb;
+    unsigned int xn;
+    unsigned int yn;
+};
+```
+
+Tiles can overlap, or have gaps between them, this is controlled by the offset parameters,
+and is not shown on the simplified diagram.
+
+The most basic usage is copying a linear run of bytes, for this most fields can be left as 0,
+using xn and yn to define a "rectangle" of area equal to the required copy length.  More examples
+are given in section 6.
+
 ### ADTG
 
 This definitely needs a big section, it's critical to understand for raw video, FPS changes, correct LV in crop modes, etc.
