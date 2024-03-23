@@ -1,13 +1,13 @@
 
-## Hardware
+# Hardware
 
-### Overview
+## Overview
 
 Each camera can be considered to be a distributed system of processors and peripherals, able to communicate via interrupts, shared memory, or message passing.  Not all devices are connected to all others.  Not all communication options are applicable to all devices; you must use what works.
 
 Our knowledge of what devices exist is incomplete.  Our knowledge of what devices can do is limited.  This section will try not to mislead you, but it is bound to contain incomplete information, and likely to contain incorrect information.
 
-#### Digic
+### Digic
 
 Digic (officially: DiG!C) is the main ASIC for Canon cameras.  This contains one or more ARM cores, which run the primary OS, and many peripherals, including DSPs, high precision timers, etc.
 
@@ -19,7 +19,7 @@ Also see:\
 [https://en.wikipedia.org/wiki/DIGIC](https://en.wikipedia.org/wiki/DIGIC)\
 [https://wiki.magiclantern.fm/digic](https://wiki.magiclantern.fm/digic)
 
-#### Main CPU(s)
+### Main CPU(s)
 
 The main CPU, from an ML perspective, is termed the ICU.  Our code runs here.  A lot of DryOS code runs here, also.  An important secondary CPU is termed the MPU.  An approximate split of their duties is that the ICU handles UI and CPU intensive tasks, while the MPU handles low-level tasks such as battery management, switch and button handling.  In some senses, the MPU is the primary CPU: it is responsible for detecting power on events and bringing the ICU up.  The MPU is also responsible for turning the cam off should e.g., the battery door be opened.
 
@@ -44,7 +44,7 @@ Points of note:
 - D78X have MMU so can "edit" large regions of code ROM
 - D6 doesn't have a proven way to "edit" ROM
 
-#### Secondary processors
+### Secondary processors
 
 There are further processors for specialised tasks.  Since these are utilised via APIs and / or message passing, their internals are poorly understood.
 
@@ -52,7 +52,7 @@ Tasks that are performance critical (either throughput or latency) may run on so
 
 Cams with integrated networking typically delegate this to another part.  On D78X this is Xtensa ISA and internally named "Lime".  The ICU can command Lime, which, presumably, directly controls some WiFi SoC.
 
-#### Other peripherals
+### Other peripherals
 
 Not all devices are processors.  There are many MMIO devices, critical to controlling the camera.  Some are digital, e.g. the DMA controller.  Some border on analog, e.g. there's a unit named ADTG which is believed to be a timing generator, used for controlling how the sensor is read out.  Digital configuration, most likely controlling analog hardware.
 

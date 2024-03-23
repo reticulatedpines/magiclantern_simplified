@@ -19,6 +19,11 @@ html {
     font-size: small;
 }
 
+h1 {
+    line-height: 1.2em;
+    text-align: center;
+}
+
 /* for changing background of code blocks */
 pre {
     background-color: LightGray;

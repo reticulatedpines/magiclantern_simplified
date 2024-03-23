@@ -1,26 +1,24 @@
 
-# Magic Lantern
+# Magic Lantern Architecture
 
-## Architecture
-
-### Running Magic Lantern code
+## Running Magic Lantern code
 
 How do we convince cameras to run our code?
 
 DryOS has functionality, disabled by default, to load and run code from a file named autoexec.bin.
 This is presumed to be an engineering or testing function.
 
-#### Enabling the camera boot flag
+### Enabling the camera boot flag
 
 Before DryOS will attempt to run autoexec.bin, a flag must be set in the flash mem / ROM.  There are multiple routes to achieve this, the most common is using a FIR file created by us for this purpose.  When the user triggers the standard Canon firmware update routine, instead of running update code, our FIR file toggles the boot flag.
 
 This is the only direct persistent change we make.  Other persistent changes are made indirectly, since DryOS saves various settings ("properties"), and we may alter their content.  Saving incorrect properties can make a cam unresponsive until they are reset, which may not be practical for the average user - try to never have this occur!
 
-#### Making a card bootable
+### Making a card bootable
 
 Boot disks have a few magic bytes set, see contrib/make-bootable for details.
 
-#### autoexec.bin contains Magic Lantern
+### autoexec.bin contains Magic Lantern
 
 With the camera boot flag set, DryOS will look for a boot disk. Behaviour is as follows:
 
@@ -32,7 +30,7 @@ With the camera boot flag set, DryOS will look for a boot disk. Behaviour is as 
 
 The final executable output of the build system for ML is autoexec.bin.  However, our code runs before the OS has started, which includes hardware initialisation.  We want DryOS to do the hard work of bringing the camera fully up.  We inject enough code so that later on we maintain visibility and control.
 
-#### Boot process under ML in detail
+### Boot process under ML in detail
 
 It's important to understand how the boot process works if you're interested in porting ML to a new cam, since debugging these early stages is hard without a good mental model.  If you're working on a well supported cam, this is less relevant, since dev work is much closer to "normal": you're writing code that will run at the application layer, on top of a running OS.
 
@@ -79,11 +77,5 @@ To summarise:
 - RESTARTSTART() called, which is an alias for copy\_and\_restart(), from boot-XX.c
 - Canon init code relocated to a safe writable location, modified to inject ML
 - Modified Canon init code called: DryOS initialises with ML injected
-
-More information about how and where ML injects into DryOS are in the next section.
-
-### ML injection points
-
-## Build guide
 
 <div style="page-break-after: always; visibility: hidden"></div>
