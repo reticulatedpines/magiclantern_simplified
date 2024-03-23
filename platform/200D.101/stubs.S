@@ -90,6 +90,8 @@ THUMB_FN(0xe04b39c0,  UnLockEngineResources)
 THUMB_FN(0x37b08, shamem_read) // nearly always inlined on 200D, so very few refs.  Can find via
                                // "[MEM1DEV] Addr=%#x Data=%#x", haven't checked if this is reliable on other D7
 THUMB_FN(0xe00c0484,  mem_to_mem_edmac_copy)
+THUMB_FN(0xe032a86e, get_sensor_vsize) // old name: FPS_REGISTER_B
+THUMB_FN(0xe032a8c8, get_sensor_accumh) // old name: FPS_REGISTER_A
 //
 // These two must be called when you're done with a device or channel,
 // or the next code that tries to use them will hang the cam hard (or sometimes reboot it):
