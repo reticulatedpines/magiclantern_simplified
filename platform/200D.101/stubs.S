@@ -68,6 +68,7 @@ THUMB_FN(0xDF006E6D,  DryosDebugMsg)          /* lots of debug messages; format 
 
 /** DMA **/
 THUMB_FN(0xE01B3297,  dma_memcpy)
+//THUMB_FN(0xe013a97e,  dma_memcpy_using_chan) // allows specifying the channel to use
 
 /** EDMAC **/
 // EDmac is distinct from XDMAC, they are different controllers.
