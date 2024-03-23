@@ -18,6 +18,9 @@
 // dumping all the images that old cams support
 #define FEATURE_SCREENSHOT
 
+// duplicate all printf (console) output to uart
+#define CONFIG_COPY_CONSOLE_TO_UART
+
 // cam doesn't expose call("TurnOnDisplay"),
 // (or TurnOffDisplay), so we must find stubs
 // and call directly

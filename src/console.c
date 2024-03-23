@@ -330,6 +330,10 @@ int printf(const char* fmt, ...)
     int len = vsnprintf( buf, buf_size-1, fmt, ap );
     va_end( ap );
     console_puts(buf);
+#ifdef CONFIG_COPY_CONSOLE_TO_UART
+    extern int uart_printf(const char *fmt, ...);
+    uart_printf(buf);
+#endif
     return len;
 }
 
