@@ -104,7 +104,9 @@ void _engio_write(uint32_t* reg_list)
     return;
 }
 
+/*
 unsigned int UnLockEngineResources(struct LockEntry *lockEntry)
 {
     return 0;
 }
+*/
