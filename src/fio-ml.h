@@ -16,6 +16,14 @@ struct card_info {
     int folder_number;
     char * maker;           /* only for some cameras; NULL otherwise */
     char * model;
+    uint64_t total_space_MB; // initial estimation of total card space (MB)
+    uint64_t free_space_MB;     // dynamic free space (MB) estimation
+};
+
+struct actual_cards_t
+{
+    int count; // number of actual active cards
+    struct card_info *infos[2]; // pointers to valid card_info
 };
 
 struct card_info * get_ml_card();
@@ -23,7 +31,11 @@ struct card_info * get_shooting_card();
 
 struct card_info * get_card(int cardId);
 
+struct actual_cards_t *get_actual_cards();
+
 int get_free_space_32k (const struct card_info * card);
+
+void update_free_space(struct card_info *_p_card_info);
 
 /* returns true if the specified file or directory exists */
 int is_file(const char* path);
@@ -153,8 +165,12 @@ size_t read_file( const char * filename, void * buf, size_t size);
 
 uint8_t* read_entire_file(const char * filename, int* buf_size);
 
+const char *get_dcim_dir_ex(struct card_info *_p_card_info);
 const char* get_dcim_dir();
 const char* get_dcim_dir_suffix();
+
+// compute the cumulated file size (MB) of a given folder
+uint64_t get_folder_size_MB(const char *_folder);
 
 extern int __attribute__((format(printf,2,3)))
 my_fprintf(
