@@ -25,6 +25,7 @@
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x41b50                    // from get_malloc_info, helper of malloc_info
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE  0x2314000   /* print it from srm_malloc_cbr */
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER 0x28d50               // from debug_assert function, hard to miss
@@ -58,7 +59,7 @@
 
 #define CANON_SHUTTER_RATING 200000
 
-    #define DISPLAY_IS_ON               0x1  // TODO: find real value
+#define DISPLAY_IS_ON (!(char)(MEM(0x27e99)))  // found at 0xfe0b6824 : MEM(0x027e98) == 0x10001(on) 0x10101(off)
 
 #define GMT_FUNCTABLE 0xfe658084           // from gui_main_task
 #define GMT_NFUNCS 0x7                  // size of table above
@@ -158,3 +159,7 @@
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
 //0x5d138 + 0x10 is pointer to XimrContext struct
 #define XIMR_CONTEXT ((void*)0x5d148)
+
+// Safe settings 
+#define BULB_EXPOSURE_CORRECTION 0
+#define BULB_MIN_EXPOSURE 500

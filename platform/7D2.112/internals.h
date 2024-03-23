@@ -18,10 +18,6 @@
 // enable state objects hooks
 #define CONFIG_STATE_OBJECT_HOOKS
 
-// SRM is untested, this define is to allowing building
-// without SRM_BUFFER_SIZE being found
-#define CONFIG_MEMORY_SRM_NOT_WORKING
-
 // Cam has very few spare tasks for ML, steal more mem
 // during boot to raise the limit
 #define CONFIG_INCREASE_MAX_TASKS 4
@@ -32,3 +28,7 @@
 #define CONFIG_NEW_TASK_STRUCTS
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V3
+
+// This camera has BULB mode
+#define CONFIG_BULB
+#define CONFIG_SEPARATE_BULB_MODE // has "B" mode

@@ -7,7 +7,7 @@
 // and allowing triggering from a menu context.
 #define FEATURE_DONT_CLICK_ME
 
-//#define FEATURE_SHOW_SHUTTER_COUNT
+#define FEATURE_SHOW_SHUTTER_COUNT
 
 // working but incomplete, some allocators don't report
 // anything yet as they're faked / not yet found
@@ -32,3 +32,7 @@
 // explicitly disable stuff that don't work or may break things
 #undef CONFIG_AUTOBACKUP_ROM
 #undef CONFIG_ADDITIONAL_VERSION
+
+// full intervalometer requires CONFIG_PROP_REQUEST_CHANGE + "bool is_prop_allowed(...){ return true;}"
+#define FEATURE_INTERVALOMETER
+#define FEATURE_BULB_TIMER
