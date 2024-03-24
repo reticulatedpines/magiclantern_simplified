@@ -26,9 +26,5 @@
 // during boot to raise the limit
 #define CONFIG_INCREASE_MAX_TASKS 4
 
-// SJE FIXME this is intended as temporary, so I can commit the code
-// without needing to find versions for all cams.  Once all cams
-// are converted and tested, we should retire CONFIG_NEW_TASK_STRUCTS
-#define CONFIG_NEW_TASK_STRUCTS
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V3

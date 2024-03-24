@@ -122,6 +122,5 @@
 /** Focus commands are confirmed in LiveView, even though the pfAfComplete stub is present... */
 //~ #define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
 
-#define CONFIG_NEW_TASK_STRUCTS
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V2
