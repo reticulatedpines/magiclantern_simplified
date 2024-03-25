@@ -21,8 +21,8 @@
 #define FIRMWARE_ENTRY_LEN 0x220
 
 /* "Malloc Information" */
-#define MALLOC_STRUCT 0x6e6e4
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x6e6e4
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER        0x4000               //from debug_asset function, hard to miss

@@ -210,8 +210,8 @@ int get_lv_stopped_by_user();
 #define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x60)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x22528
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x22528
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x25D0000   /* print it from srm_malloc_cbr */
 
 //~ max volume supported for beeps

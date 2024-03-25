@@ -1061,7 +1061,7 @@ static void save_crash_log()
             build_user);
 
         int M = GetFreeMemForAllocateMemory();
-        int m = MALLOC_FREE_MEMORY;
+        int m = GetFreeMemForMalloc();
         my_fprintf(f,
             "Free Memory  : %dK + %dK\n",
             m/1024, M/1024

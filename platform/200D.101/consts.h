@@ -42,9 +42,10 @@
                               // These are not exactly the same, but see the function called by both
                               // that takes (1,2, "dm_lock" | "mallocSem").  And they're both
                               // doing init of a struct in a similar loop.
-#define MALLOC_STRUCT 0x6e234 // via malloc_info(), the call inside the main if block
-                              // initialises a struct and MALLOC_STRUCT itself is a short
-                              // distance away.
+#define MALLOC_STRUCT_ADDR 0x6e234 // via malloc_info(), the call inside the main if block
+                                   // initialises a struct and MALLOC_STRUCT itself is a short
+                                   // distance away.
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define GMT_FUNCTABLE 0xe0805f20
 #define GMT_NFUNCS 0x7
@@ -122,13 +123,11 @@
 
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x2a9c000   /* print it from srm_malloc_cbr */
 
 #define RAW_LV_EDMAC_CHANNEL_ADDR 0xd0058000 // channel 24
 #define SHAD_GAIN_REGISTER 0xd0008030 // plausible looking from ROM code, though untested
 
-//#define MALLOC_FREE_MEMORY 0
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2

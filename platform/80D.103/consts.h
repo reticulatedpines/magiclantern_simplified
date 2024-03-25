@@ -19,8 +19,8 @@
 #define CSTART_LEN         0xa0
 
 /* "Malloc Information" */
-#define MALLOC_STRUCT 0x224ec                    // from get_malloc_info, helper of malloc_info
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x224ec                    // from get_malloc_info, helper of malloc_info
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER        0x5c0c               // from debug_assert function, hard to miss

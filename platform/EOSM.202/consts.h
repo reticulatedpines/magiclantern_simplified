@@ -191,8 +191,8 @@
 #define LV_OVERLAYS_MODE MEM(0x89BAC + 0x7C)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x668C8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x668C8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
 
 #define UNAVI (MEM(0x5D408) == 2) // Find with Mem Browser // dec CancelUnaviFeedBackTimer

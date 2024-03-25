@@ -235,8 +235,8 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
     // see "Malloc Information"
-#define MALLOC_STRUCT 0x4b908
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x4b908
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
 
 //TODO: Check if this hack works again or not :(

@@ -24,7 +24,6 @@ extern WEAK_FUNC(ret_0) void expfuse_preview_update_task(int direction);
 extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 
 /* macros are used to get the names from consts.h in the stub test log */
-#define MALLOC_FREE_MEMORY GetFreeMemForMalloc()
 #define DISPLAY_IS_ON display_is_on()
 #define PLAY_MODE is_play_mode()
 #define MENU_MODE is_menu_mode()
@@ -799,12 +798,12 @@ static void stub_test_malloc_n_allocmem()
         int stub_silence = (i > 0);
         int m0, m1, m2;
         void* p;
-        TEST_FUNC(m0 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m0 = GetFreeMemForMalloc());
         TEST_FUNC_CHECK(p = (void*)_malloc(50*1024), != 0);
         TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
-        TEST_FUNC(m1 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m1 = GetFreeMemForMalloc());
         TEST_VOID(_free(p));
-        TEST_FUNC(m2 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m2 = GetFreeMemForMalloc());
         TEST_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
         TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
 
@@ -819,7 +818,7 @@ static void stub_test_malloc_n_allocmem()
 
         // these buffers may be from different memory pools, just check for leaks in main pools
         int m01, m02, m11, m12;
-        TEST_FUNC(m01 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m01 = GetFreeMemForMalloc());
         TEST_FUNC(m02 = GetFreeMemForAllocateMemory());
         TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(128*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
@@ -829,7 +828,7 @@ static void stub_test_malloc_n_allocmem()
         TEST_FUNC_CHECK(p = (void*)_shoot_malloc(16*1024*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_VOID(_shoot_free(p));
-        TEST_FUNC(m11 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m11 = GetFreeMemForMalloc());
         TEST_FUNC(m12 = GetFreeMemForAllocateMemory());
         TEST_FUNC_CHECK(ABS(m01-m11), < 2048);
         TEST_FUNC_CHECK(ABS(m02-m12), < 2048);

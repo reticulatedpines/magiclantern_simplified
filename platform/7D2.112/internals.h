@@ -26,5 +26,7 @@
 // during boot to raise the limit
 #define CONFIG_INCREASE_MAX_TASKS 4
 
+#define CONFIG_MALLOC_STRUCT_V2
+
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V3

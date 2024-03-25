@@ -67,8 +67,8 @@
 //
 // It's initialised from MALLOC_STRUCT, you want to use the offsets from that.
 // The larger struct has printfs that let you assign names.
-#define MALLOC_STRUCT 0x2d3f8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x2d3f8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define GMT_FUNCTABLE 0xe09981d4
 #define GMT_NFUNCS 0x7

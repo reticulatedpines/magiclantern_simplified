@@ -22,8 +22,8 @@
 #define CSTART_LEN 0xa0
 
 /* "Malloc Information" */
-#define MALLOC_STRUCT 0x42358                    // from get_malloc_info, helper of malloc_info
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x42358                    // from get_malloc_info, helper of malloc_info
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x296c000   /* print it from srm_malloc_cbr */
 
 /* high confidence */

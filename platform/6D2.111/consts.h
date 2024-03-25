@@ -24,9 +24,13 @@
 #define DISPLAY_SENSOR_POWERED (*(int *))(0xcadc) // From 0xe0177ae4
 #define DISPLAY_IS_ON (*(int *)0xcb28) // from func with "[DLIC] EnableDLIC",
                                        // should be 2 when display on, in Menu, LV and Play modes.
-#define MALLOC_STRUCT 0x6702c // via malloc_info() (see 0xe02898d8), the call inside the main if block
-                              // initialises a struct and MALLOC_STRUCT itself is a short
-                              // distance away.
+#define MALLOC_STRUCT_ADDR 0x6702c // via malloc_info() (see 0xe02898d8), the call inside the main if block
+                                   // initialises a struct and MALLOC_STRUCT itself is a short
+                                   // distance away.
+// See malloc_info, func with "Malloc Information" string, but be aware
+// there are two malloc related structs.  One appears to be kernel level and is used inside
+// the function malloc_info calls, at e0301470.  This is the one we care about.
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define GMT_FUNCTABLE 0xe0836ef4
 #define GMT_NFUNCS 0x7
@@ -93,10 +97,6 @@
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 
-// See malloc_info, func with "Malloc Information" string, but be aware
-// there are two malloc related structs.  One appears to be kernel level and is used inside
-// the function malloc_info calls, at e0301470.  This is the one we care about.
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 // below definitely wrong, just copied from 50D
 //

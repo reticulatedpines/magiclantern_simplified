@@ -152,5 +152,7 @@
 /** Long-pressing SET/Q may open submenus (experiment, disabled) */
 //#define CONFIG_LONG_PRESS_SET_MENU
 
+#define CONFIG_MALLOC_STRUCT_V2
+
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V2

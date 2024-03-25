@@ -123,5 +123,7 @@
 /** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
 #define CONFIG_LVAPP_HACK_RELOC
 
+#define CONFIG_MALLOC_STRUCT_V2
+
 #define CONFIG_TASK_STRUCT_V2
 #define CONFIG_TASK_ATTR_STRUCT_V2

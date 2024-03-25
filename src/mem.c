@@ -122,7 +122,8 @@ static int GetMaxRegionForAllocateMemory()
 
 int GetFreeMemForMalloc()
 {
-    return MALLOC_FREE_MEMORY;
+    struct malloc_status *m_status = (struct malloc_status *)MALLOC_STRUCT_ADDR;
+    return m_status->total_size_external - m_status->used_size;
 }
 
 // This is for tracking allocs from malloc_aligned(),
@@ -1302,7 +1303,7 @@ static MENU_UPDATE_FUNC(mem_error_display);
 static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
-    int m = MALLOC_FREE_MEMORY;
+    int m = GetFreeMemForMalloc();
 
 #ifdef CONFIG_VXWORKS
     MENU_SET_VALUE(

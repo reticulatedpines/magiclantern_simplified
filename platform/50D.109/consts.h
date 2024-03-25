@@ -240,8 +240,8 @@
 //~ #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x1F1C8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x1F1C8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x1B14000   /* print it from srm_malloc_cbr */
 
 //~ max volume supported for beeps
