@@ -794,7 +794,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         
         /* do we have enough free space without exceeding the preferred limit? */
         int free_space = allocators[a].get_free_space ? allocators[a].get_free_space() : 30*1024*1024;
-        //~ dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
+        dbg_printf("%s: free space %s\n", allocators[a].name, format_memory_size(free_space));
         if (!(
                 (
                     /* preferred free space is... well... optional */

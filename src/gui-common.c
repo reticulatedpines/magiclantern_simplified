@@ -165,6 +165,9 @@ int handle_common_events_startup(struct event * event)
     
     if (handle_tricky_canon_calls(event) == 0) return 0;
 
+    qprintf("HANDLE_COMMOMEV");
+    qprintn(event->param);
+
     extern int ml_started;
     if (!ml_started)    {
 #if defined(BGMT_Q_SET) // combined Q/SET button?

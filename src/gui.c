@@ -74,7 +74,8 @@ static int handle_buttons(struct event * event)
     if (!ml_started) return 1;
 
 // SJE Want to log button presses?  Uncomment the following line
-//    DryosDebugMsg(0,15,"event: %08x", event->param);
+    DryosDebugMsg(0,15,"BUTTON event: %08x", event->param);
+//    qprintf("button %x", event->param);
     if (handle_common_events_by_feature(event) == 0) return 0;
 
     return 1;
@@ -106,11 +107,12 @@ extern struct gui_main_struct gui_main_struct;
 
 void ml_gui_main_task()
 {
+    qprintf("Hello from ml_gui_main_task");
+    DryosDebugMsg(0,15,"ml_gui_main_task");
     struct event * event = NULL;
     int index = 0;
     void* funcs[GMT_NFUNCS];
     memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
-
     gui_init_end(); // no params?
 
     while(1)

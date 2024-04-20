@@ -5133,6 +5133,9 @@ int handle_ml_menu_touch(struct event * event)
 int
 handle_ml_menu_keys(struct event * event) 
 {
+
+    qprintf("Handle_ml_key %x", event->param);
+
     if (menu_shown || arrow_keys_shortcuts_active())
         handle_ml_menu_keyrepeat(event);
 
@@ -6248,15 +6251,15 @@ static struct longpress qset_longpress = {
 int handle_ml_menu_erase(struct event *event)
 {
 // SJE if we get here, ML GUI is almost working!
-//    DryosDebugMsg(0, 15, "in handle_ml_menu_erase");
+    DryosDebugMsg(0, 15, "in handle_ml_menu_erase");
     if (dofpreview)
         return 1; // don't open menu when DOF preview is locked
 
 // SJE useful for logging buttons
-//    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
+    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
 
 // SJE logging GUIMODE
-//    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
+    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
 
 #if 0
 // SJE bubbles hack for fun

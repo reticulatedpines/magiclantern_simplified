@@ -32,6 +32,7 @@ extern char camera_serial[32];
 #define MODEL_EOS_700D   0x80000326
 #define MODEL_EOS_M      0x80000331
 #define MODEL_EOS_100D   0x80000346
+#define MODEL_EOS_2000D  0x80000417
 
 #ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv; // TRUE when LiveView is active

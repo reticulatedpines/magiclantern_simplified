@@ -371,7 +371,7 @@ bmp_puts(
     
     uint32_t fg_color = fontspec_fg(fontspec);
     uint32_t bg_color = fontspec_bg(fontspec);
-    
+    qprintf("A");
     int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap,
                               *x, *y, s, FONT(fontspec, fg_color, bg_color));
     *x += len;
@@ -1167,6 +1167,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     if (c >= 0 && !bfnt_ok())
     {
         #ifndef PYCPARSER   /* circular dependency */
+	qprintf("Font Addr Bad, %x", c);
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         #endif
         return 0;

@@ -331,12 +331,17 @@ static void hello_world()
     while (!bmp_vram_raw())
         msleep(100);
 
-    //DryosDebugMsg(0, 15, "==== HELLO WORLD ====");
+    DryosDebugMsg(0, 15, "==== HELLO WORLD ====");
     int colour = 4;
     while(1)
     {
-        bmp_printf(FONT_LARGE, 140, 50, "Hello, World!");
-        bmp_printf(FONT_LARGE, 140, 400, "firmware signature = 0x%x", sig);
+	DryosDebugMsg(0, 15, "Before bmpprint");
+	void *pc;
+    	asm("mov %0, pc" : "=r"(pc));
+	qprintf("%#x\n", pc);
+        bmp_printf(0x0201, 140, 50, "Hello, World!");
+	DryosDebugMsg(0, 15, "After bmpprint");
+//        bmp_printf(FONT_LARGE, 140, 400, "firmware signature = 0x%x", sig);
 
         if (colour == 15)
             colour = 4;
@@ -347,7 +352,7 @@ static void hello_world()
         draw_test_pattern(colour);
 
         ml_refresh_display_needed = 1;
-        msleep(200);
+        msleep(50);
         //info_led_blink(1, 500, 500);
     }
 }
@@ -406,6 +411,7 @@ static void led_fade(int arg1, void * on)
  */
 static void my_big_init_task()
 {
+    qprintf("Hello from ml_init\n");
     _mem_init();
     _find_ml_card();
 
@@ -440,8 +446,10 @@ static void my_big_init_task()
         return;
     }
 
+    qprintf("Trying to load Fonts");
     _load_fonts();
 
+    qprintf("Success loading Fonts");
     // SJE not sure on best place to do this.  Before HELLO_WORLD is nice
     // if possible, needs to be after DryOS inits task scheduler.  I assume
     // that has happened but don't know how to check.
@@ -461,10 +469,15 @@ static void my_big_init_task()
     return;
 #endif
 
+    qprintf("[DBG] PowerSave\n");
     call("DisablePowerSave");
+    qprintf("[DBG] cbr\n");
     _ml_cbr_init();
+    qprintf("[DBG] Menu\n");
     menu_init();
+    qprintf("[DBG] dgbinit\n");
     debug_init();
+    qprintf("[DBG] callinit\n");
     call_init_funcs(); // among other things, this initialises modules
     msleep(200); // leave some time for property handlers to run
 
@@ -503,6 +516,7 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
+	qprintf("TASK CREATE %s\n", task->name);
         task_create(
             task->name,
             task->priority,
@@ -679,7 +693,7 @@ void boot_post_init_task(void)
     }
     msleep(50);
 
-    task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+    task_create("ml_init", 0x1f, 0x4000, my_big_init_task, 0 );
 
     return;
 }

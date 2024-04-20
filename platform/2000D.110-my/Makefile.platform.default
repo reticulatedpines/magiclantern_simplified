@@ -1,0 +1,12 @@
+# 2000D 1.1.0
+
+CANON_NAME_FIR      = CCF26110.FIR
+FIRMWARE_ID         = 0x80000432
+
+# 32MB ROM, like 1300D
+ROMBASEADDR         = 0xFE0C0000
+PLATFORM_ARCH = armv5te
+# Load ML at the end of the AllocateMemory pool
+# Default 0x2D0000 - 0xD00000, patched to 0x2D0000 - 0xC80000 (512K for us).
+RESTARTSTART        = 0xC80000
+ML_BOOT_OBJ         = boot-d45-ch.o

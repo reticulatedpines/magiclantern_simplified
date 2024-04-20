@@ -310,6 +310,26 @@ static int get_default_white_level()
      -903, 10000,     2016, 10000,    6728, 10000
 #endif
 
+#ifdef CONFIG_1300D
+	// PLACEHOLDER DATA FROM 600D TO BUILD HELLOWORLD
+        //~ { "Canon EOS 1300D", 0, 0x3510,
+        //~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
+    #define CAM_COLORMATRIX1                       \
+      6461, 10000,     -907, 10000,    -882, 10000,\
+    -4300, 10000,    12184, 10000,    2378, 10000, \
+     -819, 10000,     1944, 10000,    5931, 10000
+#endif
+
+#ifdef CONFIG_2000D
+	// PLACEHOLDER DATA FROM 1300D TO BUILD HELLOWORLD
+        //~ { "Canon EOS 2000D", 0, 0x3510,
+        //~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
+    #define CAM_COLORMATRIX1                       \
+      6461, 10000,     -907, 10000,    -882, 10000,\
+    -4300, 10000,    12184, 10000,    2378, 10000, \
+     -819, 10000,     1944, 10000,    5931, 10000
+#endif
+
 #ifdef CONFIG_60D
         //~ { "Canon EOS 60D", 0, 0x2ff7,
         //~ {  6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
@@ -550,6 +570,10 @@ static int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
 
 #ifdef CONFIG_1100D
 static int dynamic_ranges[] = {1099, 1098, 1082, 1025, 965, 877, 784}; // No ISO 12800 available
+#endif
+
+#ifdef CONFIG_2000D
+static int dynamic_ranges[] = {1095, 1104, 1075, 1027, 953, 874, 785};
 #endif
 
 #ifdef CONFIG_650D
