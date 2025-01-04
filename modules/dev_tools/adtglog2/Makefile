@@ -3,6 +3,7 @@ MODULE_NAME = adtglog2
 MODULE_OBJS = $(BUILD_DIR)/adtglog2.o \
               $(BUILD_DIR)/hooks_thumb_200D.o \
               $(BUILD_DIR)/hooks_thumb_6D2.o \
+              $(BUILD_DIR)/hooks_thumb_RP.o \
               $(BUILD_DIR)/hooks_arm_70D.o
 TOP_DIR = ../../..
 
@@ -20,6 +21,9 @@ $(BUILD_DIR)/hooks_thumb_200D.o: hooks_thumb_200D.c
 	$(CC) $(CFLAGS_ARCHLESS) -mthumb -march=armv7 $(CDEPS_FLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/hooks_thumb_6D2.o: hooks_thumb_6D2.c
+	$(CC) $(CFLAGS_ARCHLESS) -mthumb -march=armv7 $(CDEPS_FLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/hooks_thumb_RP.o: hooks_thumb_RP.c
 	$(CC) $(CFLAGS_ARCHLESS) -mthumb -march=armv7 $(CDEPS_FLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/hooks_arm_70D.o: hooks_arm_70D.c
