@@ -39,6 +39,7 @@ THUMB_FN(0xE0040104,  cstart)                          /* calls bzero32 and crea
 THUMB_FN(0xE05A6CDC,  bzero32)                         /* zeros out a data structure */
 THUMB_FN(0xE05C04A4,  create_init_task)                /* low-level DryOS initialization */
 THUMB_FN(0xE05A9F08,  dcache_clean)                    /* loop with MCR p15 c7,c10,1; DSB */
+THUMB_FN(0xE000c184,  dcache_clean_multicore) /* loop writing to c11007b0, called after dcache_clean by copy_mmu_tables() */
 THUMB_FN(0xE05A9FDC,  icache_invalidate)               /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB */
 THUMB_FN(0xE004022C,  init_task)                       /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 
@@ -255,6 +256,12 @@ THUMB_FN(0xe07e066a,  LiveViewShutterApp_handler)           // msg: "StartLiveVi
 DATA_PTR(    0x14844,  LiveViewApp_dialog)                 // in StartLiveViewApp(), 0x14840 + 0x4
 //DATA_PTR(  0x1e488,  LiveViewShutterApp_dialog)          // in StartLiveViewShutterApp(), not sure if needed
 //DATA_PTR(  0x16338,  PlayMovieGuideApp_dialog)           // in PlayMovieGuide_Start()
+
+// MMU related, required by CONFIG_MMU features
+// slightly MMU related, used by CONFIG_MMU_REMAP
+ARM32_FN(0xe001803c, memcpy_dryos) // useful in early contexts when we don't have
+                                   // dietlibc or newlib, and can't use stdio memcpy64 because
+                                   // that wants ML assert handling initialised.
 
 /**
  * STUFF BELOW IS WRONG!
