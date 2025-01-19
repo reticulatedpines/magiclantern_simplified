@@ -43,6 +43,7 @@
 //#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define DRYOS_ASSERT_HANDLER 0x4000               // from debug_assert function, hard to miss
+#define DRYOS_SGI_HANDLERS_PTR 0x402c             // holds pointer to base of SGI handlers (each is 8 bytes, a pointer and something else)
 
 #define CURRENT_GUI_MODE (*(int*)0x7a50) // see SetGUIRequestMode
 
