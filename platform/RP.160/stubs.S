@@ -48,6 +48,7 @@ DATA_PTR(    0x1010,  current_interrupt)               /* from interrupt handler
 DATA_PTR(    0x1028,  current_task)                    /* from task_create; pointer to the current task structure */
 THUMB_FN(0xE058F77A,  msleep)                          /* argument is always multiple of 10 */
 THUMB_FN(0xE05DA6C2,  task_create)                     /* used to start TaskMain, GuiMainTask etc */
+THUMB_FN(0xe05da8da,  task_create_ex)         /* as task_create, but allows selecting CPU for task*/
 
 /** Misc (Optional) **/
 THUMB_FN(0xE059100C,  uart_printf)                     // The function which prints Kxxx READY.
@@ -119,6 +120,22 @@ THUMB_FN(0xE05AC0DE,  SetHPTimerAfterNow)              // above "comAdapterDelay
 THUMB_FN(0xE057EA20,  SetTimerAfter)                   // function after create semaphore "wlansdcon" string
 THUMB_FN(0xE038AA1A,  CancelDateTimer)                 // "CancelDateTimer" string inside function
 THUMB_FN(0xE057EAD6,  CancelTimer)                     // function call after "CancelTimer FocusProhibit %d"
+
+THUMB_FN(0xe13ec7de, _request_RPC) // allows CPU0 or CPU1 to pass a func pointer and param
+                                   // to the other for RPC.
+                                   // Passing a NULL func pointer, will suspend the other
+                                   // CPU until it becomes non-NULL.
+                                   // DryOS seems to use this to deliberately sleep a CPU
+                                   // in some exceptional cases (e.g. asserts).
+                                   //
+                                   // Don't call this directly, because if you do,
+                                   // and you forget to call clear_RPC_request(),
+                                   // the target CPU will repeatedly call the func pointer
+                                   // as fast as possible, forever.
+                                   // Instead use request_RPC().
+
+THUMB_FN(0xe13ec7fe, clear_RPC_request) // reset the request to prevent calling
+                                        // the function forever
 
 /** MPU communication **/
 // THUMB_FN(0xE05da06c,  mpu_recv)                        // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr

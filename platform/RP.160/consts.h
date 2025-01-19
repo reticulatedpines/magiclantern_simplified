@@ -9,6 +9,11 @@
 #define LEDON                          0x004D0002
 #define LEDOFF                         0x004C0003
 
+#define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
+
 #define BR_DCACHE_CLN_1      0xE0040068   /* first call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_1      0xE0040072   /* first call to icache_invalidate, before cstart */
 #define BR_DCACHE_CLN_2      0xE00400A0   /* second call to dcache_clean, before cstart */
