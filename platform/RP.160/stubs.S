@@ -276,6 +276,7 @@ DATA_PTR(    0x14844,  LiveViewApp_dialog)                 // in StartLiveViewAp
 
 // MMU related, required by CONFIG_MMU features
 // slightly MMU related, used by CONFIG_MMU_REMAP
+THUMB_FN(0xe0004ae2, change_mmu_tables) // Updates TTBRs and does TLB maintenance
 ARM32_FN(0xe001803c, memcpy_dryos) // useful in early contexts when we don't have
                                    // dietlibc or newlib, and can't use stdio memcpy64 because
                                    // that wants ML assert handling initialised.
