@@ -165,3 +165,10 @@
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP
+
+// WTF
+#define CONFIG_TASK_STRUCT_V2
+// WTF
+#define CONFIG_TASK_ATTR_STRUCT_V2
+// WTF
+#define CONFIG_MALLOC_STRUCT_V2

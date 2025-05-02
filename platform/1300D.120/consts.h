@@ -265,7 +265,7 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x671A8
+#define MALLOC_STRUCT_ADDR 0x671A8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define SRM_BUFFER_SIZE 0x1f68000 //0x14E8000   /* print it from srm_malloc_cbr */
 
@@ -279,3 +279,6 @@
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)
+
+// WTF
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16
