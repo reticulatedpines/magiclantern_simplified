@@ -1,0 +1,114 @@
+name: Build & Publish Magic Lantern
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: true
+        type: choice
+        options:
+          - 100D.101
+          - 1100D.105
+          - 200D.101
+          - 500D.111
+          - 50D.109
+          - 550D.109
+          - 5D2.212
+          - 5D3.113
+          - 5D3.123
+          - 5D4.133
+          - 5DSR.112
+          - 600D.102
+          - 60D.111
+          - 650D.104
+          - 6D.116
+          - 6D2.111
+          - 700D.115
+          - 70D.112
+          - 750D.110
+          - 77D.110
+          - 7D.203
+          - 7D2.112
+          - 7D_MASTER.203
+          - 80D.103
+          - 850D.100
+          - EOSM.202
+          - M50.110
+          - R.180
+          - R5.152
+          - R6.150
+          - RP.160
+          - SX70.111
+          - SX740.102
+          - XF605.101
+      changelog:
+        description: 'Release changelog'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Prerelease'
+        required: false
+        default: 'true'
+        type: boolean
+      publish_release:
+        description: 'Publish release'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi build-essential python3-docutils python3-sphinx binutils gawk
+
+      - name: Create dummy doc/cam directory
+        run: mkdir -p doc/cam
+
+      - name: Build for selected platform
+        run: make -C platform/${{ github.event.inputs.platform }} -j16
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: magiclantern-${{ github.event.inputs.platform }}
+          path: platform/${{ github.event.inputs.platform }}/build/magiclantern.zip
+
+  publish:
+    if: ${{ github.event.inputs.publish_release }}
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: magiclantern-${{ github.event.inputs.platform }}
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: magiclantern.zip
+          tag_name: ${{ github.event.inputs.platform }}@${{ github.sha }}
+          name: Release for ${{ github.event.inputs.platform }} on branch ${{ github.ref_name }}@${{ github.sha }}
+          body: |
+            Automated release for ${{ github.event.inputs.platform }}.
+
+            **Changelog:**
+            ${{ github.event.inputs.changelog }}
+
+            **Build Information:**
+            Branch: ${{ github.ref_name }}@${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+          prerelease: ${{ github.event.inputs.prerelease }}
