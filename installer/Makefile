@@ -65,8 +65,11 @@ ML_CAMS = \
     60D.111 \
     650D.104 \
     6D.116 \
+    6D2.111 \
     700D.115 \
     70D.112 \
+    750D.110 \
+    7D2.112 \
     EOSM.202
 
 .PHONY: clean $(BUILD_DIR) FORCE
@@ -134,11 +137,32 @@ $(BUILD_DIR)/default_installers_complete: $(ML_INSTALLER_TARGETS) | $(BUILD_DIR)
 $(ML_INSTALLER_TARGETS): %: | $(BUILD_DIR)
 	$(MAKE) -C $(subst /$(BUILD_DIR)/$(INSTALLER_FIR),,$*)
 
-# Individual cams should make this target their default goal.
+ifdef DUAL_DIGIC
+# These cams need two binaries in the FIR, one per Digic.
+OPTIONAL_SECOND_UPDATER_FILE = $(BUILD_DIR)/second_updater.bin
+OPTIONAL_SECOND_UPDATER_CMD = -m $(OPTIONAL_SECOND_UPDATER_FILE)
+
+$(BUILD_DIR)/second_updater.o: second_updater.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(CDEPS_FLAGS) -DMAIN_FIRMWARE_ADDR=$(MAIN_FIRMWARE_ADDR) \
+    -c -o $@ $< $(INCLUDE_ARGS) $(LFLAGS)
+
+$(BUILD_DIR)/second_updater: $(BUILD_DIR)/second_updater.o | $(BUILD_DIR)
+	$(LD) -o $@ -nostdlib -e _start -Ttext $(FIR_BASE) $^
+
+$(BUILD_DIR)/second_updater.bin: $(BUILD_DIR)/second_updater $(BUILD_DIR)/xor_chk | $(BUILD_DIR)
+	$(OBJCOPY) -O binary $< $@; \
+    $(STAT_CMD) $@
+
+endif
+
+# Individual cams should make this target their default installer goal.
 # It's not run when invoking make from the installer dir directly.
-$(BUILD_DIR)/$(INSTALLER_FIR): $(BUILD_DIR)/autoexec.bin | $(BUILD_DIR)
-	python3 $(ML_BUILD_FIR_DIR)/build_fir.py -r $(ML_FIR_DIR)/$(CANON_FIR) \
-    -s $(BUILD_DIR)/autoexec.bin $(BUILD_DIR)/$(INSTALLER_FIR)
+$(BUILD_DIR)/$(INSTALLER_FIR): $(BUILD_DIR)/autoexec.bin $(OPTIONAL_SECOND_UPDATER_FILE) | $(BUILD_DIR)
+	python3 $(ML_BUILD_FIR_DIR)/build_fir.py -r \
+    $(OPTIONAL_SECOND_UPDATER_CMD) \
+    -s $(BUILD_DIR)/autoexec.bin \
+    $(ML_FIR_DIR)/$(CANON_FIR) \
+    $(BUILD_DIR)/$(INSTALLER_FIR)
 
 # Create the output dir
 $(BUILD_DIR):

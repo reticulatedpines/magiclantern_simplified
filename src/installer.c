@@ -77,12 +77,23 @@ static void call_bootflag_eventproc(char* eventproc)
         }
 
         /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
+#ifdef CONFIG_DIGIC_VI
+    // Disabling interrupts before Enable/DisableBootDisk makes these cams hang.
+    // They use Omar for these commands, presumably the signalling requires
+    // interrupts.  The original concern was power saving kicking in during
+    // the flash write (see large comment above).  These days we should easily
+    // be fast enough, plus we don't have any choice.
+#else
         uint32_t old = cli();
+#endif
         if (CURRENT_GUI_MODE == GUIMODE_MENU && DISPLAY_IS_ON)
         {
             call( eventproc );
         }
+#ifdef CONFIG_DIGIC_VI
+#else
         sei(old);
+#endif
     }
 }
 

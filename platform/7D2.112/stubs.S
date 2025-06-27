@@ -157,6 +157,7 @@ THUMB_FN(0xfe102bbe,  CreateMemorySuite)                    // One of just a few
 THUMB_FN(0xfe1028ca,  DeleteMemorySuite)                    // DebugMsg "DeleteMemorySuite 0x%x"
 
 // Uncategorized
+DATA_PTR(   0x2fb4c,  cf_device_ptr)     // From func using "RegisterClient"
 DATA_PTR(   0x331bc,  sd_device)         // From function that references "SD_DeviceCreate:" TODO: check if struct changed like in R
 THUMB_FN(0xfe3efd2c,  _LoadCalendarFromRTC) // "Private" as it now has more arguments, needs a wrapper.
 THUMB_FN(0xfe3eac0a,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c)

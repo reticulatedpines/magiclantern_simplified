@@ -91,7 +91,7 @@ cli(void)
     
     asm __volatile__ (
         "mrs %0, CPSR\n"
-        "orr r1, %0, #0xC0\n" // set I flag to disable IRQ
+        "orr r1, %0, #0xC0\n" // set I and F flags to disable IRQ and FIQ
         "msr CPSR_c, r1\n"
         "and %0, %0, #0xC0\n"
         : "=r"(old_irq) : : "r1"
@@ -104,7 +104,7 @@ sei( uint32_t old_irq )
 {
     asm __volatile__ (
         "mrs r1, CPSR\n"
-        "bic r1, r1, #0xC0\n"
+        "bic r1, r1, #0xC0\n" // clear IRQ and FIQ flags
         "and %0, %0, #0xC0\n"
         "orr r1, r1, %0\n"
         "msr CPSR_c, r1" : : "r"(old_irq) : "r1" );

@@ -34,6 +34,7 @@ const uint32_t prop_handler_deny[] =
 // allow writes / allow prop_request_change() for these:
 const uint32_t prop_write_allow[] =
 {
+    PROP_ICU_AUTO_POWEROFF, // used in multiple places, incl. installer / uninstaller
     PROP_BUTTON_ASSIGNMENT,
     PROP_REMOTE_SW1,
     PROP_REMOTE_SW2
