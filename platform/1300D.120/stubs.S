@@ -27,6 +27,11 @@
 
 #include <stub.h>
 
+// Note: Critix tried to make a 1.2.0 port here: https://bitbucket.org/ccritix/magic-lantern-git/src/234e117aba5a0b0147e9327656dc359d54e9ed04/platform/1300D.120/stubs.S
+// Several values don't appear to be correct... no idea if he ever tested it.
+
+// Critix's 1.1.0 port is here: https://github.com/ccritix/magic-lantern/tree/branches/1300D/platform/1300D.110
+
 .text
 
 // ROM1.BIN starts at 0xFE000000
@@ -313,3 +318,4 @@ NSTUB(0xfe114b20,  EnableImagePhysicalScreenParameter)      /* present on 7D.203
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 NSTUB(0xfe0d48b4,  TryReceiveMessageQueue)
+

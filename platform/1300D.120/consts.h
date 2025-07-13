@@ -252,7 +252,6 @@
 
 #define INFO_BTN_NAME "DISP"
 #define Q_BTN_NAME (RECORDING ? "INFO" : "[Q]")
-#define ARROW_MODE_TOGGLE_KEY ""
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x318B8)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
@@ -282,3 +281,6 @@
 
 // WTF
 #define SRM_MAX_BUF_COUNT_VIDEO_MODE 16
+
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x37930 + 0x30))     /*0xfe1a3d6c how much do we have allocated? */
+#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024     /* is this really overwritten by other code? needs some investigation */
