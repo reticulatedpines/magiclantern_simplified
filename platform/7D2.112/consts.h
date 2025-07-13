@@ -25,25 +25,22 @@
 /* "Malloc Information" */
 #define MALLOC_STRUCT_ADDR 0x41b50                    // from get_malloc_info, helper of malloc_info
 //#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 1
+#define SRM_BUFFER_SIZE 0x2314000
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER 0x28d50               // from debug_assert function, hard to miss
 // There's a second "debug_assert" function at fe6b7834.  It checks for an assert handler at
-// a different address.  Might be for the second Digic?
+// a different address.  This is the handler used by Omar.  The fe6afd00:fe8bcf00 region is
+// copied to Omar address space, and for ICU should be marked non-exec in Ghidra.
 
-#define CURRENT_GUI_MODE (*(int*)0x2a274)                 // from SetGUIRequestMode
+#define CURRENT_GUI_MODE (*(int*)0x2a274) // from SetGUIRequestMode
 
-// SJE FIXME this block copied from 750d, not actually tested on real cam yet
 /**
  * Some GUI modes as dumped on camera
  * 0x01 - Play mode
  * 0x02 - Main menu
- * 0x2F - LV "Q" menu overlay
- * Note that overlays below timeout quickly, so they are bad for ML menu.
- * 0x5B - LV "Shutter speed" overlay
- * 0x5C - LV "Aperture" overlay
- * 0x5D - LV "Exposure compensation" overlay
- * 0x5E - LV "ISO" overlay
+ * 0x2c - LV "Q" menu overlay
  */
 #define GUIMODE_PLAY 1
 #define GUIMODE_MENU 2
@@ -58,10 +55,10 @@
 
 #define CANON_SHUTTER_RATING 200000
 
-    #define DISPLAY_IS_ON               0x1  // TODO: find real value
+#define DISPLAY_IS_ON (!(char)(MEM(0x27e99)))  // found at 0xfe0b6824 : MEM(0x027e98) == 0x10001(on) 0x10101(off)
 
-#define GMT_FUNCTABLE 0xfe658084           // from gui_main_task
-#define GMT_NFUNCS 0x7                  // size of table above
+#define GMT_FUNCTABLE 0xfe658084 // from gui_main_task
+#define GMT_NFUNCS 0x7           // size of table above
 
 #define LVAE_STRUCT 0x5af3c // via "lvae_setcontrolbv", struct base is set as param1 to two called functions
 #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x20)) // via "lvae_setcontrolbv", check the asm
@@ -90,18 +87,21 @@
 // [RSC] VGAIMG_VRAM2            0x41288800 0x00AC800    706560
 // [RSC] VGAIMG_VRAM3            0x41335000 0x00AC800    706560
 
-  #define YUV422_LV_BUFFER_1 0x5f02e000                    // IMG_VRAM1?
-  #define YUV422_LV_BUFFER_2 0x5f422800                    // IMG_VRAM2?
-  #define YUV422_LV_BUFFER_3 0x5f817000                    // IMG_VRAM3?
-  // There's conditional code to handle BUFFER_4, so we'll try it,
-  // but I'm not confident
-  #define YUV422_LV_BUFFER_4 0x5fc0b800                    // IMG_VRAM4?
-    #define YUV422_LV_PITCH    1024
+#define DISP_VRAM_STRUCT_PTR ((unsigned int *)(*(int *)0x2bec0)) // used many DISP related places, "CurrentImgAddr : %#08x"
+                                                                 // is a good string as this gets us the pointers to current buffers.
+                                                                 // param1 is DisplayOut (HDMI, EVF, LCD?)
+#define YUV422_LV_BUFFER_1 0x5f02e000
+#define YUV422_LV_BUFFER_2 0x5f422800
+#define YUV422_LV_BUFFER_3 0x5f817000
+// There's conditional code to handle BUFFER_4, so we'll try it,
+// but I'm not confident
+#define YUV422_LV_BUFFER_4 0x5fc0b800
+//#define YUV422_LV_PITCH    1024
 
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(DISP_VRAM_STRUCT_PTR + (0x78 / 4))) // see func using CurrentImgAddr string
     #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
 
-    #define HALFSHUTTER_PRESSED         0
+#define HALFSHUTTER_PRESSED (*(int *)0x28e48) // via "cam event metering start"
 
     #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
@@ -137,9 +137,9 @@
     #define GUIMODE_PICQ 6
 
     // all these MVR ones are junk, don't try and record video and they probably don't get used?
-    #define MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call;
-                                             // decompile it and see where ret_AllocateMemory is stored.
-    #define div_maybe(a,b) ((a)/(b))
+#define MVR_190_STRUCT (*(void**)0x2a868) // look in MVR_Initialize for AllocateMemory call;
+                                          // see where ret_AllocateMemory is stored.
+//    #define div_maybe(a,b) ((a)/(b))
     // see mvrGetBufferUsage, which is not really safe to call => err70
     // macros copied from arm-console
     #define MVR_BUFFER_USAGE 70 /* obviously wrong, don't try and record video

@@ -167,7 +167,7 @@ def getResourceOffset(id):
             )
 
         pprint(rscPtrs)
-        rsc_off = rscPtrs[args.id]["off"]
+        rsc_off = rscPtrs[int(args.id)]["off"]
         print("Selected resource: {}, off: {}".format(id, rsc_off))
         return rsc_off
 
@@ -249,7 +249,7 @@ file_args.add_argument("--pid", default=0, help="Palette ID")
 args = parser.parse_args()
 
 Globals.file = args.file
-Globals.rsc_base = args.assets - args.address
+Globals.rsc_base = int(args.assets, 16) - int(args.address, 16)
 Globals.palette_id = int(args.pid)
 
 offset = getResourceOffset(int(args.id))

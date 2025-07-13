@@ -285,9 +285,42 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_200D)
     #define TG_FREQ_BASE 84000000 // 84MHz from measurements of timer values, much higher than old cams
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+    // values from logging (timer_a, timer_b):
+    // LV, photo mode:
+    // pal  : 490, 4e0 (or 4df, it flickers a little)
+    // NTSC : 490, 4e0
+    //
+    // LV, mov mode:
+    // All res seem to give the same timings, only fps changes things.
+    // Again, the b value flickers by 1 every so often
+    // 23.98: 461, 618 => 41.97 Mhz
+    // 25   : 461, 5d8 => 41.93 Mhz
+    // 29.97: 461, 4e0 => 41.97 Mhz
+    // 50   : 2e9, 2ec => 27.86 Mhz
+    // 59.94: 175, 270 => 13.97 Mhz
+    //
+    // Variable?  We're missing something on this cam.  Possibly a clock
+    // multiplier / divisor?
+
 #elif defined(CONFIG_6D2)
-    #define TG_FREQ_BASE 32000000 //copy from 700D
+    #define TG_FREQ_BASE 66800000
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+    // values from logging (timer_a, timer_b):
+    // LV, photo mode:
+    // pal  : ,
+    // NTSC : ,
+    //
+    // LV, mov mode:
+    // All res seem to give the same timings, only fps changes things.
+    // Again, the b value flickers by 1 every so often
+    // 23.98: 588, 7b0 => 66.88 Mhz
+    // 25   : 588, 760 => 66.83 Mhz
+    // 29.97: 588, 626 => 66.86 Mhz
+    // 50   : 3ae, 3b0 => 44.46 Mhz
+    // 59.94: 1d8, 314 => 22.32 Mhz
+    //
+    // Variable, like 200D?  Different base clock though.
+
 #elif defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
     #define TG_FREQ_BASE 32000000 //copy from 700D
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
@@ -313,6 +346,19 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_70D)
     #define TG_FREQ_BASE 32000000
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+    // values from logging (timer_a, timer_b):
+    // LV, photo mode:
+    // pal: 295, 649 => (30fps?) 31.9 Mhz
+    // NTSC: same
+    //
+    // LV, mov mode:
+    // All res seem to give the same timings, only fps changes things.
+    // Again, the b value flickers by 1 every so often
+    // 50   : 31f, 31f => 31.92 Mhz
+    // 59.94: 29f, 319 => 31.93 Mhz
+    // 29.97: 2bb, 5f4 => 31.96 Mhz
+    // 25   : 31f, 63f => 31.94 Mhz
+    // 23.98: 2bb, 772 => 31.98 Mhz
 #endif
 
 // these can change timer B with another method, more suitable for high FPS

@@ -124,6 +124,11 @@ THUMB_FN(0xfe0b5fbc,  gui_massive_event_loop) // various "GUICMD_"* strings
 THUMB_FN(0xfe0b5c30,  gui_enqueue_message)    // via string "warning! QueueLength="
 THUMB_FN(0xfe0b6478,  gui_init_end)           // EndGuiInit
 THUMB_FN(0xfe0b5e3e,  GUI_Control)            // string GUI_Control
+//THUMB_FN(0xfe0b5f06,  notify_shoot_type) // Used sometimes before SetGUIRequestMode.
+                                           // Quite interesting, seems to trigger changes to e.g.
+                                           // mirror position.  Presumably triggers some physical
+                                           // parts setup via telling OS "get ready to shoot with mirror
+                                           // down / up"
 
 // Dialog API
 THUMB_FN(0xfe35d674,  dialog_redraw)   // DebugMsg "StartPlayErrorApp". Called just before assigning 0 to one of variables.
@@ -167,6 +172,10 @@ THUMB_FN(0xfe0f81ce,  prop_register_slave)  // Assert "pRegisterSlave"
 THUMB_FN(0xfe0f829e, _prop_request_change)  // Assert "pRequestChange"; two refs, one sets a variable to 1 near the end, the other 0.
                                             // We want 1.
 THUMB_FN(0xfe0f86cc, _prop_cleanup)         // DebugMsg "ChangeCBR(...". Last call in those functions.
+
+
+THUMB_FN(0x40c, dm_set_store_level) // called by "dmstore"
+THUMB_FN(0x3cc, dm_set_print_level)
 
 // CFn
 // Doesn't seem to have these, 5D style menus where Custom Functions are a normal menu
@@ -216,6 +225,13 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D6 has no indexed
 //THUMB_FN(0x80006c10 ConnectReadEDmac);
 //THUMB_FN(0x80006c42 RegisterEDmacCompleteCBR);
 
+// This is inside the rom block copied to Omar,
+// possibly it is bad to call it from ICU...
+// Heder believes it works: https://www.magiclantern.fm/forum/index.php?topic=13746.msg245621#msg245621
+THUMB_FN(0xfe6bc424, shamem_read)
+//THUMB_FN(0xfe255ea6, LockEngineResources) // untested, I assume func sig may have changed
+                                            // since this is somehow done via Omar on this cam.
+
 // App handlers
 //
 // Those can usually be found by looking at function address passed to
@@ -225,11 +241,12 @@ THUMB_FN(0xfe2dba32,  PlayMain_handler)                     // msg: "StartPlayMa
 THUMB_FN(0xfe4fd15a,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
 THUMB_FN(0xfe40a6be,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
 //THUMB_FN(0x,  LiveViewShutterApp_handler)         // msg: "LiveViewShutterApp"
+THUMB_FN(0xfe4f25f0,  ErrCardForLVApp_handler)
 THUMB_FN(0xfe422052,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
 
 // See R180 stubs.S for details.
 //DATA_PTR( 0x2BD60,  PlayMain_dialog)                      // in StartPlayMain(), 0x2bd54 + 0xc
 //DATA_PTR( 0x35298,  ShootOlcApp_dialog)                   // in StartShootOlcApp()
-DATA_PTR(   0x31154,  LiveViewApp_dialog)                   // in StartLiveViewApp()
+DATA_PTR(   0x310d4,  LiveViewApp_dialog)                   // in StartLiveViewApp()
 //DATA_PTR( 0x35a58,  LiveViewShutterApp_dialog)            // in StartLiveViewShutterApp(), not sure if needed
 //DATA_PTR( 0x3042c,  PlayMovieGuideApp_dialog)             // in StartPlayMovieGuideApp()

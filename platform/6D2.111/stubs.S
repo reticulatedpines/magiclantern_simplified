@@ -70,6 +70,18 @@ THUMB_FN(0xdf006e6c,  DryosDebugMsg)          /* lots of debug messages; format 
 /** DMA **/
 THUMB_FN(0xe01e565e,  dma_memcpy)
 
+/** EDMAC **/
+// EDmac is distinct from XDMAC, they are different controllers.
+//
+// This is a trimmed set of stubs.  More are known on D7, see 200D.
+// This is the minimal required to support raw video, using mem_to_mem_edmac_copy()
+THUMB_FN(0xe04aa70c,  CreateResLockEntry) // via xrefs to a pointer to "ResInfo"
+THUMB_FN(0xe04aa7f0,  DeleteResLockEntry)
+THUMB_FN(0xe04aa8f4,  LockEngineResources)
+THUMB_FN(0xe04aa994,  UnLockEngineResources)
+THUMB_FN(0x30900, shamem_read) // nearly always inlined, so very few refs.
+                               // Can find via "[MEM1DEV] Addr=%#x Data=%#x"
+
 /** MMU **/
 THUMB_FN(0xe0004a5a, change_mmu_tables) // Updates TTBRs and does TLB maintenance
 THUMB_FN(0xe0013b58, copy_mmu_tables) // copies from one location to another,
@@ -139,6 +151,9 @@ THUMB_FN(0xdf009338,  vsnprintf)              /* called near dmstart; references
                                                  and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
 
 DATA_PTR(    0x100b4,  winsys_sem) // written to in InitializeScreen (see "Winsys_Wait_v"), used in RefreshVrmsSurface
+
+THUMB_FN(0xe048b0e8, _turn_off_display)
+THUMB_FN(0xe048b0d4, _turn_on_display)
 
 THUMB_FN(0xdf0031a3,  get_task_by_id) // called indirectly by task_create and functions using string "TASK Name"
 THUMB_FN(0xdf004041,  _get_task_info_by_id)
@@ -248,6 +263,8 @@ THUMB_FN(0xdf0070c5,  dm_set_store_level) // called by "dmstore"
 THUMB_FN(0xdf00707d,  dm_set_print_level)
 THUMB_FN(0xdf00325d,  task_trampoline)
 
+THUMB_FN(0xe044726a, _get_fps_register_a)
+THUMB_FN(0xe04471de, _get_fps_register_b)
 
 //////
 // SJE stuff that's not required but can be useful

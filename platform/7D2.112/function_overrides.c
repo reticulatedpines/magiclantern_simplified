@@ -29,8 +29,6 @@
 #include <lens.h>
 #include <edmac.h>
 
-extern int uart_printf(const char * fmt, ...);
-
 void LoadCalendarFromRTC(struct tm *tm)
 {
     // differs from D78, one arg is missing
@@ -44,19 +42,19 @@ void LoadCalendarFromRTC(struct tm *tm)
 
 struct chs_entry
 {
-  uint8_t head;
-  uint8_t sector; //sector + cyl_msb
-  uint8_t cyl_lsb;
+    uint8_t head;
+    uint8_t sector; //sector + cyl_msb
+    uint8_t cyl_lsb;
 }__attribute__((packed));
 
 struct partition
 {
-  uint8_t  state;
-  struct chs_entry start;
-  uint8_t  type;
-  struct chs_entry end;
-  uint32_t start_sector;
-  uint32_t size;
+    uint8_t state;
+    struct chs_entry start;
+    uint8_t type;
+    struct chs_entry end;
+    uint32_t start_sector;
+    uint32_t size;
 }__attribute__((aligned,packed));
 
 struct partition_table
@@ -71,24 +69,19 @@ struct partition_table
     uint32_t sectors_in_partition;
 }__attribute__((packed));
 
-void fsuDecodePartitionTable(void * partIn, struct partition_table * pTable){
-    struct partition * part = (struct partition *) partIn;
-    pTable->state      = part->state;
-    pTable->type       = part->type;
+void fsuDecodePartitionTable(void *partIn, struct partition_table *pTable)
+{
+    struct partition *part = (struct partition *)partIn;
+    pTable->state = part->state;
+    pTable->type = part->type;
     pTable->start_head = part->start.head;
-    pTable->end_head   = part->end.head;
+    pTable->end_head = part->end.head;
     pTable->sectors_before_partition = part->start_sector;
-    pTable->sectors_in_partition     = part->size;
+    pTable->sectors_in_partition = part->size;
 
     //tricky bits - TBD
     pTable->start_cylinder_sector = 0;
     pTable->end_cylinder_sector   = 0;
-
-    uart_printf("Bootflag: %02x\n", pTable->state);
-    uart_printf("Type: %02x\n", pTable->type);
-    uart_printf("Head start: %02x end %02x\n", pTable->start_head, pTable->end_head);
-    uart_printf("Sector start: %08x size %08x\n", pTable->sectors_before_partition, pTable->sectors_in_partition);
-    uart_printf("CS: Start %04x End %04x\n", pTable->start_cylinder_sector, pTable->end_cylinder_sector);
 }
 
 #ifndef CONFIG_INSTALLER
@@ -136,7 +129,7 @@ void AbortEDmac(unsigned int channel)
     return;
 }
 
-void RegisterEDmacCompleteCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+void RegisterEDmacCompleteCBR(int channel, void (*cbr)(void*), void *cbr_ctx)
 {
     return;
 }
@@ -146,7 +139,7 @@ void UnregisterEDmacCompleteCBR(int channel)
     return;
 }
 
-void RegisterEDmacAbortCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+void RegisterEDmacAbortCBR(int channel, void (*cbr)(void*), void *cbr_ctx)
 {
     return;
 }
@@ -156,7 +149,7 @@ void UnregisterEDmacAbortCBR(int channel)
     return;
 }
 
-void RegisterEDmacPopCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+void RegisterEDmacPopCBR(int channel, void (*cbr)(void*), void *cbr_ctx)
 {
     return;
 }
@@ -171,12 +164,7 @@ void _EngDrvOut(uint32_t reg, uint32_t value)
     return;
 }
 
-uint32_t shamem_read(uint32_t addr)
-{
-    return 0;
-}
-
-void _engio_write(uint32_t* reg_list)
+void _engio_write(uint32_t *reg_list)
 {
     return;
 }
