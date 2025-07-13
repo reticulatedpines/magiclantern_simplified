@@ -158,7 +158,7 @@ static volatile struct edmac_mmio *raw_lv_edmac = (struct edmac_mmio *)RAW_LV_ED
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_7D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_7D) || defined(CONFIG_1300D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -354,6 +354,16 @@ static int get_default_white_level()
      7268, 10000,     -1082, 10000,    -969, 10000,\
     -4186, 10000,    11839, 10000,    2663, 10000, \
      -825, 10000,     2029, 10000,    5839, 10000
+#endif
+
+#ifdef CONFIG_1300D
+	// PLACEHOLDER DATA FROM 600D TO BUILD HELLOWORLD
+        //~ { "Canon EOS 1300D", 0, 0x3510,
+        //~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
+    #define CAM_COLORMATRIX1                       \
+      6461, 10000,     -907, 10000,    -882, 10000,\
+    -4300, 10000,    12184, 10000,    2378, 10000, \
+     -819, 10000,     1944, 10000,    5931, 10000
 #endif
 
 #ifdef CONFIG_70D
@@ -559,6 +569,10 @@ static int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
 
 #ifdef CONFIG_1100D
 static int dynamic_ranges[] = {1099, 1098, 1082, 1025, 965, 877, 784}; // No ISO 12800 available
+#endif
+
+#ifdef CONFIG_1300D
+static int dynamic_ranges[] = {1112, 1080, 1038, 984, 917, 834, 733, 655};
 #endif
 
 #ifdef CONFIG_650D

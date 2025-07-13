@@ -36,6 +36,11 @@
 #define SIG_7D2_104  0x9c68409c // from FE0A0000
 #define SIG_7D2_112  0xe7b1a44b // from FE0A0000
 #define SIG_7D_MASTER_203 0x640BF4D1 // from FF010000
+#define SIG_1100D_105 0x46de7624 // from FF010000
+#define SIG_1200D_102 0xba19c526 // from FF0C0000
+#define SIG_1300D_110 0x3d8461b5 // from FE0C0000 (atypical)
+#define SIG_1300D_120 0x378b58db // from FE0C0000 (atypical)
+#define SIG_2000D_110 0x70ca4ca6 // from FE0C0000 (atypical)
 //#define SIG_80D_102  0x74d93d11 // from FE0A0000
 #define SIG_80D_103  0x98ec1433 // from FE0A0000
 #define SIG_850D_100 0xad55d877 // from e0040000
