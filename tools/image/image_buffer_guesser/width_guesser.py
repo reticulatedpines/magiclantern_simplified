@@ -53,7 +53,7 @@ def get_size_guesses(buf, planes=1):
                             for i in range(1, len(prime_factors)))
     row_dims = sorted({np.prod(x) for x in combinations})
     scores = [test_row_dimensions(buf2, r, planes) for r in row_dims]
-    top_20_dims = [(planed_len // row_dims[s], row_dims[s])
+    top_20_dims = [(int(planed_len // row_dims[s]), int(row_dims[s]))
                         for s in np.argsort(scores)[:20]]
     return top_20_dims
     
