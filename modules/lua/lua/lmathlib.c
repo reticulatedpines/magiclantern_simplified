@@ -240,7 +240,7 @@ static int math_max (lua_State *L) {
 */
 static int math_random (lua_State *L) {
   lua_Integer low, up;
-  double r = (double)l_rand() * (1.0 / ((double)L_RANDMAX + 1.0));
+  double r = (double)(l_rand() * (1.0 / (L_RANDMAX + 1.0)));
   switch (lua_gettop(L)) {  /* check number of arguments */
     case 0: {  /* no arguments */
       lua_pushnumber(L, (lua_Number)r);  /* Number between 0 and 1 */
@@ -262,7 +262,7 @@ static int math_random (lua_State *L) {
   luaL_argcheck(L, low <= up, 1, "interval is empty"); 
   luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1,
                    "interval too large");
-  r *= (double)(up - low) + 1.0;
+  r *= (double)(up - low + 1.0);
   lua_pushinteger(L, (lua_Integer)r + low);
   return 1;
 }

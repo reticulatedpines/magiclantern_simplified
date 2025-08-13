@@ -1,4 +1,29 @@
-#Makefile for 60D
+MODEL = 60D
+FW_VERSION = 111
 
-MODEL=60D
-include ../Makefile.platform
+TOP_DIR = ../..
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+FIRMWARE_ID = 0x80000286
+
+#CANON_FIR = 60D00111.FIR
+MAIN_FIRMWARE_ADDR = 0xFF010000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+#RESTARTSTART = 0x5f000
+#ML_BOOT_OBJ = boot-d45.o
+
+RESTARTSTART = 0x1FE00000
+ML_BOOT_OBJ = boot-d45-ch.o
+
+ML_PICSTYLE_AUTO = n
+
+CONFIG_LVAPP_HACK_RELOC = y
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/cam_complete

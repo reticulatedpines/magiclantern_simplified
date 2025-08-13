@@ -55,7 +55,7 @@ static int is_bright[4];
 
 #define MODULE_STRINGS_PREFIX dual_iso_strings
 #include "../module_strings_wrapper.h"
-#include "module_strings.h"
+#include "build/module_strings.h"
 MODULE_STRINGS()
 
 /** Command-line interface */

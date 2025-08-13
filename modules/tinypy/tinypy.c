@@ -102,6 +102,7 @@ Agreement.
 #include <stdarg.h>
 #include <math.h>
 #include <time.h>
+#include "tcc.h"
 
 #ifdef __GNUC__
 #define tp_inline __inline__

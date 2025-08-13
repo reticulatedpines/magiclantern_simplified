@@ -7,7 +7,7 @@
  @module constants
  */
 
-#undef MODULE
+//#undef MODULE
 #include <module.h>
 #include <dryos.h>
 #include <bmp.h>

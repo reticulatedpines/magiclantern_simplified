@@ -14,7 +14,7 @@ static uint32_t _reloc[FIRMWARE_ENTRY_LEN / 4];
 #define RELOCADDR ((uintptr_t) _reloc)
 
 /** Translate a firmware address into a relocated address */
-#define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
+#define INSTR( addr ) ( *(uint32_t*)( (addr) - MAIN_FIRMWARE_ADDR + RELOCADDR ) )
 
 /** Fix a branch instruction in the relocated firmware image */
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
@@ -27,7 +27,7 @@ copy_and_restart( int offset )
     zero_bss();
 
     // Copy the firmware to somewhere safe in memory
-    const uint8_t * const firmware_start = (void*) ROMBASEADDR;
+    const uint8_t * const firmware_start = (void*)MAIN_FIRMWARE_ADDR;
     const uint32_t firmware_len = FIRMWARE_ENTRY_LEN;
     uint32_t * const new_image = (void*) RELOCADDR;
 

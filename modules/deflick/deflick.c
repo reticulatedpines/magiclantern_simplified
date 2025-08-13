@@ -8,7 +8,6 @@
 #include "menu.h"
 #include "property.h"
 #include "lens.h"
-#include "gui.h"
 #include "math.h"
 #include "raw.h"
 #include "histogram.h"
@@ -198,7 +197,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    int* data = buf;
+    uint32_t *data = buf;
     if (data[0] == GUISTATE_QR)
     {
         post_deflicker_step();
@@ -248,7 +247,7 @@ static struct menu_entry post_deflicker_menu[] = {
 
 static unsigned int post_deflicker_init()
 {
-    deflicker_sem = create_named_semaphore("deflicker_sem", 1);
+    deflicker_sem = create_named_semaphore("deflicker_sem", SEM_CREATE_UNLOCKED);
     menu_add("Shoot", post_deflicker_menu, COUNT(post_deflicker_menu));
     return 0;
 }

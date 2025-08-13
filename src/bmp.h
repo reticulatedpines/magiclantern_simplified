@@ -31,6 +31,7 @@
 #include "dryos.h"
 #include "font.h"
 #include "rbf_font.h"
+#include "compositor.h"
 
 extern int bmp_enabled;
 
@@ -54,10 +55,6 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  * arbitrary layer on runtime (eg with compositor enabled)
  */
 extern struct MARV *rgb_vram_info;
-#ifdef CONFIG_COMPOSITOR_XCM
-extern void* _pXCM;
-extern struct MARV *XCM_GetSourceSurface(void *pXCM, uint32_t layer_id);
-#endif
 /**
  * _rgb_vram_info stubs is not needed in CONFIG_COMPOSITOR_XCM,
  * but it breaks minimal builds that do not support compositor stuff.
@@ -78,7 +75,7 @@ inline uint8_t *rgb_vram_preinit()
 }
 
 void refresh_yuv_from_rgb(void);
-static void refresh_yuv_from_rgb_task(void *);
+void refresh_yuv_from_rgb_task(void *);
 uint32_t indexed2rgb(uint8_t color);
 
 #define RGB_LUT_SIZE 80
@@ -153,11 +150,21 @@ inline uint8_t *bmp_vram_raw() {
     #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
+    #if defined(CONFIG_DIGIC_X) && !defined(CONFIG_COMPOSITOR_DEDICATED_LAYER)
+    // kitor FIXME: R5 has different layer size and position...
+    // this is a temporary integration before a proper one will be developed
+    #define BMP_W_PLUS   872
+    #define BMP_W_MINUS -152
+    #define BMP_H_PLUS   510
+    #define BMP_H_MINUS -30
+    #define BMP_LAYER_WIDTH 2048
+    #else
     // kitor: Still works for RGB buffers in 200D and EOSR
     #define BMP_W_PLUS   840
     #define BMP_W_MINUS -120
     #define BMP_H_PLUS   510
     #define BMP_H_MINUS -30
+    #endif
 
     #define BMPPITCH 960
     #define BMP_VRAM_SIZE (960*540)
@@ -396,22 +403,22 @@ color_word(
  */
 struct bmp_file_t
 {
-        uint16_t                signature;      // off 0
-        uint32_t                size;           // off 2, in bytes
-        uint16_t                res_0;          // off 6, must be 0
-        uint16_t                res_1;          // off 8. must be 0
-        uint8_t *               image;          // off 10, offset in bytes
-        uint32_t                hdr_size;       // off 14, must be 40
-        uint32_t                width;          // off 18, in pixels
-        uint32_t                height;         // off 22, in pixels
-        uint16_t                planes;         // off 26, must be 1
-        uint16_t                bits_per_pixel; // off 28, 1, 4, 8 or 24
-        uint32_t                compression;    // off 30, 0=none, 1=RLE8, 2=RLE4
-        uint32_t                image_size;     // off 34, in bytes + padding
-        uint32_t                hpix_per_meter; // off 38, unreliable
-        uint32_t                vpix_per_meter; // off 42, unreliable
-        uint32_t                num_colors;     // off 46
-        uint32_t                num_imp_colors; // off 50
+    uint16_t signature;      // off 0
+    uint32_t size;           // off 2, in bytes
+    uint16_t res_0;          // off 6, must be 0
+    uint16_t res_1;          // off 8. must be 0
+    uint8_t *image;          // off 10, offset in bytes
+    uint32_t hdr_size;       // off 14, must be 40
+    uint32_t width;          // off 18, in pixels
+    int32_t  height;         // off 22, in pixels
+    uint16_t planes;         // off 26, must be 1
+    uint16_t bits_per_pixel; // off 28, 1, 4, 8 or 24
+    uint32_t compression;    // off 30, 0=none, 1=RLE8, 2=RLE4
+    uint32_t image_size;     // off 34, in bytes + padding
+    uint32_t hpix_per_meter; // off 38, unreliable
+    uint32_t vpix_per_meter; // off 42, unreliable
+    uint32_t num_colors;     // off 46
+    uint32_t num_imp_colors; // off 50
 } PACKED;
 
 SIZE_CHECK_STRUCT( bmp_file_t, 54 );
@@ -487,7 +494,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg);
 int bfnt_char_get_width(int c);
 
 // kitor TODO? if CONFIG_NO_BFNT and font was loaded, this should work anyway, right?
-#if !defined(CONFIG_DIGIC_678)
+#if !defined(CONFIG_DIGIC_678X)
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
 #define ICON_PRINT 0xac96ee

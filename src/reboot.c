@@ -36,6 +36,17 @@
 /* we need this ASM block to be the first thing in the file */
 #pragma GCC optimize ("-fno-reorder-functions")
 
+// SJE I believe the above comment is incorrect and the pragma
+// doesn't keep the ASM block at the start of the file.
+// I think the .text / _start stuff in the asm does that.
+// I believe the reason it wants to be first is because the
+// build system uses that to locate it at the start of
+// autoexec.bin.
+//
+// Local tests show that functions above this point still get
+// placed later in the object file.  This means we can call
+// functions from asm if we want.
+
 /* polyglot startup code that works if loaded as either ARM or Thumb */
 asm(
     ".text\n"
@@ -54,12 +65,12 @@ asm(
     "loaded_as_thumb:\n"        /* you may insert Thumb-specific code here */
 
 /* this does not compile on DIGIC 5 and earlier */
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
-    "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run on cores other than #0 */
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)  || defined(CONFIG_DIGIC_X)
+    "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run ML on cores other than #0 */
     "ANDS.W R0, R0, #3\n"       /* read the lowest 2 bits of the MPIDR register */
     "ITTT   NE\n"               /* check if CPU ID is nonzero (i.e. other cores) */
     "LDRNE  R0, rombaseaddr\n"  /* jump to main firmware if running from other cores */
-    "ORRNE  R0, R0, #1\n"       /* assuming Thumb code at ROMBASEADDR (DIGIC 7 & 8) */
+    "ORRNE  R0, R0, #1\n"       /* assuming Thumb code at MAIN_FIRMWARE_ADDR (DIGIC 7 & 8) */
     "BLXNE  R0\n"               /* not expected to return, but... */
 #endif
 
@@ -67,7 +78,10 @@ asm(
 
     ".code 32\n"                /* from now on, we've got generic code for all platforms */
     "xor_check:\n"
-    /* first comes the check if we were loaded successfully, efficiently packed into 0x20 bytes */
+    // Check for "bx r3" (0xe12fff13), that we expect build system
+    // to have inserted at EOF - 0x8.  If found, suggests complete file loaded okay.
+    // We then proceed to checksum this binary, else bail to DryOS code.
+    // Checksum value is stored at EOF - 0x4 (that is, the last word).
     "ADD   R4, PC, #0x0C\n"
     "LDM   R4, {R1-R3}\n"
     "LDR   R0, [R2]\n"
@@ -79,7 +93,7 @@ asm(
     "BX    R3\n"                    /* -> R1 (magic 0xE12FFF13) */
     ".word   autoexec_bin_footer\n" /* -> R2 (footer address) */
     "rombaseaddr:\n"
-    ".word   "STR(ROMBASEADDR)"\n"  /* -> R3 (reset address) */
+    ".word   "STR(MAIN_FIRMWARE_ADDR)"\n"  /* -> R3 (reset address) */
     
     /* embed some human-readable version info */
     /* (visible if you open autoexec.bin in e.g. Notepad or ML file manager) */
@@ -119,7 +133,7 @@ asm(
     "checksum_area:"
     ".word   _start\n"
     ".word   autoexec_bin_checksum_end\n"
-    ".word   "STR(ROMBASEADDR)"\n"
+    ".word   "STR(MAIN_FIRMWARE_ADDR)"\n"
     ".word   0x00000000\n"
 
     ".globl blob_start\n"
@@ -132,8 +146,8 @@ asm(
 );
 
 /** Include the relocatable shim code */
-extern uint8_t blob_start;
-extern uint8_t blob_end;
+extern uint32_t blob_start;
+extern uint32_t blob_end;
 
 static void busy_wait(int n)
 {
@@ -162,66 +176,66 @@ static void fail()
     disp_init();
 
 #ifdef CONFIG_INSTALLER
-    print_line(COLOR_WHITE, 4, "Magic Lantern");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "Incorrect firmware version.");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
-    print_line(COLOR_GRAY+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE_DD, 4, "Magic Lantern");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "Incorrect firmware version.");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
+    print_line(COLOR_GRAY_DD+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
   #ifdef CONFIG_70D
     char* camera_model_line =  "Please try installing ML for 70D " STR(CONFIG_FW_VERSION) ".";
     camera_model_line[36] = (camera_model_line[36] == 'A') ? 'B' : 'A';
-    print_line(COLOR_WHITE, 2, camera_model_line);
-    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE_DD, 2, camera_model_line);
+    print_line(COLOR_WHITE_DD, 2, "");
   #else
-    print_line(COLOR_WHITE, 2, "Please reinstall Canon firmware " STR(CONFIG_FW_VERSION) ",");
-    print_line(COLOR_WHITE, 2, "even if you already have this version.");
+    print_line(COLOR_WHITE_DD, 2, "Please reinstall Canon firmware " STR(CONFIG_FW_VERSION) ",");
+    print_line(COLOR_WHITE_DD, 2, "even if you already have this version.");
   #endif
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "You may now remove your battery.");
 #else
-    print_line(COLOR_WHITE, 4, "Magic Lantern");
-    print_line(COLOR_WHITE, 2, VERSION);
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "Model detection error.");
-    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE_DD, 4, "Magic Lantern");
+    print_line(COLOR_WHITE_DD, 2, VERSION);
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "Model detection error.");
+    print_line(COLOR_WHITE_DD, 2, "");
     char* fw_version = STR(CONFIG_FW_VERSION);
     char* camera_model_line =  "Your camera doesn't look like a " CAMERA_MODEL " x.x.x.";
     int len = strlen(camera_model_line);
     camera_model_line[len-6] = fw_version[0];
     camera_model_line[len-4] = fw_version[1];
     camera_model_line[len-2] = fw_version[2];
-    print_line(COLOR_GRAY+2, 2, camera_model_line);
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "What you can do:");
-    print_line(COLOR_GRAY+2, 2, "");
-    print_line(COLOR_GRAY+2, 2, "- Make sure you've got the right ML zip");
-    print_line(COLOR_GRAY+2, 2, "  for your camera model.");
-    print_line(COLOR_GRAY+2, 2, "");
-    print_line(COLOR_GRAY+2, 2, "- If in doubt, upgrade (or downgrade)");
+    print_line(COLOR_GRAY_DD+2, 2, camera_model_line);
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "What you can do:");
+    print_line(COLOR_GRAY_DD+2, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "- Make sure you've got the right ML zip");
+    print_line(COLOR_GRAY_DD+2, 2, "  for your camera model.");
+    print_line(COLOR_GRAY_DD+2, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "- If in doubt, upgrade (or downgrade)");
     char* upgrade_line =        "  your Canon firmware to x.x.x (again).";
     len = strlen(upgrade_line);
     upgrade_line[len-14] = fw_version[0];
     upgrade_line[len-12] = fw_version[1];
     upgrade_line[len-10] = fw_version[2];
-    print_line(COLOR_GRAY+2, 2, upgrade_line);
-    print_line(COLOR_GRAY+2, 2, "");
-    print_line(COLOR_GRAY+2, 2, "- To use your camera without Magic Lantern,");
-    print_line(COLOR_GRAY+2, 2, "  format this card from your computer.");
-    print_line(COLOR_WHITE, 2, "");
-    print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+    print_line(COLOR_GRAY_DD+2, 2, upgrade_line);
+    print_line(COLOR_GRAY_DD+2, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "- To use your camera without Magic Lantern,");
+    print_line(COLOR_GRAY_DD+2, 2, "  format this card from your computer.");
+    print_line(COLOR_WHITE_DD, 2, "");
+    print_line(COLOR_GRAY_DD+2, 2, "You may now remove your battery.");
 #endif
     
     /* I doubt we can still boot Canon firmware from this point, but didn't try */
@@ -277,7 +291,7 @@ cstart( void )
     sync_caches();
 
     #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
-      #ifdef CONFIG_DIGIC_VIII
+      #if defined(CONFIG_DIGIC_8X)
         /* EOS R has 2 GiB of RAM, but memory above BFE00000 has special meaning. */
         /* RscMgr shows used memory regions until BEE10000. */
         /* Without this trick, RAM content until BFE00000 looks like electrical noise. */
@@ -296,11 +310,9 @@ cstart( void )
       #ifdef CONFIG_DIGIC_IV    /* 7D */
         MEM(0xC0A00024) = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
       #endif
-      #ifdef CONFIG_5D4
-        //
-      #elif defined(CONFIG_DIGIC_VI) // 5DS, 5DSR, 7D2 do this, but 5D4 doesn't.
-                                     // See 7D2 1.1.2 fe024ae0, the large switch statement,
-                                     // case 0x78, calls fe028f7c
+      #if defined(CONFIG_DIGIC_VI) // 5DS, 5DSR, 7D2 do this.
+                                   // See 7D2 1.1.2 fe024ae0, the large switch statement,
+                                   // case 0x78, calls fe028f7c
         set_S_TX_DATA(0x20040);
       #endif
     #endif
@@ -315,21 +327,32 @@ cstart( void )
       #endif
     #endif
     #ifdef CONFIG_850D
-        // not the same addresses as other D8 (R, RP, M50 at least), and it requires
-        // you store the address with thumb bit set, other D8 add one to stored value.
-        MEM(0xBFE01FC4) = ROMBASEADDR | 0x1;
-        // looks like setting the flag is replaced by a cache sync
+        // Digic 8 "new style" first stage loader uses just a single pointer for startup.
+        // The difference is that it has to have thumb bit set.
+        // So far only 850D is known to use it on Digic 8
+        MEM(0xBFE01FC4) = MAIN_FIRMWARE_ADDR | 0x1;
+    #elif defined(CONFIG_DIGIC_X)
+        // Digic X uses similar 1st stage loader to Digic 8 "new style" one.
+        // Memory locations are different, it is 0xDFFxxxxx range now.
+        MEM(0xDFFC4FA0) = MAIN_FIRMWARE_ADDR | 0x1;
     #elif defined(CONFIG_DIGIC_VIII)
-        MEM(0xBFE01FC8) = ROMBASEADDR;  /* required by EOS R; possibly also by M50 etc */
-        MEM(0xBFE01FC4) = 0x10;         /* guess: start the second core at the above address */
+        // DIGIC 8 "older style" first stage bootloader require those two to be set.
+        // Code sets thumb bit before branch, so it can be left as MAIN_FIRMWARE_ADDR
+        // M50, R, RP, 250D, M6 II, PS SX740...
+        MEM(0xBFE01FC4) = 0x10;         // unknown meaning
+        MEM(0xBFE01FC8) = MAIN_FIRMWARE_ADDR;  // pointer used by 2nd core to run 2nd stage loader
     #endif
 
+    // Newer models do it after writing 2nd core boot address
+    // It won't hurt on those who don't.
+    sync_caches();
+
     #if 0
-      qprint("[boot] jump to main firmware: "); qprintn(ROMBASEADDR); qprint("\n");
-      #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
-        void __attribute__((long_call)) (*main_firmware)() = (void*) (ROMBASEADDR | 1);
+      qprint("[boot] jump to main firmware: "); qprintn(MAIN_FIRMWARE_ADDR); qprint("\n");
+      #if defined(CONFIG_DIGIC_78X)
+        void __attribute__((long_call)) (*main_firmware)() = (void*) (MAIN_FIRMWARE_ADDR | 1);
       #else
-        void __attribute__((long_call)) (*main_firmware)() = (void*) ROMBASEADDR;
+        void __attribute__((long_call)) (*main_firmware)() = (void*) MAIN_FIRMWARE_ADDR;
       #endif
       main_firmware();
     #endif

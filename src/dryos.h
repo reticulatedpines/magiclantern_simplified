@@ -32,9 +32,12 @@
 
 #include "config-defines.h"
 #include "compiler.h"
+#include "mutex.h"
 #include "dialog.h"
+#ifndef MODULE
 #include "consts.h"
 #include "gui.h"
+#endif
 #include "gui-common.h"
 #include "vram.h"
 #include "state-object.h"
@@ -68,7 +71,7 @@ task_create(
         void *arg
 );
 
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_78X
 /** Create a new user level task on a given CPU.
  *
  * As task_create() but with additional arg for
@@ -88,28 +91,58 @@ task_create_ex(
 );
 #endif
 
-extern void *AcquireRecursiveLock(void *lock, int n);
-extern void *CreateRecursiveLock(int n);
+// This is a fairly normal recursive / re-entrant lock mechanism,
+// with tasks as the thread equivalent.
+//
+// That means:
+// One task can take the lock multiple times with no problems if it wants.
+// Other tasks can't take the lock until the first one releases it,
+// which requires one release per acquire.
+// If the first task exits before releasing all locks, they are not
+// freed by the exit; no other task can acquire it.
+extern void *AcquireRecursiveLock(void *lock, int n); // returns pointer, with low bits used for signalling?
+extern void *CreateRecursiveLock(char *unk); // param is some kind of description of lock purpose
 extern void *ReleaseRecursiveLock(void *lock);
 
-struct semaphore;
+struct semaphore {;} CAPABILITY("mutex");
 
+#define SEM_CREATE_LOCKED 0
+#define SEM_CREATE_UNLOCKED 1
 extern struct semaphore *
 create_named_semaphore(
-        const char *            name,
-        int                     initial_value
+        const char *name,
+        int starts_unlocked // 0 is initially locked, 1 unlocked.  Any other value is an error
+                            // Use SEM_CREATE_LOCKED and SEM_CREATE_UNLOCKED.
 );
 
+// On D45 cams, passing in a NULL pointer is an error,
+// but the zero page is mapped and there's no memory protection,
+// so it will work.
+// On modern cams, this is an OS assert so must be avoided.
+//
+// A timeout of 0 means wait forever.
+//
+// Triggers a DryOS assert if called in an interrupt context.
 extern int
 take_semaphore(
         struct semaphore *      semaphore,
         int                     timeout_interval
-);
+) ACQUIRE(semaphore) NO_THREAD_SAFETY_ANALYSIS;
 
+// This always returns fast.  Return of 0 means you took the sem,
+// otherwise, sem was locked, or, an error occured.
+//
+// Safe to call in an interrupt context.
+extern int
+take_semaphore_now(
+        struct semaphore *      semaphore
+) ACQUIRE(semaphore) NO_THREAD_SAFETY_ANALYSIS;
+
+// Safe to call in an interrupt context.
 extern int
 give_semaphore(
         struct semaphore *      semaphore
-);
+) RELEASE(semaphore) NO_THREAD_SAFETY_ANALYSIS;
 
 extern void
 bzero32(
@@ -136,7 +169,7 @@ struct tm {
         char    *tm_zone;       /* timezone abbreviation */
 };
 
-#if defined(CONFIG_DIGIC_78) || defined(CONFIG_5D4) // probably DryOS ver based really?
+#if defined(CONFIG_DIGIC_78X) || defined(CONFIG_5D4) // probably DryOS ver based really?
 void LoadCalendarFromRTC(struct tm *tm);
 extern void _LoadCalendarFromRTC(struct tm *tm, uint32_t a, uint32_t b, uint32_t c);
 #elif defined(CONFIG_DIGIC_VI)
@@ -153,7 +186,7 @@ extern void DryosDebugMsg(int,int,const char *,...);
 extern int GetCFnData(int group, int number);
 extern void SetCFnData(int group, int number, int value);
 
-#if CONFIG_DEBUGMSG || defined(CONFIG_QEMU)
+#if defined(CONFIG_DEBUGMSG) || defined(CONFIG_QEMU)
         #define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else
         #define DebugMsg(a,b,fmt,...) { }
@@ -165,14 +198,20 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
 int rand (void);
 
-#if !defined(CONFIG_7D_MASTER)
-#define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
+#if defined(CONFIG_7D_MASTER)
+    #define ASSERT(x) do{}while(0)
 #else
-#define ASSERT(x) do{}while(0)
+    #if defined(FATAL_ASSERTS)
+        // Useful for Qemu debugging.  Execution stops at point of assert failure,
+        // with no change in context.
+        #define ASSERT(x) { if (!(x)) { while(1){;} }}
+    #else
+        #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
+    #endif
 #endif
 //~ #define ASSERT(x) {}
 
-#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
+#define STR_APPEND(orig,fmt,...) do { int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); } while(0)
 
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;
@@ -221,11 +260,44 @@ extern int iscntrl( int x );
 void str_make_lowercase(char* s);
 
 /** message queue calls **/
+// While we treat these funcs as taking a pointer to msg_queue, this is a lie.
+// In fact, these take a queue_ID (and msg_queue_create() returns an ID).
+// Since we never need to know what the ID is, or change it, this works fine.
+// I don't know if this was a deliberate choice: possibly so the compiler
+// will complain if you try to change an opaque pointer.
+//
+// I've only checked on D6 and up, there the ID is similar to task ID:
+// a uint32_t where the top half is a monotonically increasing kernel value,
+// the bottom half a "user land" ID.  Presumably this is so the kernel can detect
+// re-use of the user land half (e.g. create, delete, create: you'll get the same
+// user part, but top half will change).
+//
+// The bottom bit of the user ID can be used for error signaling.
 struct msg_queue;
+
+// Get an item from the queue.  Items are always 4 bytes wide.
+// If queue remains empty throughout the timeout period, returns non-zero.
+// Timeout of 0 means wait forever.
 extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
-extern int32_t msg_queue_post(struct msg_queue * queue, uint32_t msg);
+
+// Adds an item to the queue.  No idea why we use uint32_t for msg,
+// when we use void * for msg_queue_receive() buffer param, and they're
+// refering to the same thing.  We pass pointers into the queue and retrieve them later,
+// but we also pass ints.  Doesn't seem to matter on our target architectures.
+//
+// Can return non-zero if queue is full or if error occured.  Post to a full queue
+// doesn't assert, other cases do (but remember that DryOS asserts aren't fatal).
+extern int32_t msg_queue_post(struct msg_queue *queue, uint32_t msg);
+
+// This returns the number of items currently in the queue, into "count".
+// Ret value of function itself is 0 for success.  On 200D, the non-zero paths
+// all assert, so presumably shouldn't happen.
 extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);
-extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
+
+// Can return 5 for error (in general, low bit seems to signal error),
+// but DryOS rarely if ever checks this, it's assumed to always succeed.
+extern struct msg_queue *msg_queue_create(char *name, uint32_t queue_size);
+
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
 uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
@@ -236,7 +308,6 @@ uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint
 
 #define FAST __attribute__((optimize("-O3")))
 #define SMALL __attribute__((optimize("-Os")))
-#define DUMP_ASM __attribute__ ((section(".dump_asm")))
 
 // for modules and other optional code
 #define WEAK_FUNC(name)  __attribute__((weak,alias(#name))) 

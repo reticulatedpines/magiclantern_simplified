@@ -2,6 +2,7 @@
 #include <dryos.h>
 #include <property.h>
 #include <bmp.h>
+#include "shoot.h"
 
 unsigned int test_parameter = 32;
 unsigned int restart_movie = 0;
@@ -70,9 +71,9 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_SECONDS_CLOCK, second_timer, 0)
 MODULE_CBRS_END()
 
-MODULE_PARAMS_START()
-    MODULE_PARAM(test_parameter, "uint32_t", "Some test parameter")
-MODULE_PARAMS_END()
+//MODULE_PARAMS_START()
+//    MODULE_PARAM(test_parameter, "uint32_t", "Some test parameter")
+//MODULE_PARAMS_END()
 
 MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_ISO)

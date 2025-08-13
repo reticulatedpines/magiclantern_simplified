@@ -79,10 +79,10 @@ extern int dofpreview;
 extern int display_sensor;
 extern int shutter_count;
 extern int shutter_count_plus_lv_actuations;
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
 extern int total_shots_count;
 extern int total_mirror_count;
-#endif // CONFIG_DIGIC_VIII
+#endif // CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
 extern int _ext_monitor_rca;
@@ -91,7 +91,7 @@ extern int folder_number;
 extern int file_number_also;
 extern int drive_mode;
 extern int strobo_firing;
-extern int lvaf_mode;
+extern int lv_af_system;
 extern int image_review_time;
 extern int lv_disp_mode;
 extern int mirror_down;
@@ -112,6 +112,8 @@ extern int auto_power_off_time;
 extern int video_system_pal;
 extern int lv_focus_status;
 extern int icu_uilock;
+extern int continuous_af_photo;
+extern int continuous_af_movie;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)

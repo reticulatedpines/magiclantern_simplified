@@ -23,7 +23,7 @@
 #define HIJACK_TASK_ADDR 0x23E14
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 /* these are used in bitrate.c for video bitrate hacks */
@@ -43,6 +43,10 @@
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x246a4+0x11c))
+
+/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04508 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
@@ -239,8 +243,10 @@
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x3c268
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x3c268
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x2728000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x33300) != 0x17) // dec CancelUnaviFeedBackTimer
 

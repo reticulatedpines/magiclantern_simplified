@@ -1,18 +1,9 @@
-#Makefile.setup.platform for 7D
-
-ifeq ($(FW_VERSION),203)
-CANON_NAME_FIR=7D000203.FIR
-ROMBASEADDR  = 0xFF010000
+CANON_FIR = 7D000203.FIR
+MAIN_FIRMWARE_ADDR = 0xFF010000
 PLATFORM_ARCH = armv5te
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-ifeq ($(ML_SRC_PROFILE),generic)
 RESTARTSTART    = 0x1F800100
 ML_BOOT_OBJ     = boot-d45-ch.o
-else
-RESTARTSTART    = 0x88000
-endif
-
-endif

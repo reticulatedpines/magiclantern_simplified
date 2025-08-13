@@ -1,4 +1,0 @@
-
-ML_SRC_REBOOT_OBJ = reboot-all.o
-
-CONFIG_MODULES=n

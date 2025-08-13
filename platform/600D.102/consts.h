@@ -23,7 +23,7 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
@@ -60,7 +60,12 @@
 #define YUV422_LV_BUFFER_1 0x40d07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
 #define YUV422_LV_BUFFER_3 0x4f11d800
- 
+
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
+#if !defined(CONFIG_EDMAC_RAW_SLURP)
+    #define RAW_LV_EDMAC 0xC0F26208
+#endif
+
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
@@ -259,8 +264,10 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x172c8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x172c8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F68000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 // for bulb ramping calibration: delay between two exposure readings (increase it if brightness updates slowly)
 // if not defined, default is 500

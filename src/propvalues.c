@@ -44,6 +44,8 @@ int get_digic_version(void)
         return 7;
         #elif defined(CONFIG_DIGIC_VIII)
         return 8;
+        #elif defined(CONFIG_DIGIC_X)
+        return 10;
         #else
         #error "FIXME: no CONFIG_DIGIC_version defined, or unknown CONFIG_DIGIC_version"
         #endif
@@ -81,24 +83,24 @@ volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
-#ifdef CONFIG_DIGIC_678
-// confirmed 750D, 200D, R
-volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
+#ifdef CONFIG_DIGIC_678X
+    // confirmed 750D, 200D, R
+    volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
 #else
-volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
+    volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 #endif
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
-#if defined(CONFIG_DIGIC_VIII)
-/* R uses PROP_LVAF_MODE. However code suggests that both may be used
- * on DSLRs. When both are enabled, there's a race, so this is left to
- * be tested on 250D/850D/etc. */
-volatile PROP_INT(PROP_LVAF_MODE, af_mode);
+#if defined(CONFIG_DIGIC_8X)
+    // old kitor comment says there's a race, possibly to do with
+    // lvaf_mode name?  Confirm this is sane on e.g. R and 850D
+    volatile PROP_INT(PROP_LVAF_MODE, af_mode);
 #else
-volatile PROP_INT(PROP_AF_MODE, af_mode);
+    volatile PROP_INT(PROP_AF_MODE, af_mode);
 #endif
 volatile PROP_INT(PROP_METERING_MODE, metering_mode);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
+volatile PROP_INT(PROP_LIVE_VIEW_AF_SYSTEM, lv_af_system); // e.g. face detect
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);
@@ -112,6 +114,8 @@ volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time);
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
 volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 volatile PROP_INT(PROP_ICU_UILOCK, icu_uilock);
+volatile PROP_INT(PROP_CONTINUOUS_AF, continuous_af_photo);
+volatile PROP_INT(PROP_MOVIE_SERVO_AF, continuous_af_movie);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
@@ -122,6 +126,9 @@ volatile PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 volatile int shooting_mode;
 volatile PROP_INT(PROP_SHOOTING_MODE, shooting_mode_custom);
 
+// This triggers when the mode dial is rotated,
+// each mode (e.g. Av, Tv, P) returning a presumably
+// unique value.
 PROP_HANDLER(PROP_SHOOTING_MODE_2)
 {
     shooting_mode = buf[0];
@@ -161,7 +168,7 @@ bool FAST is_movie_mode()
 
 volatile int shutter_count = 0;
 volatile int shutter_count_plus_lv_actuations = 0;
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 volatile int total_shots_count  = 0;
 volatile int total_mirror_count = 0;
 
@@ -213,6 +220,13 @@ PROP_HANDLER(PROP_VIDEO_MODE)
     #ifdef CONFIG_500D
     video_mode_resolution = buf[0];
     video_mode_fps = buf[1];
+    #elif defined(CONFIG_DIGIC_678X)
+    video_mode_crop = buf[0];
+    video_mode_resolution = buf[1];
+    // New cams report more precision for fps, as fps * 100.
+    // Old code assumes 2 digits only, e.g. flip_zoom_twostage()
+    // Add 50 to round up, so e.g. 29.97 gets reported as 30.
+    video_mode_fps = (buf[2] + 50) / 100;
     #else
     video_mode_crop = buf[0];
     video_mode_resolution = buf[1];
@@ -343,7 +357,7 @@ PROP_HANDLER( PROP_COPYRIGHT_STRING )
 char* get_video_mode_name(int include_fps)
 {
     static char zoom_msg[12];
-    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize);
+    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize & 0xF);
     
     char* video_mode = 
         is_pure_play_photo_mode()                   ? "PLAY-PH"  :      /* Playback, reviewing a picture */

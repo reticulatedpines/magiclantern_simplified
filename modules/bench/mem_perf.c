@@ -16,6 +16,11 @@
 
 #include "../plot/plot.h"
 
+// ARMv7 doesn't have cache locking, make this a nop on those platforms,
+// so the dependency is met and module can be included on those cams
+extern WEAK_FUNC(ret_0) void dcache_unlock();
+extern WEAK_FUNC(ret_0) void icache_unlock();
+
 static uint32_t mem_perf_runtime = 50; /* msec */
 
 static void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
@@ -109,7 +114,7 @@ static void mem_perf_test(uint32_t address)
         if(plot)
         {
             /* update the plot */
-            plot_add(coll, block_size / 1024.0f, speed);
+            plot_add(coll, (double)(block_size / 1024.0f), (double)speed);
             plot_autorange(coll, plot);
             
             /* add some borders top and bottom */
@@ -163,7 +168,7 @@ static void mem_perf_test(uint32_t address)
     }
     
     bmp_printf(FONT_MONO_20, 5, 5, "Benchmarking from address 0x%X done.", address);
-    take_screenshot("cache%d.ppm", SCREENSHOT_BMP);
+    take_screenshot("cache%d.bmp", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(1);
 }

@@ -1,11 +1,8 @@
 #define FEATURE_VRAM_RGBA
 
-//enable XCM only in full build
-#ifndef ML_MINIMAL_OBJ
 #define CONFIG_COMPOSITOR_XCM
-// DEDICATED_LAYER not yet implemented
-//#define CONFIG_COMPOSITOR_DEDICATED_LAYER
-#endif
+#define CONFIG_COMPOSITOR_DEDICATED_LAYER
+#define CONFIG_COMPOSITOR_XCM_V2
 
 #define FEATURE_SHOW_SHUTTER_COUNT
 
@@ -18,7 +15,12 @@
 
 #define FEATURE_SCREENSHOT
 
-#undef CONFIG_CRASH_LOG
+#define CONFIG_CRASH_LOG
+
+// We can't yet rely on image capture.  Cam crashes due to null pointer,
+// I think?  If it fails to AF lock, for example.
+#define CONFIG_IMAGE_CAPTURE_NOT_WORKING
+
 #undef CONFIG_ADDITIONAL_VERSION
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM

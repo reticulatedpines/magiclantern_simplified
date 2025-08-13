@@ -6,6 +6,7 @@
 // * AJ for the idea of shutting down ML tasks manually, rather than letting DryOS do this job
 
 #include "dryos.h"
+#include "task_utils.h"
 #include "property.h"
 #include "bmp.h"
 #include "tskmon.h"
@@ -17,33 +18,6 @@
 #include "lens.h"
 
 int ml_shutdown_requested = 0;
-
-const char * get_task_name_from_id(int id)
-{
-#if defined(CONFIG_VXWORKS)
-return "?";
-#endif
-    if(id < 0) {
-        return "?";
-    }
-    // This looks like returning local vars, but ISO C99 6.4.5.5 says
-    // string literals have "static storage duration", and 6.2.4.3
-    // defines that as "Its lifetime is the entire execution of the program
-    // and its stored value is initialized only once, prior to program startup"
-    //
-    // So it's okay.
-
-    char *name = "?";
-    struct task_attr_str task_attr = {0};
-
-    int r = get_task_info_by_id(1, id & 0xff, &task_attr);
-    if (r == 0) {
-        if (task_attr.name != NULL) {
-            name = task_attr.name;
-        }
-    }
-    return name;
-}
 
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON
@@ -322,7 +296,7 @@ MENU_UPDATE_FUNC(tasks_print)
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             #endif
 
-            #if defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678)
+            #if defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678X)
             y += font_small.height - ((tasks_show_flags & 1) ? 1 : 0); // too many tasks - they don't fit on the screen :)
             #else
             y += font_small.height;
@@ -349,6 +323,16 @@ MENU_UPDATE_FUNC(tasks_print)
 #include "gps.h"
 #endif
 
+static void leds_on()
+{
+    _card_led_on();
+//    info_led_on(); // crashes on 5D2, 500D, possibly also 50D
+    delayed_call(20, leds_on, 0);
+}
+
+/* to refactor with CBR */
+extern int module_shutdown();
+
 static void ml_shutdown()
 {
 #ifdef CONFIG_RP
@@ -365,30 +349,69 @@ static void ml_shutdown()
     movie_crop_hack_disable();
 #endif
     ml_shutdown_requested = 1;
-    
-    info_led_on();
-    _card_led_on();
+
+#ifdef FEATURE_DISK_LOG
+    // trigger final write for logging, disk_write_task() in log.c
+    extern struct semaphore *log_disk_sem;
+    if (log_disk_sem != NULL)
+        give_semaphore(log_disk_sem);
+#endif
+
     restore_af_button_assignment_at_shutdown();
 #ifdef FEATURE_GPS_TWEAKS
     gps_tweaks_shutdown_hook();
 #endif    
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
-    /* to refactor with CBR */
-    extern int module_shutdown();
     module_shutdown();
 #endif
-    info_led_on();
-    _card_led_on();
 }
 
 PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
-    //bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-    if (buf[0] == 0)  ml_shutdown();
+    /* 0=request, 3=execute, 4=cancel */
+    /* 3 appears too late for saving config files */
+    if (buf[0] == 0)
+    {
+        /* keep the LEDs on until shutdown completes */
+        info_led_on();
+        delayed_call(20, leds_on, 0);
+
+        ml_shutdown();
+    }
 }
 
-#ifdef CONFIG_DIGIC_VIII //kitor: Confirmed R, RP, M50
+PROP_HANDLER(PROP_ABORT)
+{
+    /* emergency stop - do not save properties */
+    /* -1 = init, 1 = trigger */
+
+    if (buf[0] == 1)
+    {
+        /* 5D3: this prevents RING and RASEN from being saved
+         * when opening battery door (check with e.g. PROP_VIDEO_SYSTEM) */
+#ifdef CONFIG_5D3
+        extern int terminateAbort_save_settings;
+        terminateAbort_save_settings = 0;
+#endif
+
+        #if defined(CONFIG_MODULES)
+        /* if no hard crash, load the modules after taking the battery out */
+        module_shutdown();
+        #endif
+
+        /* keep the LEDs on until shutdown completes */
+        info_led_on();
+        delayed_call(20, leds_on, 0);
+
+        #if defined(CONFIG_MODULES)
+        /* if no hard crash, load the modules after taking the battery out */
+        module_shutdown();
+        #endif
+    }
+}
+
+#if defined(CONFIG_DIGIC_8X)
 PROP_HANDLER(PROP_SHUTDOWN_REASON)
 {
     DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);

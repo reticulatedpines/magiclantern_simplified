@@ -1,5 +1,0 @@
-#Makefile.setup.platform for an autoexec.bin able to run on all cameras
-
-ROMBASEADDR	= 0xFF010000
-
-RESTARTSTART 	= 0

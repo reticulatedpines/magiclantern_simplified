@@ -54,8 +54,8 @@ draw_beta_warning()
     bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 350, "(Press any camera button to enter ML settings)");
 
     big_bmp_printf(FONT_MED,  10,  410,
-        "Magic Lantern version : %s\n"
-        "Mercurial changeset   : %s\n"
+        "Magic Lantern version: %s\n"
+        "Git commit: %s\n"
         "Built on %s by %s.",
         build_version,
         build_id,

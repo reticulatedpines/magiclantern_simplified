@@ -1,5 +1,0 @@
-#Makefile for 60D
-
-ML_PICSTYLE_AUTO = n
-
-CONFIG_LVAPP_HACK_RELOC = y

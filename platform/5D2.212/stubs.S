@@ -33,7 +33,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF810894,  cstart)
 NSTUB(0xFFC458FC,  bzero32)                                 // delta = 40
 NSTUB(0xFF817470,  create_init_task)
@@ -276,6 +276,7 @@ NSTUB(0xFF9A87D0,  UnLockEngineResources)
 NSTUB(0xFF86DC28,  create_named_semaphore)
 NSTUB(0xFF86DE70,  give_semaphore)
 NSTUB(0xFF86DD88,  take_semaphore)
+NSTUB(0xFF86DD30,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x3050,  task_max)

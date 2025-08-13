@@ -1,8 +1,8 @@
 /** \file
- * Temporary tests for features, specific for R 1.8.0
+ * Temporary tests for features, specific for SX740 1.0.2
  *
  * When porting to a new model, using this camera as a base, remove this file
- * and remove it from ML_SRC_EXTRA_OBJS in Makefile.platform.default!
+ * and remove it from ML_SRC_EXTRA_OBJS in Makefile!
  */
 /*
  * Copyright (C) 2022 Magic Lantern Team

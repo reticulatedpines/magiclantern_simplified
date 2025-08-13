@@ -1,2 +1,20 @@
-MODEL=700D
-include ../Makefile.installer
+MODEL = 700D
+FW_VERSION = 115
+TOP_DIR = ../..
+
+CANON_FIR = CCF14115.FIR
+
+AUTOEXEC_BASE = 0x40800000
+FIR_BASE = 0x40800120
+
+MAIN_FIRMWARE_ADDR = 0xff0c0000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART = 0x7ec00
+ML_BOOT_OBJ = boot-d45.o
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/$(INSTALLER_FIR)

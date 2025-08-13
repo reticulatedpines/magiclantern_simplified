@@ -115,6 +115,9 @@
 // Needs more hacking, I'll fix it once i get the EOSM - nanomad
 #define CONFIG_TOUCHSCREEN
 
+/** Intermediate "x1" zoom, before going into x5/x10 (what's the point?!) */
+#define CONFIG_ZOOM_X1
+
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
@@ -148,3 +151,8 @@
 
 /** Long-pressing SET/Q may open submenus (experiment, disabled) */
 //#define CONFIG_LONG_PRESS_SET_MENU
+
+#define CONFIG_MALLOC_STRUCT_V2
+
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2

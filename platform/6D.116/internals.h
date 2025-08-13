@@ -117,6 +117,9 @@
 /** No additional_version stub on this DryOS version **/
 #define CONFIG_NO_ADDITIONAL_VERSION
 
+/** Intermediate "x1" zoom, before going into x5/x10 (what's the point?!) */
+#define CONFIG_ZOOM_X1
+
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 
@@ -159,3 +162,8 @@
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP
+
+#define CONFIG_MALLOC_STRUCT_V2
+
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2

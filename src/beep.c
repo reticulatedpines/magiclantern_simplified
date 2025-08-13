@@ -473,9 +473,9 @@ static void wav_record(char* filename, int show_progress)
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
     
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_70D)
     /* experimental for 7D now, has to be made generic */
-	/* Enable audio Device */
+    /* Enable audio Device */
     void SoundDevActiveIn (uint32_t);
     SoundDevActiveIn(0);
 #endif
@@ -491,9 +491,9 @@ static void wav_record(char* filename, int show_progress)
         msleep(100);
         if (show_progress) record_show_progress();
     }
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_70D)
     /* experimental for 7D now, has to be made generic */
-	/* Disable Audio */
+    /* Disable Audio */
     void SoundDevShutDownIn();
     SoundDevShutDownIn();
 #endif
@@ -1123,8 +1123,8 @@ static void beep_init()
     rootq->multiplex=100;
 #endif
 
-    beep_sem = create_named_semaphore( "beep_sem", 0 );
-    menu_add( "Audio", beep_menus, COUNT(beep_menus) );
+    beep_sem = create_named_semaphore("beep_sem", SEM_CREATE_LOCKED);
+    menu_add("Audio", beep_menus, COUNT(beep_menus));
 
 #ifdef FEATURE_WAV_RECORDING
     find_next_wav(0,1);

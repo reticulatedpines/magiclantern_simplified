@@ -245,6 +245,21 @@ int handle_scrollwheel_fast_clicks(struct event * event)
 /* some mappings are valid for cameras with a Q button as well */
 static int handle_Q_button_equiv(struct event * event)
 {
+    /* Some cameras (at least 600D and 1100D) use two button codes for Q,
+     * depending on operating mode (e.g. Canon menu vs LiveView)
+     * Canon firmware happily reacts to both codes, in other words,
+     * fake_simple_button appears to work with any of them;
+     * to keep things simple, we'll just remap the "alternate" code
+     * so the rest of ML will just use BGMT_Q to handle both codes */
+    switch (event->param)
+    {
+#ifdef BGMT_Q_ALT_
+    case BGMT_Q_ALT_:
+        fake_simple_button(BGMT_Q);
+        return 0;
+#endif
+    }
+
     if (!gui_menu_shown())
     {
         /* only remap other buttons while in ML menu */
@@ -328,7 +343,7 @@ int update_bgmt_av_status(struct event * event) {
 }
 
 /** AV long/short press management code. **/
-int handle_av_short_for_menu(struct event* event) {
+static int handle_av_short_for_menu(struct event* event) {
     static int t_press   = 0;
     static int t_unpress = 0;
     unsigned int dt = 0;
@@ -359,17 +374,17 @@ int handle_av_short_for_menu(struct event* event) {
 #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
-int video_mode[5];
+int video_mode[10];
 PROP_HANDLER(PROP_VIDEO_MODE)
 {
-    memcpy(video_mode, buf, 20);
+    memcpy(video_mode, buf, sizeof(video_mode));
 }
 
 int disp_pressed = 0;
 int get_disp_pressed() { return disp_pressed; }
 int disp_zoom_pressed = 0;
 
-int handle_digital_zoom_shortcut(struct event * event)
+static int handle_digital_zoom_shortcut(struct event * event)
 {
     switch(event->param) {
         case BGMT_PRESS_DISP:
@@ -450,8 +465,6 @@ int handle_common_events_by_feature(struct event * event)
         event->param == GMT_GUICMD_LOCK_OFF)
     {
         pre_shutdown_requested = 4;
-        info_led_on(); _card_led_on();
-        config_save_at_shutdown();
         info_led_on(); _card_led_on();
         return 1;
     }
@@ -679,7 +692,7 @@ void gui_uilock(int what)
 
 void fake_simple_button(int bgmt_code)
 {
-    if ((icu_uilock & 0xFFFF) && (bgmt_code >= 0))
+    if ((icu_uilock & (0xFFFF & ~UILOCK_SHUTTER)) && (bgmt_code >= 0))
     {
         // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
         printf("fake_simple_button(%d): UI locked (%x)\n", bgmt_code, icu_uilock);

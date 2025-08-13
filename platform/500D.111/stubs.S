@@ -37,7 +37,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF010894,  cstart)
 NSTUB(0xFF3EBCB8,  bzero32)                                 // called by cstart()
 NSTUB(0xFF0174E0,  create_init_task)
@@ -280,6 +280,7 @@ NSTUB(0xFF193ED0,  UnLockEngineResources)                   /* present on 7D.203
 NSTUB(0xFF069770,  create_named_semaphore)
 NSTUB(0xFF0699B8,  give_semaphore)
 NSTUB(0xFF0698D0,  take_semaphore)
+NSTUB(0xFF069878,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x31DC,  task_max)
@@ -301,6 +302,7 @@ NSTUB(0xFF072B30,  task_trampoline)
 NSTUB(0xFF0642D0,  LoadCalendarFromRTC)
 NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
 NSTUB(    0x49B4,  pfAfComplete_counter)
+NSTUB(0xFF2AB500,  FirstWarningTimer_CBR)                   /* to stop the "Press * to AF" message in LiveView */
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */

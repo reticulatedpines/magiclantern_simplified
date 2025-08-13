@@ -192,7 +192,8 @@ static void tskmon_stack_checker(struct task *next_task)
             return;
         #endif
 
-        #if defined(CONFIG_200D) // SJE I bet this is CONFIG_DIGIC_678 really, but untested
+        #if defined(CONFIG_200D) || defined(CONFIG_6D2)
+        // this might be CONFIG_DIGIC_VII
         if (streq(task_name, "RTCMgr") && free > 128)
             return; // RTCMgr uses 796 of 1024, 228 free
         if (streq(task_name, "idle") && free > 64)
@@ -225,7 +226,7 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
-#ifndef CONFIG_DIGIC_678
+#ifndef CONFIG_DIGIC_678X
 // SJE this causes a nasty early crash on D678 so I'm removing it as much
 // as possible so it's very obvious not to use it.
 //
@@ -324,7 +325,24 @@ null_pointer_check()
             {
                 STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
                 STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+// GCC 11 and 12 warn about "accidental" null pointer usage.  See e.g.
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523
+// 13 is supposed to improve heuristics that might stop the false-positive here.
+// In either case, we are explicitly reading from 0, so the pragma seems appropriate.
+// On D45 arch, 0 page is always mapped.
+// D678 it is not, but they are already excluded by prior #ifndef CONFIG_DIGIC_678X
                 STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+#pragma GCC diagnostic pop
+// However...  we're also suppressing possible warnings about usage of the msg array!
+// When we get to gcc 15, let's see if we can remove the above pragma.
+// EDIT: 14 did not fix it.  Bump the check to 15.
+#ifdef __GNUC__
+    #if __GNUC__ > 14
+        #error "Please check if the preceding pragma is no longer required"
+    #endif
+#endif
             }
 
             ml_crash_message(msg);
@@ -348,7 +366,7 @@ tskmon_task_dispatch(struct task * next_task)
     {
         /* we need full speed; these checks might cause a small performance hit */
         /* keep the null pointer check, as some Canon tasks may cause errors that should be ignored */
-#ifndef CONFIG_DIGIC_678
+#ifndef CONFIG_DIGIC_678X
     // SJE can't run this on D678, reading from address 0 triggers exception,
     // presumably due to MMU, I believe this area is reserved, something to do
     // with dual-core.
@@ -367,7 +385,7 @@ tskmon_task_dispatch(struct task * next_task)
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
 
-#ifndef CONFIG_DIGIC_678
+#ifndef CONFIG_DIGIC_678X
     null_pointer_check();
 #endif
 

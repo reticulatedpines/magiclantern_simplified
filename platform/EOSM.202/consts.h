@@ -17,7 +17,7 @@
 #define HIJACK_TASK_ADDR 0x3DE78
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 #define ARMLIB_OVERFLOWING_BUFFER 0x65CC4 // in AJ_armlib_setup_related3
@@ -31,6 +31,9 @@
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3E650+0x118))
+
+#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
@@ -105,10 +108,10 @@
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x3DEC8
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- //~ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
-
-#define GUIMODE_ML_MENU ( RECORDING_H264 ?  99 : 90 ) // any from 90...102 ?!
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 90 to 102
+// 99 shows the same dialog as 97 on 700D/650D
+// 93 shows the same dialog as 91 on 700D/650D
+#define GUIMODE_ML_MENU ( RECORDING_H264 ? 99 : lv ? 93 : 2 )
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50
@@ -170,7 +173,6 @@
 
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "[1-Finger Tap]"
-    #define ARROW_MODE_TOGGLE_KEY "IDK"
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x3E758)
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
@@ -189,8 +191,10 @@
 #define LV_OVERLAYS_MODE MEM(0x89BAC + 0x7C)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x668C8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x668C8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 #define UNAVI (MEM(0x5D408) == 2) // Find with Mem Browser // dec CancelUnaviFeedBackTimer
 #define SCROLLHACK (MEM(0x5D43C) != 0) //-450

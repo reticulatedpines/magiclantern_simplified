@@ -34,7 +34,9 @@ const uint32_t prop_handler_deny[] =
 // allow writes / allow prop_request_change() for these:
 const uint32_t prop_write_allow[] =
 {
-    PROP_ICU_AUTO_POWEROFF
+    PROP_ICU_AUTO_POWEROFF,
+    PROP_REMOTE_SW1, // half shutter
+    PROP_REMOTE_SW2  // full shutter
 };
 
 // anything not listed above will allow reads but not writes

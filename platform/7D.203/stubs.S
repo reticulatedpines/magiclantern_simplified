@@ -34,7 +34,7 @@
  
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF010FB0,  cstart)
 NSTUB(0xFF50CDEC,  bzero32)
 NSTUB(0xFF01559C,  create_init_task)
@@ -81,8 +81,8 @@ NSTUB(0xFF0640EC,  SoundDevActiveIn)
 NSTUB(0xFF064304,  SoundDevShutDownIn)
 NSTUB(0xFF061A88,  StartASIFDMAADC)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
-NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 NSTUB(0xFF061D20,  StopASIFDMADAC)
+// NSTUB(0xFF061C08,  StopASIFDMAADC)                       // Called by SoundDevStopIn - breaks the audio meters
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/
@@ -276,6 +276,7 @@ NSTUB(0xFF1F9D18,  UnLockEngineResources)
 NSTUB(0xFF07B7C4,  create_named_semaphore)
 NSTUB(0xFF07BA0C,  give_semaphore)
 NSTUB(0xFF07B924,  take_semaphore)
+NSTUB(0xFF07B8CC,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x2B24,  task_max)

@@ -107,19 +107,41 @@ static void exfat_sum(uint32_t* buffer) // size: 12 sectors (0-11)
 int
 bootflag_write_bootblock( void )
 {
-
+    struct cf_device *dev = NULL;
 #if defined(CONFIG_7D)
-    struct cf_device * const dev = (struct cf_device *) cf_device[6];
-#elif defined(CONFIG_5D3)
-    /* dual card slot */
+    dev = (struct cf_device *) cf_device[6];
+#elif defined(CONFIG_5D3) || defined(CONFIG_7D2)
+    // FIXME SJE the above guard can become CONFIG_DUAL_SLOT once
+    // cf_device_ptr is defined for 5D4 and 5DSR
     int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
+
     extern struct cf_device ** cf_device_ptr[];
-    struct cf_device * const dev = (struct cf_device *) (ml_on_cf ? cf_device_ptr[0][4] : sd_device[1]);
-#elif defined(CONFIG_R)
-    //kitor: R180 has a single pointer to device structure.
-    struct cf_device * const dev = (struct cf_device *) sd_device[0];
+    if (ml_on_cf)
+    {
+        dev = cf_device_ptr[0][4];
+    }
+    else
+    {
+        #if defined(CONFIG_5D3)
+        dev = sd_device[1];
+        #elif defined(CONFIG_7D2)
+        dev = sd_device[0];
+        #else
+        // FIXME SJE check behaviour of 5DSR and 5D4, which will fail into this case
+        dev = NULL;
+        #endif
+    }
+
+#elif defined(CONFIG_R) || defined(CONFIG_200D) || defined(CONFIG_6D2) || defined(CONFIG_750D)
+    // These only have one device struct.  Struct is 4 u32s,
+    // first two are function pointers.  Check the "second" device
+    // doesn't use the first two fields as function pointers.
+    //
+    // The func using "pStgDev = NULL" is a good place to find the base pointer,
+    // and check if the code refs base[0] or base[1].
+    dev = (struct cf_device *) sd_device[0];
 #else
-    struct cf_device * const dev = (struct cf_device *) sd_device[1];
+    dev = (struct cf_device *) sd_device[1];
 #endif
 
     if (!dev)
@@ -203,9 +225,6 @@ bootflag_write_bootblock( void )
 
     dev->read_block( dev, 0, 1, block ); //overwrite our AAAs in our buffer with the MBR partition of the SD card.
     
-    // figure out if we are a FAT32 partitioned drive. this spells out FAT32 in chars.
-    // FAT16 not supported yet - I don't have a small enough card to test with.
-    //if( block[0x52] == 0x46 && block[0x53] == 0x41 && block[0x54] == 0x54 && block[0x55] == 0x33 && block[0x56] == 0x32 )
     if( strncmp((const char*) block + 0x52, "FAT32", 5) == 0 ) //check if this card is FAT32
     {
         dev->read_block( dev, 0, 1, block );

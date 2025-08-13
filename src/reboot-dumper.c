@@ -104,6 +104,13 @@ static void blink_all(int n)
  */
 static void guess_led(int n)
 {
+#if defined(CONFIG_DIGIC_X)
+    // guess based on R5/R6
+    const int32_t  bits         = 7;
+    const uint32_t base_addr    = 0xD2230000;
+    const uint32_t led_on       = 0xD0002;
+    const uint32_t led_off      = 0xC0003;
+#endif
 #if defined(CONFIG_DIGIC_VIII)
     const int32_t  bits         = 7;
     const uint32_t base_addr    = 0xD0130000;
@@ -464,7 +471,6 @@ static void led_dump(uint32_t address, uint32_t length)
 
 void
 __attribute__((noreturn))
-__attribute__ ((section(".dump_asm")))
 cstart( void )
 {
     /* Try guessing the LED address */

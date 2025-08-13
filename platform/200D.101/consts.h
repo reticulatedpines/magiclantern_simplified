@@ -12,6 +12,7 @@
                                              // range, brute forced it by logging them to disk with digic6-dumper
                                              // while pressing halfshutter on and off.
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert_maybe
+#define DRYOS_SGI_HANDLERS_PTR 0x402c // holds pointer to base of SGI handlers (each is 8 bytes, a pointer and something else)
 #define CURRENT_GUI_MODE (*(int*)0x6624) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
@@ -33,17 +34,19 @@
                                        //
                                        // Should probably do more work to find a value via a similar
                                        // route to other cams.
-#define DISPLAY_IS_ON (*(int *)0xc68c) // This is 2 when display is on, in Menu, LV and Play,
-                                       // 0 otherwise.
+//#define DISPLAY_IS_ON (*(int *)0xc68c) // This is 2 when display is on, in Menu, LV and Play,
+                                       // 0 otherwise.  NB: does not work for HDMI output
+#define DISPLAY_IS_ON (!(char)(MEM(0x486d))) // similar to 7D2, easy to find in gui_init_end(), e00921dc
 //#define MALLOC_STRUCT 0x6de60 // via memMap, find the referenced struct point and scroll forwards
                               // through xrefs to that location, looking at R/W patterns.
                               // That leads to ff018c5c in 50D, e0583d44 in 200D.
                               // These are not exactly the same, but see the function called by both
                               // that takes (1,2, "dm_lock" | "mallocSem").  And they're both
                               // doing init of a struct in a similar loop.
-#define MALLOC_STRUCT 0x6e234 // via malloc_info(), the call inside the main if block
-                              // initialises a struct and MALLOC_STRUCT itself is a short
-                              // distance away.
+#define MALLOC_STRUCT_ADDR 0x6e234 // via malloc_info(), the call inside the main if block
+                                   // initialises a struct and MALLOC_STRUCT itself is a short
+                                   // distance away.
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define GMT_FUNCTABLE 0xe0805f20
 #define GMT_NFUNCS 0x7
@@ -76,7 +79,7 @@
 // the same function that returns 0xaf2d0.  Some kind of double buffering?  50D looks quite different.
 // I can't see why two functions is the best way of doing it (or, one for each core??)
 // The closest 50D match I could find has the same PAL / NTSC / HDMI style strings.
-#define LV_STRUCT_PTR 0xaf2d0
+//#define LV_STRUCT_PTR 0xaf2d0
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
 //Replaced by CONFIG_NO_BFNT in internals.h
@@ -86,8 +89,7 @@
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME "INFO"
-#define Q_BTN_NAME "FUNC"
-#define ARROW_MODE_TOGGLE_KEY "FUNC"
+#define Q_BTN_NAME "[Av]"
 
 // Low confidence:
 #define MIN_MSLEEP 11
@@ -122,14 +124,12 @@
 
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
-//#define MALLOC_FREE_MEMORY 0
-// below definitely wrong, just copied from 50D
-#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
+#define SRM_BUFFER_SIZE 0x2a9c000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 1 // 4 is okay in LV but not video, it will "NG AllocMem1"
+
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xd0058000 // channel 24
+#define SHAD_GAIN_REGISTER 0xd0008030 // plausible looking from ROM code, though untested
+
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2
@@ -137,10 +137,16 @@
 #define FLASH_MIN_EV -10
 #define COLOR_FG_NONLV 80
 #define AF_BTN_HALFSHUTTER 0
-#define AF_BTN_STAR 2
+#define AF_BTN_STAR 1 // via CFn menu
 
-#define MVR_190_STRUCT (*(void**)0x6cb8) // Found via "NotifyLenseMove"
-#define div_maybe(a,b) ((a)/(b))
+// Insanely, this name differs per cam, and is never used in ML code directly,
+// only the derived defines.  I guess the "190" or whatever number may have
+// been the size of the allocation, but this has not be kept in sync.
+#define MVR_190_STRUCT (*(void**)0x6cb8) // Found via "NotifyLenseMove" or MVR_Initialize(),
+                                         // but note 200D has an init func for h264 and mjpeg.
+                                         // Probably ML code doesn't handle this correctly.
+                                         // This one is h264, mjpeg is at 6d18
+//#define div_maybe(a,b) ((a)/(b))
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
 #define MVR_BUFFER_USAGE 70 // wrong, but needs to be non-zero to avoid a compiler warning
@@ -154,6 +160,8 @@
 #define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
+#define MVR_TIME_LIMIT_NORMAL_FPS 0xe0402bfc
+#define MVR_TIME_LIMIT_HIGH_FPS 0xe0402c00
 
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x2CBC) //wrong, will be needed when overlays are enabled in play mode
 
@@ -167,6 +175,27 @@
 #define LEDON                       0x20D0002
 #define LEDOFF                      0x20C0003
 
+// This is the address of the location that *stores*
+// the Allocate Mem start addr.  Looks like this on 200D 1.0.1:
+// e0040efc f1 49        ldr  r1=>DAT_00d6c000,[PTR_DAT_e00412c4]
+// e0040efe f2 48        ldr  r0=>DAT_0046c000,[PTR_DAT_e00412c8]
+// e0040f00 e5 f3 c2 e8  blx  init_AllocateMemory_system
+#define PTR_ALLOC_MEM_START 0xe00412c8 // pointer to 0x46_c000, start of AllocMem region
+#define ALLOC_MEM_STOLEN 0x80000 // 512kB for ML
+#define PTR_INIT1_TASK      0xe00403a8 // pointer to address of init1_task
+                                       // used for create_task_ex() call by cpu0 (0xe0040221)
+
+// These override the values in installer.c, used for backing up rom.
+// These particular values are just examples; the defaults are fine for 200D.
+#define ROM0_ADDR 0xe0000000
+#define ROM0_SIZE 0x2000000
+#define ROM1_ADDR 0xf0000000
+#define ROM1_SIZE 0x1000000
+
+#define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
 
 #define BR_DCACHE_CLN_1   0xE0040068   /* first call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
@@ -183,41 +212,9 @@
 #define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE              0xe00401b4
 
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
-                                       // the widest range of D678 cams with no observed problems,
-                                       // but not all cams have been tested!
-
-#define ML_MAX_SYS_MEM_INCREASE 0x40000 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                        // higher in memory, at some point that must cause Bad Things,
-                                        // consequences unknown.  0x40000 has been tested, a little...
-
-#define ML_RESERVED_MEM 0x66000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                // but must not be higher; sys_objs would get overwritten by ML code.
-                                // Must be larger than MemSiz reported by build for magiclantern.bin
-
 // Used for copying and modifying ROM code before transferring control.
-// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in BR_ macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x1000
-
-/*
-Before patching:
-DryOS base    user_start                       sys_objs_start    sys_start
-    |-------------|--------------------------------|---------------|--------------------->
-                   <-------  user_mem_size ------->                 <---- sys_len ------->
-    ---------------- sys_objs_offset ------------->
-    ---------------- sys_mem_offset ------------------------------>
-
-After patching, user mem reduced and sys mem moved up
-DryOS base    user_start                                 sys_objs_start    sys_start
-    |-------------|-------------------|<-- ml_reserved_mem -->|---------------|--------------------->
-                   <- user_mem_size ->                                         <---- sys_len ------->
-    ---------------- sys_objs_offset ------------------------>
-    ---------------- sys_mem_offset ----------------------------------------->
-*/
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
 #define XIMR_CONTEXT 0xa09a0

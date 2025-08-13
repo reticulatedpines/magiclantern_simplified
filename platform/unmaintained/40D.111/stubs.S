@@ -30,7 +30,7 @@
 
 .text
 
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 
 NSTUB(0xFFD4376C,  AcquireRecursiveLock)
 NSTUB(0xFFD5B3E8,  AllocateMemory)

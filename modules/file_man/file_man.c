@@ -1,4 +1,6 @@
-#define CONFIG_CONSOLE
+#ifndef CONFIG_CONSOLE
+    #define CONFIG_CONSOLE
+#endif
 #define _file_man_c_
 
 #include <module.h>
@@ -20,12 +22,11 @@ enum file_entry_type {
     TYPE_ACTION,
 };
 
-#define MAX_PATH_LEN 0x80
 struct file_entry
 {
-    struct file_entry * next;
-    struct menu_entry * menu_entry;
-    char name[MAX_PATH_LEN];
+    struct file_entry *next;
+    struct menu_entry *menu_entry;
+    char name[FIO_MAX_PATH_LENGTH];
     unsigned int size;
     enum file_entry_type type;
     unsigned int timestamp;
@@ -34,7 +35,7 @@ struct file_entry
 typedef struct _multi_files
 {
     struct _multi_files *next;
-    char name[MAX_PATH_LEN];
+    char name[FIO_MAX_PATH_LENGTH];
 }FILES_LIST;
 
 enum _FILER_OP {
@@ -53,7 +54,7 @@ struct filetype_handler
 };
 
 //Global values
-static char gPath[MAX_PATH_LEN];
+static char gPath[FIO_MAX_PATH_LENGTH];
 static char gStatusMsg[60];
 static unsigned int op_mode;
 
@@ -61,9 +62,9 @@ static int cf_present;
 static int sd_present;
 
 static int view_file = 0; /* view file mode */
-static struct file_entry * file_entries = 0;
+static struct file_entry *file_entries = NULL;
 static FILES_LIST *mfile_root;
-static struct semaphore * mfile_sem = 0; /* exclusive access to the list of selected files (can't change while copying, for example) */
+static struct semaphore *mfile_sem = NULL; /* exclusive access to the list of selected files (can't change while copying, for example) */
 
 /**
  * file copying and moving are background tasks;
@@ -95,7 +96,7 @@ static MENU_SELECT_FUNC(BrowseUpMenu);
 static MENU_SELECT_FUNC(FileCopyStart);
 static MENU_SELECT_FUNC(FileMoveStart);
 static MENU_SELECT_FUNC(FileOpCancel);
-static unsigned int mfile_add_tail(char* path);
+static unsigned int mfile_add_tail(char *path);
 static unsigned int mfile_clean_all();
 static int mfile_is_regged(char *fname);
 static int mfile_get_count();
@@ -120,6 +121,9 @@ unsigned int fileman_register_type(char *ext, char *type, filetype_handler_func 
 
 static struct filetype_handler *fileman_find_filetype(char *extension)
 {
+    if (extension == NULL)
+        return NULL;
+
     for(int pos = 0; pos < fileman_filetype_registered; pos++)
     {
         if(!strcasecmp(extension, fileman_filetypes[pos].extension))
@@ -163,14 +167,15 @@ static struct menu_entry fileman_menu[] =
 
 static void clear_file_menu()
 {
-    if (!file_entries) return;
+    if (!file_entries)
+        return;
 
     //Assumes that build_file_menu has been called, so the menu_entry data is compacted
-    struct menu_entry * compacted = file_entries->menu_entry;
+    struct menu_entry *compacted = file_entries->menu_entry;
 
     while (file_entries)
     {
-        struct file_entry * next = file_entries->next;
+        struct file_entry *next = file_entries->next;
         menu_remove("File Manager", file_entries->menu_entry, 1);
         //printf("%s\n", file_entries->name);
         free(file_entries);
@@ -179,15 +184,16 @@ static void clear_file_menu()
     free(compacted);
 }
 
-static struct file_entry * add_file_entry(char* txt, enum file_entry_type type, int size, int timestamp)
+static struct file_entry *add_file_entry(char *txt, enum file_entry_type type, int size, int timestamp)
 {
-    struct file_entry * fe = malloc(sizeof(struct file_entry));
-    if (!fe) return 0;
+    struct file_entry *fe = malloc(sizeof(struct file_entry));
+    if (!fe)
+        return NULL;
     memset(fe, 0, sizeof(struct file_entry));
     fe->menu_entry = malloc(sizeof(struct menu_entry));
     if (!fe->menu_entry) {
         free(fe);
-        return 0;
+        return NULL;
     }
     memset(fe->menu_entry, 0, sizeof(struct menu_entry));
     snprintf(fe->name, sizeof(fe->name), "%s", txt);
@@ -230,10 +236,12 @@ static struct file_entry * add_file_entry(char* txt, enum file_entry_type type, 
 static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
 {
     // If either file type is an action, don't change the order
-    if (a->type == TYPE_ACTION || b->type == TYPE_ACTION) return true;
+    if (a->type == TYPE_ACTION || b->type == TYPE_ACTION)
+        return true;
 
     // Directories are grouped before files
-    if (a->type != b->type) return a->type < b->type;
+    if (a->type != b->type)
+        return a->type < b->type;
 
     // If the file types are the same, order alphabetically
     int result = strcmp(a->name, b->name);
@@ -270,10 +278,13 @@ static void build_file_menu()
             psize = 0;
             for (i = 0; i < length; i++) {
                 psize++;
-                if (length == 1) count++; // count up items only on the first pass
+                if (length == 1)
+                    count++; // count up items only on the first pass
                 q = q->next;
-                if (q == NULL) break;
-                if (length == 1) count++; // count up items only on the first pass
+                if (q == NULL)
+                    break;
+                if (length == 1)
+                    count++; // count up items only on the first pass
             }
             qsize = length; // q may be shorted than qsize, so checking for NULL will be necessary
 
@@ -319,10 +330,10 @@ static void build_file_menu()
     file_entries = list;
 
     // Compacts all the independently allocated menu_entry structures into a single array
-    struct menu_entry * compacted = malloc(count*sizeof(struct menu_entry));
-    struct menu_entry * ptr = compacted;
+    struct menu_entry *compacted = malloc(count * sizeof(struct menu_entry));
+    struct menu_entry *ptr = compacted;
 
-    for (struct file_entry * fe = file_entries; fe; fe = fe->next) {
+    for (struct file_entry *fe = file_entries; fe; fe = fe->next) {
         memcpy(ptr, fe->menu_entry, sizeof(struct menu_entry));
         free(fe->menu_entry);
         fe->menu_entry = ptr;
@@ -336,11 +347,12 @@ static void build_file_menu()
     if (compacted)
     {
         ASSERT(compacted->parent_menu);
-        compacted->parent_menu->no_name_lookup = 1;
+        if (compacted->parent_menu)
+            compacted->parent_menu->no_name_lookup = 1;
     }
 }
 
-static struct semaphore * scandir_sem = 0;
+static struct semaphore *scandir_sem = 0;
 
 /* this is called from file copy/move tasks as well as from GUI task, so it needs to be thread safe */
 static void ScanDir(char *path)
@@ -358,14 +370,15 @@ static void ScanDir(char *path)
         return;
     }
 
-    struct fio_file file;
-    struct fio_dirent * dirent = 0;
+    struct fio_file *file = alloc_fio_file();
+    struct fio_dirent *dirent = NULL;
 
-    dirent = FIO_FindFirstEx( path, &file );
-    if( IS_ERROR(dirent) )
+    dirent = FIO_FindFirstEx(path, file);
+    if (IS_ERROR(dirent))
     {
         add_file_entry("../", TYPE_DIR, 0, 0);
         build_file_menu();
+        free(file);
         give_semaphore(scandir_sem);
         return;
     }
@@ -373,21 +386,25 @@ static void ScanDir(char *path)
     int n = 0;
     do
     {
-        if (file.name[0] == 0) continue;        /* on ExFat it may return empty entries */ 
-        if (file.name[0] == '.') continue;
+        struct file_info file_info = convert_fio_file_info(file);
+        if (file_info.name[0] == 0)
+            continue;        /* on ExFat it may return empty entries */
+        if (file_info.name[0] == '.')
+            continue;
         n++;
-        if (file.mode & ATTR_DIRECTORY)
+        if (file_info.mode & ATTR_DIRECTORY)
         {
-            int len = strlen(file.name);
-            snprintf(file.name + len, sizeof(file.name) - len, "/");
-            add_file_entry(file.name, TYPE_DIR, 0, 0);
+            int len = strlen(file_info.name);
+            snprintf(file_info.name + len, sizeof(file_info.name) - len, "/");
+            add_file_entry(file_info.name, TYPE_DIR, 0, 0);
         }
         else
         {
-            add_file_entry(file.name, TYPE_FILE, file.size, file.timestamp);
+            add_file_entry(file_info.name, TYPE_FILE, file_info.size, file_info.timestamp);
         }
     }
-    while( FIO_FindNextEx( dirent, &file ) == 0);
+    while(FIO_FindNextEx(dirent, file) == 0);
+    free(file);
 
     if (!n)
     {
@@ -397,7 +414,7 @@ static void ScanDir(char *path)
 
     if(op_mode != FILE_OP_NONE)
     {
-        /*        char srcpath[MAX_PATH_LEN];
+        /*        char srcpath[FIO_MAX_PATH_LENGTH];
         strcpy(srcpath,gSrcFile);
         char *p = srcpath+strlen(srcpath);
         while (p > srcpath && *p != '/') p--;
@@ -409,53 +426,56 @@ static void ScanDir(char *path)
         if(strcmp(path,srcpath) != 0)
         {
         */
-            struct file_entry * e;
+            struct file_entry *e;
             
             /* need to add these in reverse order */
 
             e = add_file_entry("*** Cancel OP ***", TYPE_ACTION, 0, 0);
-            if (e) e->menu_entry->select = FileOpCancel;
+            if (e)
+                e->menu_entry->select = FileOpCancel;
 
             switch (op_mode)
             {
                 case FILE_OP_COPY:
                     e = add_file_entry("*** Copy Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry->select = FileCopyStart;
+                    if (e)
+                        e->menu_entry->select = FileCopyStart;
                     break;
                 case FILE_OP_MOVE:
                     e = add_file_entry("*** Move Here ***", TYPE_ACTION, 0, 0);
-                    if (e) e->menu_entry->select = FileMoveStart;
+                    if (e)
+                        e->menu_entry->select = FileMoveStart;
                     break;
             }
     }
-
     build_file_menu();
 
     FIO_FindClose(dirent);
     give_semaphore(scandir_sem);
 }
 
-static void Browse(char* path)
+static void Browse(char *path)
 {
     snprintf(gPath, sizeof(gPath), path);
     ScanDir(gPath);
 }
 
-static void BrowseDown(char* path)
+static void BrowseDown(char *path)
 {
     STR_APPEND(gPath, "%s", path);
     ScanDir(gPath);
 }
 
-static void restore_menu_selection(char* old_dir)
+static void restore_menu_selection(char *old_dir)
 {
-    for (struct file_entry * fe = file_entries; fe; fe = fe->next)
+    for (struct file_entry *fe = file_entries; fe; fe = fe->next)
     {
         if (streq(fe->name, old_dir))
         {
             fe->menu_entry->selected = 1;
-            for (struct file_entry * e = file_entries; e; e = e->next)
-                if (e != fe) e->menu_entry->selected = 0;
+            for (struct file_entry *e = file_entries; e; e = e->next)
+                if (e != fe)
+                    e->menu_entry->selected = 0;
             break;
         }
     }
@@ -465,20 +485,21 @@ static void BrowseUp()
 {
     view_file = 0;
 
-    char* p = gPath + strlen(gPath) - 2;
-    while (p > gPath && *p != '/') p--;
+    char *p = gPath + strlen(gPath) - 2;
+    while (p > gPath && *p != '/')
+        p--;
 
     if (*p == '/') /* up one level */
     {
-        char old_dir[MAX_PATH_LEN];
-        snprintf(old_dir, sizeof(old_dir), p+1);
-        *(p+1) = 0;
+        char old_dir[FIO_MAX_PATH_LENGTH];
+        snprintf(old_dir, sizeof(old_dir), p + 1);
+        *(p + 1) = 0;
         ScanDir(gPath);
         restore_menu_selection(old_dir);
     }
     else if (cf_present && sd_present && strlen(gPath) > 0) /* two cards: show A:/ and B:/ in menu */
     {
-        char old_dir[MAX_PATH_LEN];
+        char old_dir[FIO_MAX_PATH_LENGTH];
         snprintf(old_dir, sizeof(old_dir), "%s", gPath);
         gPath[0] = 0;
         ScanDir("");
@@ -496,9 +517,9 @@ MFILE_SEM (
     /* this may take a long time - prevent powersaving from interrupting us */
     powersave_prohibit();
 
-    char fname[MAX_PATH_LEN];
-    char tmpdst[MAX_PATH_LEN];
-    char dstfile[MAX_PATH_LEN];
+    char fname[FIO_MAX_PATH_LENGTH];
+    char tmpdst[FIO_MAX_PATH_LENGTH];
+    char dstfile[FIO_MAX_PATH_LENGTH];
     size_t totallen = 0;
     FILES_LIST *mf = mfile_root;
     strcpy(tmpdst,gPath);
@@ -517,11 +538,11 @@ MFILE_SEM (
         totallen = strlen(mf->name);
         char *p = mf->name + totallen;
         while (p > mf->name && *p != '/') p--;
-        strcpy(fname,p+1);
+        strcpy(fname, p + 1);
         
-        snprintf(dstfile, MAX_PATH_LEN, "%s%s", tmpdst, fname);
+        snprintf(dstfile, FIO_MAX_PATH_LENGTH, "%s%s", tmpdst, fname);
 
-        if(streq(mf->name,dstfile))
+        if(streq(mf->name, dstfile))
         {
             // src and dst are identical. skip this transaction.
             continue;
@@ -545,7 +566,7 @@ MFILE_SEM (
     mfile_clean_all();
 
     /* are we still in the same dir? rescan */
-    if(!strcmp(gPath,tmpdst))
+    if(!strcmp(gPath, tmpdst))
     {
         ScanDir(gPath);
     }
@@ -557,7 +578,7 @@ MFILE_SEM (
 static MENU_SELECT_FUNC(FileCopyStart)
 {
 MFILE_SEM (
-    task_create("filecopy_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_COPY);
+    task_create("filecopy_task", 0x1b, 0x4000, FileCopyOrMove, (void *)FILE_OP_COPY);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
@@ -566,7 +587,7 @@ MFILE_SEM (
 static MENU_SELECT_FUNC(FileMoveStart)
 {
 MFILE_SEM (
-    task_create("filemove_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_MOVE);
+    task_create("filemove_task", 0x1b, 0x4000, FileCopyOrMove, (void *)FILE_OP_MOVE);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
@@ -588,9 +609,9 @@ static MENU_SELECT_FUNC(BrowseUpMenu)
 
 static MENU_SELECT_FUNC(select_dir)
 {
-    struct file_entry * fe = (struct file_entry *) priv;
-    char* name = (char*) fe->name;
-    if (!strcmp(name,"../") || (delta < 0))
+    struct file_entry *fe = (struct file_entry *)priv;
+    char *name = (char *)fe->name;
+    if (!strcmp(name, "../") || (delta < 0))
     {
         BrowseUp();
     }
@@ -605,66 +626,74 @@ static MENU_UPDATE_FUNC(update_dir)
     MENU_SET_VALUE("");
     MENU_SET_ICON(MNI_AUTO, 0);
     update_status(entry, info);
-    if (entry->selected) view_file = 0;
+    if (entry->selected)
+        view_file = 0;
 }
 
-static const char * format_date_size( unsigned size, unsigned timestamp )
+static const char *format_date_size(unsigned size, unsigned timestamp)
 {
     static char str[32];
     char sizestr[16];
     char datestr[11];
-    int year=1970;                   // Unix Epoc begins 1970-01-01
-    int month=11;                    // This will be the returned MONTH NUMBER.
+    int year = 1970;                   // Unix Epoc begins 1970-01-01
+    int month = 11;                    // This will be the returned MONTH NUMBER.
     int day;                         // This will be the returned day number. 
-    int dayInSeconds=86400;          // 60secs*60mins*24hours
-    int daysInYear=365;              // Non Leap Year
-    int daysInLYear=daysInYear+1;    // Leap year
-    int days=timestamp/dayInSeconds; // Days passed since UNIX Epoc
-    int tmpDays=days+1;              // If passed (timestamp < dayInSeconds), it will return 0, so add 1
+    int dayInSeconds = 86400;          // 60secs*60mins*24hours
+    int daysInYear = 365;              // Non Leap Year
+    int daysInLYear = daysInYear + 1;    // Leap year
+    int days = timestamp / dayInSeconds; // Days passed since UNIX Epoc
+    int tmpDays = days + 1;              // If passed (timestamp < dayInSeconds), it will return 0, so add 1
 
-    while(tmpDays>=daysInYear)       // Start adding years to 1970
-	{      
+    while(tmpDays >= daysInYear)       // Start adding years to 1970
+    {      
         year++;
-        if ((year)%4==0&&((year)%100!=0||(year)%400==0)) tmpDays-=daysInLYear; else tmpDays-=daysInYear;
+        if ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
+            tmpDays -= daysInLYear;
+        else
+            tmpDays -= daysInYear;
     }
 
-    int monthsInDays[12] = {-1,30,59,90,120,151,181,212,243,273,304,334};
-    if (!(year)%4==0&&((year)%100!=0||(year)%400==0))  // The year is not a leap year
-	{
-        monthsInDays[0] = 0;
-		monthsInDays[1] =31;
-    }
-
-    while (month>0)
+    int monthsInDays[12] = {-1, 30, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    if (!(year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0)) // The year is not a leap year
     {
-        if (tmpDays>monthsInDays[month]) break;       // month+1 is now the month number.
+        monthsInDays[0] = 0;
+        monthsInDays[1] = 31;
+    }
+
+    while (month > 0)
+    {
+        if (tmpDays > monthsInDays[month])
+            break;       // month+1 is now the month number.
         month--;
     }
-    day=tmpDays-monthsInDays[month];                  // Setup the date
+    day = tmpDays - monthsInDays[month];                  // Setup the date
     month++;                                          // Increment by one to give the accurate month
-    if (day==0) {year--; month=12; day=31;}			  // Ugly hack but it works, eg. 1971.01.00 -> 1970.12.31
-	
-    if (date_format==DATE_FORMAT_YYYY_MM_DD)          // Use the date format of the camera to format the date string
-        snprintf( datestr, sizeof(datestr), "%d.%02d.%02d ", year, month, day);
-    else if (date_format==DATE_FORMAT_MM_DD_YYYY)
-        snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
-    else  
-        snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
+    if (day == 0)
+    {
+        year--; month = 12; day = 31; // Ugly hack but it works, eg. 1971.01.00 -> 1970.12.31
+    }
 
-    snprintf( sizestr, sizeof(sizestr), "%s", format_memory_size(size));
+    if (date_format == DATE_FORMAT_YYYY_MM_DD)          // Use the date format of the camera to format the date string
+        snprintf(datestr, sizeof(datestr), "%d.%02d.%02d ", year, month, day);
+    else if (date_format==DATE_FORMAT_MM_DD_YYYY)
+        snprintf(datestr, sizeof(datestr), "%02d/%02d/%d ", month, day, year);
+    else  
+        snprintf(datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
+
+    snprintf(sizestr, sizeof(sizestr), "%s", format_memory_size(size));
 
     while (bmp_string_width(MENU_FONT, sizestr) < 100)
     {
-        void* memmove(void*, void*, int);
+        void *memmove(void*, const void*, unsigned int);
         memmove(sizestr + 1, sizestr, sizeof(sizestr) - 1);
         sizestr[0] = ' ';
-        sizestr[sizeof(sizestr)-1] = '\0';
+        sizestr[sizeof(sizestr) - 1] = '\0';
     }
 
     int minute = (timestamp / 60) % 60;
     int hour = (timestamp / 60 / 60) % 24;
 
-    snprintf( str, sizeof(str), "%s %02d:%02d %s", datestr, hour, minute, sizestr);
+    snprintf(str, sizeof(str), "%s %02d:%02d %s", datestr, hour, minute, sizestr);
 
     return str;
 }
@@ -694,7 +723,7 @@ MFILE_SEM (
 static char *fileman_get_extension(char *filename)
 {
     int pos = strlen(filename) - 1;
-    while(pos > 0 && filename[pos] != '.')
+    while (pos > 0 && filename[pos] != '.')
     {
         pos--;
     }
@@ -713,17 +742,19 @@ FILETYPE_HANDLER(text_handler)
     if (cmd != FILEMAN_CMD_VIEW_IN_MENU)
         return 0; /* this handler only knows to show things in menu */
     
-    char* buf = fio_malloc(1025);
-    if (!buf) return 0;
+    char *buf = fio_malloc(1025);
+    if (!buf)
+        return 0;
     
-    FILE * file = FIO_OpenFile( filename, O_RDONLY | O_SYNC );
+    FILE *file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if (file)
     {
         int r = FIO_ReadFile(file, buf, 1024);
         FIO_CloseFile(file);
         buf[r] = 0;
         for (int i = 0; i < r; i++)
-            if (buf[i] == 0) buf[i] = ' ';
+            if (buf[i] == 0)
+                buf[i] = ' ';
         big_bmp_printf(FONT_MED, 0, 0, "%s", buf);
         fio_free(buf);
         return 1;
@@ -742,7 +773,7 @@ static MENU_SELECT_FUNC(viewfile_toggle)
     if(ext)
     {
         struct filetype_handler *filetype = fileman_find_filetype(ext);
-        if(filetype)
+        if (filetype)
         {
             int status = filetype->handler(FILEMAN_CMD_VIEW_OUTSIDE_MENU, gPath, NULL);
             if (status > 0)
@@ -767,8 +798,10 @@ static MENU_UPDATE_FUNC(viewfile_update)
 {
     char *ext = fileman_get_extension(gPath);
     struct filetype_handler *filetype = NULL;
-    if (ext) filetype = fileman_find_filetype(ext);
-    if(filetype) MENU_SET_RINFO("Type: %s", filetype->type);
+    if (ext)
+        filetype = fileman_find_filetype(ext);
+    if (filetype)
+        MENU_SET_RINFO("Type: %s", filetype->type);
     update_action(entry, info);
 }
 
@@ -792,7 +825,7 @@ MFILE_SEM (
         
         for (FILES_LIST *mf = mfile_root->next; mf; mf = mf->next)
         {
-            if (streq(mf->name+1, ":/AUTOEXEC.BIN"))
+            if (streq(mf->name + 1, ":/AUTOEXEC.BIN"))
             {
                 beep();
                 continue;
@@ -836,15 +869,15 @@ mfile_is_regged(char *fname)
 }
 
 static unsigned int 
-mfile_find_remove(char* path)
+mfile_find_remove(char *path)
 {
     FILES_LIST *prevmf;
     FILES_LIST *mf = mfile_root;
-    while(mf->next)
+    while (mf->next)
     {
         prevmf = mf;
         mf = mf->next;
-        if(!strcmp(mf->name,path))
+        if (!strcmp(mf->name, path))
         { //match
             prevmf->next = mf->next;
             free((void *)mf);
@@ -855,15 +888,15 @@ mfile_find_remove(char* path)
 }
 
 static unsigned int 
-mfile_add_tail(char* path)
+mfile_add_tail(char *path)
 {
     FILES_LIST *newmf;
     FILES_LIST *mf = mfile_root;
-    while(mf->next)
+    while (mf->next)
         mf = mf->next;
 
     newmf = malloc(sizeof(FILES_LIST));
-    memset(newmf,0,sizeof(FILES_LIST));
+    memset(newmf, 0, sizeof(FILES_LIST));
     strcpy(newmf->name, path);
     newmf->next = NULL;
     mf->next = newmf;
@@ -876,7 +909,7 @@ mfile_clean_all()
 {
     FILES_LIST *prevmf;
     FILES_LIST *mf = mfile_root;
-    while(mf->next)
+    while (mf->next)
     {
         prevmf = mf;
         mf = mf->next;
@@ -896,14 +929,15 @@ static int mfile_get_count()
     return count;
 }
 
-static int path_strip_last_item(char* dst, int maxlen, char* src)
+static int path_strip_last_item(char *dst, int maxlen, char *src)
 {
     snprintf(dst, maxlen, "%s", src);
-    char* p = dst + strlen(dst) - 2;
-    while (p > dst && *p != '/') p--;
+    char *p = dst + strlen(dst) - 2;
+    while (p > dst && *p != '/')
+        p--;
     if (*p == '/')
     {
-        *(p+1) = 0;
+        *(p + 1) = 0;
         return 1;
     }
     return 0;
@@ -916,14 +950,16 @@ static int mfile_get_dir_count()
     int count = 0;
     for (FILES_LIST *mf = mfile_root->next; mf; mf = mf->next)
     {
-        char dir[MAX_PATH_LEN];
-        if (!path_strip_last_item(dir, sizeof(dir), mf->name)) continue;
+        char dir[FIO_MAX_PATH_LENGTH];
+        if (!path_strip_last_item(dir, sizeof(dir), mf->name))
+            continue;
         count++;
         
-        for (FILES_LIST * mf2 = mf->next; mf2; mf2 = mf2->next)
+        for (FILES_LIST *mf2 = mf->next; mf2; mf2 = mf2->next)
         {
-            char dir2[MAX_PATH_LEN];
-            if (!path_strip_last_item(dir2, sizeof(dir2), mf2->name)) continue;
+            char dir2[FIO_MAX_PATH_LENGTH];
+            if (!path_strip_last_item(dir2, sizeof(dir2), mf2->name))
+                continue;
             if (streq(dir, dir2))
             {
                 count--;
@@ -950,7 +986,8 @@ MFILE_SEM (
     if(mfile_find_remove(gPath) == 0)
         mfile_add_tail(gPath);
 
-    if(mfile_root->next == NULL) op_mode = FILE_OP_NONE;
+    if(mfile_root->next == NULL)
+        op_mode = FILE_OP_NONE;
 
     BrowseUp();
 )
@@ -959,23 +996,26 @@ MFILE_SEM (
 static MENU_SELECT_FUNC(select_multi)
 {
 MFILE_SEM (
-    char filename[MAX_PATH_LEN];
-    struct file_entry * fe = (struct file_entry *) priv;
-    if (!fe) return;
+    char filename[FIO_MAX_PATH_LENGTH];
+    struct file_entry *fe = (struct file_entry *) priv;
+    if (!fe)
+        return;
     snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
 
-    if(mfile_find_remove(filename) == 0)
+    if (mfile_find_remove(filename) == 0)
         mfile_add_tail(filename);
 
-    if(mfile_root->next == NULL) op_mode = FILE_OP_NONE;
+    if (mfile_root->next == NULL)
+        op_mode = FILE_OP_NONE;
 )
 }
 
 static MENU_SELECT_FUNC(select_by_extension)
 {
 MFILE_SEM (
-    char* ext = gPath + strlen(gPath) - 1;
-    while (ext > gPath && *ext != '/' && *ext != '.') ext--;
+    char *ext = gPath + strlen(gPath) - 1;
+    while (ext > gPath && *ext != '/' && *ext != '.')
+        ext--;
     if (*ext == '.')
     {
         /* we might lose gPath when browsing up, so backup the extension here */
@@ -984,12 +1024,12 @@ MFILE_SEM (
         
         BrowseUp();
         
-        for (struct file_entry * fe = file_entries; fe; fe = fe->next)
+        for (struct file_entry *fe = file_entries; fe; fe = fe->next)
         {
-            char* fe_ext = fe->name + strlen(fe->name) - strlen(Ext);
+            char *fe_ext = fe->name + strlen(fe->name) - strlen(Ext);
             if (streq(Ext, fe_ext))
             {
-                char path[MAX_PATH_LEN];
+                char path[FIO_MAX_PATH_LENGTH];
                 snprintf(path, sizeof(path), "%s%s", gPath, fe->name);
                 mfile_find_remove(path);
                 mfile_add_tail(path);
@@ -1002,30 +1042,32 @@ MFILE_SEM (
 
 static MENU_SELECT_FUNC(file_menu)
 {
-    struct file_entry * fe = (struct file_entry *) priv;
-    if (!fe) return;
+    struct file_entry *fe = (struct file_entry *)priv;
+    if (!fe)
+        return;
 
     /* fe will be freed in clear_file_menu; backup things that we are going to reuse */
-    char name[MAX_PATH_LEN];
+    char name[FIO_MAX_PATH_LENGTH];
     snprintf(name, sizeof(name), "%s", fe->name);
     int size = fe->size;
     int timestamp = fe->timestamp;
-	
+
     STR_APPEND(gPath, "%s", name);
 
     clear_file_menu();
     /* at this point, fe was freed and is no longer valid */
     fe = 0;
 
-    struct file_entry * e;
+    struct file_entry *e;
     
     /* note: need to add these in reverse order */
 
     int sel = mfile_get_count();
 
     {
-        char* ext = name;
-        while (*ext && *ext != '.') ext++;
+        char *ext = name;
+        while (*ext && *ext != '.')
+            ext++;
         if (*ext == '.')
         {
             char msg[100];
@@ -1042,7 +1084,8 @@ static MENU_SELECT_FUNC(file_menu)
     if (sel)
     {
         e = add_file_entry("Clear selection", TYPE_ACTION, 0, 0);
-        if (e) e->menu_entry->select = mfile_clear_all_selected_menu;
+        if (e)
+            e->menu_entry->select = mfile_clear_all_selected_menu;
     }
 
     e = add_file_entry("Delete", TYPE_ACTION, 0, 0);
@@ -1107,7 +1150,11 @@ static MENU_SELECT_FUNC(file_menu)
 
 static MENU_SELECT_FUNC(select_file)
 {
-    if (view_file) { view_file = 0; return; }
+    if (view_file)
+    {
+        view_file = 0;
+        return;
+    }
 
     if (delta < 0)
     {
@@ -1161,27 +1208,30 @@ static MENU_UPDATE_FUNC(update_status)
 
 static MENU_UPDATE_FUNC(update_file)
 {
-    struct file_entry * fe = (struct file_entry *) entry->priv;
+    struct file_entry *fe = (struct file_entry *)entry->priv;
     MENU_SET_VALUE("");
-    MENU_SET_RINFO("%s", format_date_size(fe->size,fe->timestamp));
+    MENU_SET_RINFO("%s", format_date_size(fe->size, fe->timestamp));
 
-    char filename[MAX_PATH_LEN];
+    char filename[FIO_MAX_PATH_LENGTH];
     snprintf(filename, sizeof(filename), "%s%s", gPath, fe->name);
 
     MENU_SET_ICON(mfile_is_regged(filename) ? MNI_ON : MNI_OFF, 0);
     update_status(entry, info);
     
     static int dirty = 0;
-    if (!view_file) dirty = 1;
+    if (!view_file)
+        dirty = 1;
     
     if (entry->selected && view_file)
     {
         static int last_updated = 0;
         int t = get_ms_clock();
-        if (t - last_updated > 1000) dirty = 1;
+        if (t - last_updated > 1000)
+            dirty = 1;
 
-        static char prev_filename[MAX_PATH_LEN];
-        if (!streq(prev_filename, filename)) dirty = 1;
+        static char prev_filename[FIO_MAX_PATH_LENGTH];
+        if (!streq(prev_filename, filename))
+            dirty = 1;
         snprintf(prev_filename, sizeof(prev_filename), "%s", filename);
 
         if (dirty)
@@ -1198,14 +1248,18 @@ static MENU_UPDATE_FUNC(update_file)
             if (filetype)
                 status = filetype->handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
             
-            /* custom handler doesn't know how to display the file? try the default handler */
-            if (status == 0) status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
+            /* custom handler error, or filetype NULL, try default handler */
+            if (status == 0)
+                status = text_handler(FILEMAN_CMD_VIEW_IN_MENU, filename, NULL);
             
             /* error? */
-            if (status <= 0) bmp_printf(FONT_MED, 0, 460, "Error viewing %s (%s)", filename, filetype->type);
-            else bmp_printf(FONT_MED, 0, 460, "%s", filename);
+            if (status <= 0)
+                bmp_printf(FONT_MED, 0, 460, "Error viewing %s", filename);
+            else
+                bmp_printf(FONT_MED, 0, 460, "%s", filename);
             
-            if (status != 1) dirty = 1;
+            if (status != 1)
+                dirty = 1;
         }
         else
         {
@@ -1225,7 +1279,8 @@ static MENU_UPDATE_FUNC(update_action)
 {
     MENU_SET_VALUE("");
     update_status(entry, info);
-    if (entry->selected) view_file = 0;
+    if (entry->selected)
+        view_file = 0;
 }
 
 static int InitRootDir()
@@ -1245,19 +1300,22 @@ static int InitRootDir()
     {
         Browse("");
     }
-    else return -1;
+    else
+    {
+        return -1;
+    }
 
     return 0;
 }
 
 static unsigned int fileman_init()
 {
-    scandir_sem = create_named_semaphore("scandir", 1);
-    mfile_sem = create_named_semaphore("mfile", 1);
+    scandir_sem = create_named_semaphore("scandir", SEM_CREATE_UNLOCKED);
+    mfile_sem = create_named_semaphore("mfile", SEM_CREATE_UNLOCKED);
     menu_add("Debug", fileman_menu, COUNT(fileman_menu));
     op_mode = FILE_OP_NONE;
     mfile_root = malloc(sizeof(FILES_LIST));
-    memset(mfile_root,0,sizeof(FILES_LIST));
+    memset(mfile_root, 0, sizeof(FILES_LIST));
     mfile_root->next = NULL;
     InitRootDir();
     
@@ -1267,7 +1325,8 @@ static unsigned int fileman_init()
 static unsigned int fileman_deinit()
 {
     //experimental. maybe not working yet.
-    if(mfile_root->next) return -1;
+    if(mfile_root->next)
+        return -1;
 
     //FUTURE TODO: release semaphore here.
     clear_file_menu();

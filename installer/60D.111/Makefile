@@ -1,2 +1,20 @@
-MODEL=60D
-include ../Makefile.installer
+MODEL = 60D
+FW_VERSION = 111
+TOP_DIR = ../..
+
+CANON_FIR = 60D00111.FIR
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+MAIN_FIRMWARE_ADDR = 0xFF010000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART = 0x5f000
+ML_BOOT_OBJ = boot-d45.o
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/$(INSTALLER_FIR)

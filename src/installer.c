@@ -28,6 +28,7 @@
 #include "menu.h"
 #include "property.h"
 #include "consts.h"
+#include "rom_values.h"
 #include "gui.h"
 
 #define ARM_CPSR_FLAG_FIQ_MASKED  (0x00000040)
@@ -76,12 +77,23 @@ static void call_bootflag_eventproc(char* eventproc)
         }
 
         /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
+#ifdef CONFIG_DIGIC_VI
+    // Disabling interrupts before Enable/DisableBootDisk makes these cams hang.
+    // They use Omar for these commands, presumably the signalling requires
+    // interrupts.  The original concern was power saving kicking in during
+    // the flash write (see large comment above).  These days we should easily
+    // be fast enough, plus we don't have any choice.
+#else
         uint32_t old = cli();
+#endif
         if (CURRENT_GUI_MODE == GUIMODE_MENU && DISPLAY_IS_ON)
         {
             call( eventproc );
         }
+#ifdef CONFIG_DIGIC_VI
+#else
         sei(old);
+#endif
     }
 }
 
@@ -103,12 +115,16 @@ call_init_funcs()
 
 void _card_led_on()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON);
+#endif
 }
 
 void _card_led_off()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
+#endif
 }
 
 void info_led_on()
@@ -144,8 +160,19 @@ void info_led_blink(int times, int delay_on, int delay_off)
     }
 }
 
-/** Shadow copy of the NVRAM boot flags stored at 0xF8000000 */
-#define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
+/** Shadow copy of the NVRAM boot flags */
+#if defined(CONFIG_DIGIC_IV) || defined(CONFIG_DIGIC_V)
+    #define NVRAM_BOOTFLAGS     ((void*) 0xF8000000)
+#elif defined(CONFIG_DIGIC_VI)
+    #define NVRAM_BOOTFLAGS     ((void*) 0xFC040000)
+#elif defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+    #define NVRAM_BOOTFLAGS     ((void*) 0xE1FF8000)
+#elif defined(CONFIG_DIGIC_X)
+    #define NVRAM_BOOTFLAGS     ((void*) 0xE3FF8000)
+#else
+    #error "Unexpected Digic gen, need bootflag addr!"
+#endif
+
 struct boot_flags
 {
     uint32_t        firmware;   // 0x00
@@ -229,7 +256,12 @@ void boot_post_init_task(void)
     additional_version[2] = 'l';
     additional_version[3] = '\0';
 #endif
-    
+
+    #ifdef FEATURE_VRAM_RGBA
+    while (!rgb_vram_preinit())
+        msleep(100);
+    #endif
+
     msleep(3000);
     
     task_create("install_task", 0x1b, 0x4000, install_task, 0);
@@ -271,8 +303,17 @@ static int backup_region(char *file, uint32_t base, uint32_t length)
 
 static int rom_backup()
 {
-    int ok0 = backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
-    int ok1 = backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+#if defined(ROM0_SIZE) && (ROM0_SIZE != 0)
+    int ok0 = backup_region("ML/LOGS/ROM0.BIN", ROM0_ADDR, ROM0_SIZE);
+#else
+    int ok0 = 1;
+#endif
+
+#if defined(ROM1_SIZE) && (ROM1_SIZE != 0)
+    int ok1 = backup_region("ML/LOGS/ROM1.BIN", ROM1_ADDR, ROM1_SIZE);
+#else
+    int ok1 = 1;
+#endif
     return ok0 && ok1;
 }
 
@@ -424,6 +465,11 @@ void install_task()
 {
     call("DisablePowerSave");
     call_init_funcs();
+
+#if defined(FEATURE_VRAM_RGBA)
+    task_create("redraw_task", 0x1e, 0x1000, refresh_yuv_from_rgb_task, 0);
+#endif
+
     vram_update_luts();
     _find_ml_card();
     _load_fonts();
@@ -484,6 +530,7 @@ int get_display_is_on_550D() { return display_is_on_550D; }
 void config_save(){};
 int get_ms_clock() { return 0; }
 const char * get_task_name_from_id(int id) { return ""; }
+const char *get_current_task_name() { return ""; }
 void beep() {} ;
 void menu_redraw() {} ;
 int should_run_polling_action(int period_ms, int* last_updated_time) { return 0; }
@@ -504,6 +551,8 @@ void _shoot_free_suite(struct memSuite * suite) {}
 struct memSuite * _srm_malloc_suite(int num) { return 0; }
 void _srm_free_suite(struct memSuite * suite) {}
 int printf(const char * format, ...) { return 0; }
+int sound_recording_enabled_canon() { return 0; }
+int __recording = 0;
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 

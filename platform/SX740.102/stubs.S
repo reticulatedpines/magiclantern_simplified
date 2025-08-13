@@ -31,7 +31,7 @@
 
 
 /** Startup **/
-NSTUB(  ROMBASEADDR,  firmware_entry)
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 THUMB_FN(0xE00400FC,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
 THUMB_FN(0xE0550EB4,  bzero32)                              /* zeros out a data structure */
 THUMB_FN(0xE010BEA0,  create_init_task)                     /* low-level DryOS initialization */
@@ -133,6 +133,7 @@ THUMB_FN(0xe0516db6,  ReleaseRecursiveLock)                 /* SystemIF::KerRLoc
 THUMB_FN(0xe054fbf0,  create_named_semaphore)
 THUMB_FN(0xE054FD66,  give_semaphore)                       /* SystemIF::KerSem.c   */
 THUMB_FN(0xE054FCEC,  take_semaphore)                       /* SystemIF::KerSem.c   */
+THUMB_FN(0xE054FCBC,  take_semaphore_now)
 
 /** GUI **/
 DATA_PTR(    0xF29C,  gui_task_list)                        // based on 200d
@@ -217,11 +218,11 @@ DATA_PTR(    0xF450, display_refresh_needed)                // Easy to spot in r
 
 /**
  * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for SX740 only!
- * Differs from R by not having VMIX_LayersEnableArr.
+ * Differs from R by not having VMIX_LayersEnable.
  * See https://www.magiclantern.fm/forum/index.php?topic=26024
  */
-DATA_PTR(   0x9FCAC, RENDERER_LayersArr);
-DATA_PTR(   0x9FFB0, VMIX_LayersArr);
+DATA_PTR(   0x9FCAC, RENDERER_Layers);
+DATA_PTR(   0x9FFB0, VMIX_Layers);
 
 /**
  * General FEATURE_VRAM_RGBA stubs

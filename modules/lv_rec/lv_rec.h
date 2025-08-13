@@ -35,7 +35,7 @@ typedef struct
     unsigned int sourceFpsx1000;
     unsigned int reserved3;
     unsigned int reserved4;
-    struct raw_info raw_info;
+    raw_info_t raw_info;
 } lv_rec_file_footer_t;
 
 #endif

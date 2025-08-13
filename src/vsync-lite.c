@@ -8,12 +8,12 @@
 static struct msg_queue * vsync_msg_queue = 0;
 
 
-void lv_vsync_signal()
+void _lv_vsync_signal()
 {
     msg_queue_post(vsync_msg_queue, 1);
 }
 
-void lv_vsync(int mz)
+void _lv_vsync(int mz)
 {
     #if defined(CONFIG_DIGIC_V) || defined(CONFIG_60D)
     int msg;

@@ -33,7 +33,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )       //0xff010000
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)       //0xff010000
 NSTUB(0xFF011028,  cstart)                                  // might be good (dumps=1, score=1.6)
 NSTUB(0xFF530984,  bzero32)                                 // might be good (dumps=1, score=1.5e+02)
 NSTUB(0xFF017F80,  create_init_task)                        // might be good (dumps=1, score=3.1)
@@ -276,6 +276,7 @@ NSTUB(0xFF1D7EF8,  UnLockEngineResources)
 NSTUB(0xFF06F40C,  create_named_semaphore)                  // might be good (dumps=1, score=81)
 NSTUB(0xFF06F654,  give_semaphore)                          // might be good (dumps=1, score=1e+02)
 NSTUB(0xFF06F56C,  take_semaphore)                          // might be good (dumps=1, score=1.5e+02)
+NSTUB(0xFF06F514,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x2E00,  task_max)

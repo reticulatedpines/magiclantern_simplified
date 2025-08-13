@@ -366,6 +366,27 @@ uint32_t trace_vwrite(uint32_t context, tsc_t tsc, char *string, va_list ap)
     {
         trace_write_timestamp(ctx, TRACE_FMT_TIME_DATE, tsc, linebuffer, &linebuffer_pos);
     }
+    if(ctx->format & TRACE_FMT_TASK_ID)
+    {
+        char tmp[32];
+        
+        linebuffer[linebuffer_pos++] = ' ';
+        snprintf(tmp, sizeof(tmp), "%d", (current_task->taskId & 0xFF));
+        memcpy(&linebuffer[linebuffer_pos], tmp, strlen(tmp));
+        linebuffer_pos += strlen(tmp);
+        linebuffer[linebuffer_pos++] = ' ';
+        linebuffer[linebuffer_pos] = '\000';
+    }
+    if(ctx->format & TRACE_FMT_TASK_NAME)
+    {
+        char *name = get_current_task_name();
+        
+        linebuffer[linebuffer_pos++] = ' ';
+        memcpy(&linebuffer[linebuffer_pos], name, strlen(name));
+        linebuffer_pos += strlen(name);
+        linebuffer[linebuffer_pos++] = ' ';
+        linebuffer[linebuffer_pos] = '\000';
+    }
     if(ctx->format & TRACE_FMT_COMMENT)
     {
         linebuffer[linebuffer_pos++] = ' ';

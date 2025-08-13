@@ -1,5 +1,0 @@
-#Makefile for 600D
-
-ML_AUDIO_OBJ = audio-lapis.o
-
-CONFIG_LVAPP_HACK_RELOC = y

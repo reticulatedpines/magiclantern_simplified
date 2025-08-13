@@ -2,7 +2,7 @@
 #define _imgconv_h_
 
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 #define UYVY_PACK(u,y1,v,y2) ((u + 0x80) & 0xFF) | (((y1) & 0xFF) << 8) | (((v + 0x80) & 0xFF) << 16) | (((y2) & 0xFF) << 24)
 #define UYVY_GET_U(uyvy) ((((uyvy)      ) - 0x80) & 0xFF)
 #define UYVY_GET_V(uyvy) ((((uyvy) >> 16) - 0x80) & 0xFF)

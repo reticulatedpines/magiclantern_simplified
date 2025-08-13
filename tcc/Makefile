@@ -4,11 +4,9 @@
 
 TOP ?= .
 
-include $(TOP)/../Makefile.user.default
-
--include $(TOP)/../Makefile.user
-
--include $(TOP)/../Makefile.setup.toolchain
+# this gets built from platform/cam/build/tcc or tcc/
+-include $(TOP)/../Makefile.globals
+-include $(TOP)/../../../../Makefile.globals
 
 include $(TOP)/config.mak
 

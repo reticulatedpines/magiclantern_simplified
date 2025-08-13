@@ -69,7 +69,7 @@ copy_and_restart( int offset )
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) &my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
-    void (*reset)(void) = (void*) ROMBASEADDR;
+    void (*reset)(void) = (void*)MAIN_FIRMWARE_ADDR;
     reset();
 
     /* Unreachable */

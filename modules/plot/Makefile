@@ -1,13 +1,8 @@
-
-# this is a very simple makefile for modules
-TOP_DIR=../..
-
 # define the module name - make sure name is max 8 characters
-MODULE_NAME=plot
-MODULE_OBJS=plot.o
+MODULE_NAME = plot
+MODULE_OBJS = $(BUILD_DIR)/plot.o
+TOP_DIR = ../..
 
 # include modules environment
-include $(TOP_DIR)/modules/Makefile.modules
-
-CFLAGS += 
-
+include $(TOP_DIR)/modules/Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/module_complete

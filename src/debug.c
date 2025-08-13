@@ -22,6 +22,7 @@
 #include "fw-signature.h"
 #include "lvinfo.h"
 #include "raw.h"
+#include "rom_values.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -31,7 +32,6 @@
 #ifdef CONFIG_MODULES
 #include "module.h"
 #endif
-//#include "lua.h"
 
 #if defined(CONFIG_600D) && defined(CONFIG_AUDIO_600D_DEBUG)
 void audio_reg_dump_once();
@@ -48,7 +48,7 @@ static struct semaphore * beep_sem = 0;
 
 static void debug_init_func()
 {
-    beep_sem = create_named_semaphore("beep_sem",1);
+    beep_sem = create_named_semaphore("beep_sem", SEM_CREATE_UNLOCKED);
 }
 INIT_FUNC("debug", debug_init_func);
 
@@ -80,12 +80,16 @@ draw_prop_reset( void * priv )
 
 void _card_led_on()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON);
+#endif
 }
 
 void _card_led_off()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
+#endif
 }
 
 void info_led_on()
@@ -124,23 +128,29 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
     FILE * f = NULL;
 
+// Digic 6 doesn't have ROM0
+#if defined(ROM0_SIZE) && (ROM0_SIZE != 0)
+    // this skips D6 by default, which we've never seen with ROM0
     f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
     if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
-        FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
+        FIO_WriteFile(f, (void*)ROM0_ADDR, ROM0_SIZE);
         FIO_CloseFile(f);
     }
     msleep(200);
+#endif
 
+#if defined(ROM1_SIZE) && (ROM1_SIZE != 0)
     f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
     if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
-        FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
+        FIO_WriteFile(f, (void*)ROM1_ADDR, ROM1_SIZE);
         FIO_CloseFile(f);
     }
     msleep(200);
+#endif
 
     dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
@@ -254,7 +264,7 @@ void guimode_test()
             continue;
 
         NotifyBox(500, "Trying GUI mode %d...", i);
-        dump_seg(0, 0, fn); // temporary flag to indicate that this GUI mode was tried (and probably found to be troublesome)
+        save_mem_to_file(fn, 0, fn); // temporary flag to indicate that this GUI mode was tried (and probably found to be troublesome)
         msleep(200);
 
         SetGUIRequestMode(i);
@@ -274,240 +284,15 @@ void guimode_test()
 }
 #endif
 
-#ifdef CONFIG_200D
-extern void GetMemoryInformation(uint32_t *, uint32_t *);
-extern char* WinSys_AllocateMemory(uint32_t size);
-extern void WinSys_FreeMemory(void *);
-extern void maybe_read_mpu_logs(void);
-static uint32_t is_hooked = 0;
-static uint32_t intercepted_val = 0;
-static void hook_target()
-{
-    //DryosDebugMsg(0, 15, "in hook code"); // hangs in this context
-    //info_led_blink(3, 150, 150); // also hangs in this context
-    //hook_result = 1; // this is okay
-
-    uint32_t val;
-
-    // r1 contains size to alloc
-    asm __volatile__ (
-        "mov %0, r1" : "=r" (val)
-    );
-
-    intercepted_val = val;
-}
-
-void hook_memoryManager_AllocateMemory()
-{
-/*
-Hook code:
-.syntax unified
-.code 16
-
-hook_function_address:
-    .align 2
-    .word 0x01010101
-ret_address:
-    .word 0x02020202
-
-code:
-    .align 2
-    nop
-    nop
-    nop
-    nop
-    push {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, lr}
-    ldr r6, hook_function_address
-    blx r6
-
-ret:
-    pop {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, lr}
-    // do stolen instruction here
-    push { r4, r5, r6, r7, r8, r9, r10, lr  } // from df007a64
-    ldr pc, #ret_address
-
-arm-none-eabi-gcc -c -fPIC -march=armv7-a -mthumb arm_test.S && arm-none-eabi-objdump -drwC arm_test.o
-
-00000008 <code>:
-   8:	bf00      	nop
-   a:	bf00      	nop
-   c:	bf00      	nop
-   e:	bf00      	nop
-  10:	e92d 47ff 	stmdb	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, lr}
-  14:	f85f 6018 	ldr.w	r6, [pc, #-24]	; 0 <hook_function_address>
-  18:	47b0      	blx	r6
-
-0000001a <ret>:
-  1a:	e8bd 47ff 	ldmia.w	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, lr}
-  1e:	e92d 47f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, sl, lr}
-  22:	f85f f020 	ldr.w	pc, [pc, #-32]	; 4 <ret_address>
-  26:	bf00      	nop
-*/
-
-    uint32_t stage2_addr = 0xdf00f5c1; // Note thumb bit set on both of these,
-    uint32_t hook_addr = 0xdf007a65;   // when using below, sometimes you must
-                                       // adjust this, sometimes not.
-
-    // setup 2nd stage hook in empty space at 0xdf00f600
-    // (allows 1st stage hook to be shorter, as within 32MB)
-    int *stage2 = (int *)(stage2_addr & 0xfffffffe);
-    *(stage2 + 0) = (uint32_t)hook_target | 0x1; // ensure Thumb bit set
-    *(stage2 + 1) = 0xdf007a69; // addr to jump back to after hook code finished
-
-    *(stage2 + 2) = 0xbf00bf00;
-    *(stage2 + 3) = 0xbf00bf00;
-    *(stage2 + 4) = 0x47ffe92d;
-    *(stage2 + 5) = 0x6018f85f;
-    *(stage2 + 6) = 0xe8bd47b0;
-    *(stage2 + 7) = 0xe92d47ff;
-    *(stage2 + 8) = 0xf85f47f0;
-    *(stage2 + 9) = 0xbf00f020;
-    *(stage2 + 10) = 0xbf00bf00;
-    sync_caches();
-
-// 1st stage hook
-    // insert jump to 2nd stage hook
-
-    // What instruction to hook with depends on whether
-    // the target instruction is Arm or Thumb.  If we used
-    // bx reg we could avoid this, but then we need to
-    // modify more bytes for the hook.
-    //
-    // Here we are hooking Thumb code, and this code is Thumb,
-    // so we can use b.w.  The T4 encoding allows the most range,
-    // 23 bits, +-16MB, 0xfffffe to ff000002
-    //
-    // The encoding is kind of funky, the bits of the branch target
-    // are non-contiguous:
-    // https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-instructions/B?lang=en
-    // 
-    // 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0|15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0|
-    // ------------------------------------------------------------------------------------------------
-    //  1  1  1  1  0| S|            imm10            | 1  0|J1| 1|J2|             imm11              |
-    //
-    // I1 = NOT(J1 EOR S);  I2 = NOT(J2 EOR S);  imm32 = SignExtend(S:I1:I2:imm10:imm11:’0’, 32);
-
-    uint32_t hook_instr = 0x9000f000; // all the fixed bits set, NB, words are swapped from above,
-                                      // because Thumb mode is 16-bit little-endian
-    int32_t offset = ((stage2_addr + 10) - hook_addr - 4) / 2; // +8 to skip the consts preceding the stage2 start,
-                                                               // then some of the nop slide "for luck", 
-                                                               // -4 for PC offset in Thumb mode,
-                                                               // /2 because offsets are encoded as 16-bit wide instruction count
-    DryosDebugMsg(0, 15, "raw offset: 0x%x", stage2_addr - hook_addr);
-    uint32_t sign_bit = 0;
-    if (offset < 0)
-        sign_bit = 1 << 10;
-    hook_instr |= sign_bit;
-
-    if (offset > 0x7fffff || offset < -0x7fffff)
-    {
-        DryosDebugMsg(0, 15, "hook too far to encode, offset: 0x%x", offset);
-        goto bail;
-    }
-
-    uint32_t imm11 = offset & 0x7ff; // lowest 11 bits
-    uint32_t imm10 = (offset >> 11) & 0x3ff;
-    hook_instr |= imm10;
-    hook_instr |= (imm11 << 16);
-
-    uint32_t i1 = (offset >> 22) & 0x1;
-    uint32_t i2 = (offset >> 21) & 0x1;
-    uint32_t j1, j2;
-    if (sign_bit)
-    {
-        j1 = i1;
-        j2 = i2;
-    }
-    else
-    {
-        j1 = i1 ^ 1;
-        j2 = i2 ^ 1;
-    }
-    hook_instr |= j1 << (16 + 13);
-    hook_instr |= j2 << (16 + 11);
-
-    // last sanity check!
-    DryosDebugMsg(0, 15, "hook instr to insert: 0x%x", hook_instr);
-    DryosDebugMsg(0, 15, "hook insert at: 0x%x", hook_addr & 0xfffffffe);
-    msleep(1000);
-    //return;
-
-    // activate hook, this will break things if
-    // you did anything wrong
-    *(int *)(hook_addr & 0xfffffffe) = hook_instr;
-    sync_caches();
-    is_hooked = 1;
-    DryosDebugMsg(0, 15, "hook after insert: 0x%x", *(int *)(hook_addr & 0xfffffffe));
-
-bail:
-    return;
-}
-#endif
-
-#if 1
-static void test_task(void *size)
-{
-    DryosDebugMsg(0, 15, " ==== test_task, size: 0x%x", (int)size);
-}
-#endif
-
-void mem_to_file(char *name, uint32_t addr, uint32_t size)
-{
-    FILE *f = NULL;
-    f = FIO_CreateFile(name);
-    if (!f)
-        return;
-    FIO_WriteFile(f, (uint32_t *)addr, size);
-    FIO_CloseFile(f);
-}
-
-int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
-#if 0 && (defined(CONFIG_200D) || defined(CONFIG_850D))
-    // trigger an assert
-    extern void debug_assert(char *msg, char *file, int line);
-    debug_assert("LIFE == FAIR", "this file", 1);
-    // or the following will trigger an exception on MMU cams
-//    int crash_now_please = *(int *)0x0;
-//    DryosDebugMsg(0, 15, "not unused: 0x%x", crash_now_please);
-#endif
 
-#if 0
-    if (is_hooked)
-    {
-        DryosDebugMsg(0, 15, "last value seen: 0x%x", intercepted_val);
-    }
-    else
-    {
-        hook_memoryManager_AllocateMemory();
-    }
-    DryosDebugMsg(0, 15, "returned from hooking");
-#endif
-
-#if 0
-    static int dm_toggle = 1;
-    if (dm_toggle)
-    {
-        DryosDebugMsg(0, 15, "Logging less");
-//        dm_set_store_level(0x80, 0x17);
-        dm_set_print_level(0x0, 0x8);
-        dm_set_store_level(0x0, 0x8);
-        dm_set_print_level(0x80, 0x5);
-        dm_set_store_level(0x80, 0x5);
-        dm_toggle = 0;
-    }
-    else
-    {
-        DryosDebugMsg(0, 15, "Logging more");
-//        dm_set_store_level(0x80, 0x1); // re-enables SRM related logging
-        dm_set_print_level(0x0, 0x5);
-        dm_set_store_level(0x0, 0x5);
-        dm_set_print_level(0x80, 0x3);
-        dm_set_store_level(0x80, 0x3);
-        dm_toggle = 1;
-    }
+#if 0 && defined(CONFIG_200D)
+    // Want to run a quick test?  You can hack it in here,
+    // after modifying the above guards.  The guards allow
+    // you to hack in whatever hard-coded per cam constants
+    // you want, if you're doing that kind of thing.
 #endif
 
 }
@@ -543,9 +328,12 @@ static void unmount_sd_card()
     console_show();
     
     /* call shutdown hooks that need to save configs */
-    extern int module_shutdown();
     config_save_at_shutdown();
+
+#if defined(CONFIG_MODULES)
+    extern int module_shutdown();
     module_shutdown();
+#endif
     
     /* unmount the SD card */
     FSUunMountDevice(2);
@@ -705,8 +493,8 @@ static void save_crash_log()
     {
         my_fprintf(f, "%s\n", get_assert_msg());
         my_fprintf(f,
-            "Magic Lantern version : %s\n"
-            "Mercurial changeset   : %s\n"
+            "Magic Lantern version: %s\n"
+            "Git commit: %s\n"
             "Built on %s by %s.\n",
             build_version,
             build_id,
@@ -714,7 +502,7 @@ static void save_crash_log()
             build_user);
 
         int M = GetFreeMemForAllocateMemory();
-        int m = MALLOC_FREE_MEMORY;
+        int m = GetFreeMemForMalloc();
         my_fprintf(f,
             "Free Memory  : %dK + %dK\n",
             m/1024, M/1024
@@ -754,7 +542,7 @@ static void crash_log_step()
     if (core_dump_requested)
     {
         NotifyBox(100000, "Saving core dump, please wait...\n");
-        dump_seg((void*)core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
+        save_mem_to_file((void*)core_dump_req_from, core_dump_req_from + core_dump_req_size, "COREDUMP.DAT");
         NotifyBox(10000, "Pls send COREDUMP.DAT to ML devs.\n");
         core_dump_requested = 0;
     }
@@ -794,41 +582,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP | SCREENSHOT_YUV);
         }
         #endif
-
-#if defined(CONFIG_200D) || defined(CONFIG_850D)
-//#ifdef CONFIG_850D
-        // SJE FIXME hack code to dump probably YUV buffers
-        // (areas listed in smemShowFix with YUV in name)
-        if (yuv_dump_sec)
-        {
-            info_led_blink(1, 20, 1000 - 20 - 200);
-            yuv_dump_sec--;
-            if (!yuv_dump_sec)
-            {
-                char path[100];
-
-                // addr, size
-                uint32_t regions[] = {
-                #ifdef CONFIG_200D
-                    *(DISP_VRAM_STRUCT_PTR + (0x70 / 4)), 0x00405600,
-                    *(DISP_VRAM_STRUCT_PTR + (0x74 / 4)), 0x00405600,
-                    *(DISP_VRAM_STRUCT_PTR + (0x78 / 4)), 0x00405600,
-                    //0x5f3efe00, 0x00405600, // IMG_VRAM1
-                    //0x5f7f5400, 0x00405600, // IMG_VRAM2
-                    //0x5fbfaa00, 0x00405600, // IMG_VRAM3
-                #elif defined(CONFIG_850D)
-                    0x9F420000, 0x003F4800, // IMG_VRAM1
-                #endif
-                };
-
-                for (uint32_t i = 0; i < sizeof(regions) / 4; i += 2)
-                {
-                    snprintf(path, sizeof(path), "%x.yuv", regions[i]);
-                    mem_to_file(path, regions[i], regions[i + 1]);
-                }
-            }
-        }
-#endif
 
         #ifdef CONFIG_RESTORE_AFTER_FORMAT
         if (MENU_MODE)
@@ -871,7 +624,7 @@ static MENU_UPDATE_FUNC(image_buf_display)
 
 static MENU_UPDATE_FUNC(shuttercount_display)
 {
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
     // just shutter count value
     MENU_SET_VALUE("%d", shutter_count);
 #else
@@ -900,7 +653,7 @@ static MENU_UPDATE_FUNC(shuttercount_display)
     }
 }
 
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
 static MENU_UPDATE_FUNC(totalshutter_display)
 {
     MENU_SET_VALUE("%d", shutter_count);
@@ -1128,7 +881,7 @@ static struct menu_entry debug_menus[] = {
     {
         .name   = "Screenshot - 10s",
         .select = screenshot_start,
-        .help   = "Screenshot after 10 seconds => VRAMx.PPM.",
+        .help   = "Screenshot after 10 seconds => VRAMx.BMP.",
         .help2  = "The screenshot will contain BMP and YUV overlays."
     },
     #endif
@@ -1162,7 +915,13 @@ static struct menu_entry debug_menus[] = {
         .name        = "Dump ROM and RAM",
         .priv        = dump_rom_task,
         .select      = run_in_separate_task,
+    #if defined(CONFIG_DIGIC_45)
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
+    #elif defined(CONFIG_DIGIC_6)
+        .help = "ROM0.BIN:      NA, ROM1.BIN:FE000000, RAM4.BIN"
+    #elif defined(CONFIG_DIGIC_78X)
+        .help = "ROM0.BIN:E0000000, ROM1.BIN:F0000000, RAM4.BIN"
+    #endif
     },
     {
         .name        = "Dump image buffers",
@@ -1284,7 +1043,7 @@ static struct menu_entry debug_menus[] = {
         .name = "Shutter Count",
         .update = shuttercount_display,
         //.essential = FOR_MOVIE | FOR_PHOTO,
-        #ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+        #if defined(CONFIG_DIGIC_8X)
         .help = "Number of shutter actions. Open submenu to learn more.",
         .select = menu_open_submenu,
         .submenu_width = 710,
@@ -1908,7 +1667,7 @@ static void CopyMLFilesBack_AfterFormat()
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
             HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
         }
-        dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
+        save_mem_to_file(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4);
         if (sig != tmp_files[i].sig)
         {
@@ -2032,17 +1791,54 @@ static MENU_SELECT_FUNC(gui_events_toggle)
     }
 }
 
-void spy_event(struct event * event)
+void spy_event(struct event *event)
 {
-    if (gui_events_show)
+    if (!gui_events_show)
+        return;
+
+    if (event == NULL)
     {
-        printf("Event param=%8x *obj=%8x/%8x/%8x arg=%8x\n",
-            event->param,
-            event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
-            event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
-            event->arg
-        );
+        printf("Event NULL\n");
+    }
+    else
+    {
+        printf("Event param: %8x arg: %8x ", event->param, event->arg);
+        if (event->obj == NULL)
+        {
+            printf(" obj:     NULL\n");
+        }
+        else
+        {
+            if ((int)event->obj & 0xf0000000)
+            { // Old code avoids deref of these pointers.
+              // There is no comment to explain why.  Possibly because if
+              // they're an address, it would be in ROM?
+                printf(" obj: %8x\n", event->obj);
+            }
+            else
+            { // normal DryOS event
+                // Old cams expect event->obj to be a valid pointer, but
+                // it is not always on new cams.  Possibly, it wasn't always
+                // on old cams...  but they don't crash on pointer derefs
+                // to low memory locations.
+
+                if ((int)event->obj < 0x4000)
+                { // unpleasant hack, assume these are not valid pointers
+                    printf(" obj: %8x\n", event->obj);
+                }
+                else
+                {
+                    // FIXME SJE work out what these fields are,
+                    // at least enough to make them part of the event
+                    // struct and stop doing dirty offsets reads through
+                    // event->obj directly.
+                    printf("*obj: %8x, %8x, %8x\n",
+                           *(int*)(event->obj),
+                           *(int*)(event->obj + 4),
+                           *(int*)(event->obj + 8));
+                }
+            }
+        }
     }
 }
 

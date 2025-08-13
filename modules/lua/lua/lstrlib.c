@@ -499,7 +499,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
             }
             case '+':  /* 1 or more repetitions */
               s++;  /* 1 match already done */
-              /* go through */
+              /* fall through */
             case '*':  /* 0 or more repetitions */
               s = max_expand(ms, s, p, ep);
               break;
@@ -906,8 +906,9 @@ static int str_format (lua_State *L) {
 #endif
         case 'e': case 'E': case 'f':
         case 'g': case 'G': {
+          lua_Number n = luaL_checknumber(L, arg);
           addlenmod(form, LUA_NUMBER_FRMLEN);
-          nb = snprintf(buff, 65536, form, luaL_checknumber(L, arg));
+          nb = snprintf(buff, 65536, form, (LUAI_UACNUMBER)n);
           break;
         }
         case 'q': {
@@ -1249,7 +1250,7 @@ static int str_pack (lua_State *L) {
         totalsize += len + 1;
         break;
       }
-      case Kpadding: luaL_addchar(&b, LUA_PACKPADBYTE);  /* go through */
+      case Kpadding: luaL_addchar(&b, LUA_PACKPADBYTE);  /* fall through */
       case Kpaddalign: case Knop:
         arg--;  /* undo increment */
         break;

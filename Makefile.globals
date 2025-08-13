@@ -1,0 +1,159 @@
+# This file gets included by platform (cam) builds
+# and module builds.
+#
+# It should only contain things common for both.
+# Parts shared within platform or module code, but no further,
+# should be in platform/Makefile and modules/Makefile,
+# respectively.
+
+ifndef TOP_DIR
+    # don't error for tcc builds
+    ifndef TOP
+        $(error TOP_DIR not set - did you run or include this file from somewhere unexpected?)
+    endif
+endif
+
+ARM_BINPATH = /usr/bin
+ARM_ABI = none-eabi
+CROSS_COMPILE = $(ARM_BINPATH)/arm-$(ARM_ABI)-
+HOST_CC = gcc
+HOST_AR=$(shell which ar)
+CC = $(CROSS_COMPILE)gcc
+LD = $(CROSS_COMPILE)ld
+AR = $(CROSS_COMPILE)ar
+OBJCOPY = $(CROSS_COMPILE)objcopy
+STRIP = $(CROSS_COMPILE)strip
+
+STAT_CMD = stat -c "%n: %s bytes"
+GREP = grep
+READELF = readelf
+AWK = awk
+DATE = date -u
+CP = cp
+MV = mv
+PYTHON = python3
+PYTHON3 = python3
+XOR_CHK=$(BUILD_TOOLS_DIR)/xor_chk
+
+DIETLIB_VERSION=0.33
+DIETLIBC_OPT_LEVEL=Os
+NEWLIB_OPT_LEVEL=O3
+NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI)-$(NEWLIB_OPT_LEVEL)
+DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI)-$(DIETLIBC_OPT_LEVEL)
+
+# Static libraries used
+ARM_LIBGCC_A=$(shell $(CC) -print-libgcc-file-name)
+NEWLIB_LIBM_A=$(NEWLIB_PATH)/libm.a
+NEWLIB_LIBC_A=$(NEWLIB_PATH)/libc.a
+DIETLIBC_A=$(DIETLIBC_PATH)/dietlibc.a
+
+BUILD_TOOLS_DIR = $(TOP_DIR)/build_tools
+MODULES_DIR = $(TOP_DIR)/modules
+INSTALLER_FIR = ML-SETUP.FIR
+
+ML_LIBC = dietlibc.a newlib-libc.a newlib-libm.a gcc-libgcc.a
+
+CFLAGS = -Os -D__ARM__ \
+    -Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
+    -Wp,-MT,$@ \
+    -nostdlib \
+    -I$(TOP_DIR)/include \
+    -Wall \
+    -Wextra \
+    -Werror-implicit-function-declaration \
+    -Wdouble-promotion \
+    -Winline \
+    -Wundef \
+    -Wno-unused-parameter \
+    -Wno-unused-function \
+    -Wno-format \
+    -fomit-frame-pointer \
+    -fno-strict-aliasing \
+    -ffast-math \
+    -fsingle-precision-constant \
+    -fno-builtin-printf \
+    -fno-common \
+    -fno-extended-identifiers \
+    -std=gnu99 \
+    -I$(SRC_DIR) \
+    -ggdb3
+
+CFLAGS += \
+    -DCONFIG_MAGICLANTERN=1 \
+    -DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
+
+CDEPS_FLAGS = -MP -MD
+
+# This will be empty after a clean build, with the -MMD in above
+# CFLAGS creating the files on the next build.
+DEPS = $(wildcard $(BUILD_DIR)/*.d)
+
+ifeq ($(CONFIG_QEMU),y)
+    CFLAGS += -DCONFIG_QEMU
+endif
+
+ifeq ($(FATAL_ASSERTS),y)
+    CFLAGS += -DFATAL_ASSERTS
+endif
+
+# Allow devs to make warnings break builds
+ifeq ($(FATAL_WARNINGS),y)
+    CFLAGS += -Werror
+endif
+
+ifeq ($(CONFIG_GDB),y)
+    CFLAGS += -DCONFIG_GDB
+    ML_OBJS += $(BUILD_DIR)/gdb.o
+endif
+
+ifeq ($(CONFIG_GDBSTUB),y)
+    CFLAGS += -DCONFIG_GDB -DCONFIG_GDBSTUB
+endif
+
+# This looks like some PTP client-server hack allowing
+# USB control of ML including some debug functionality.
+ifeq ($(CONFIG_PTP),y)
+    CFLAGS += -DCONFIG_PTP
+    ML_OBJS += $(BUILD_DIR)/ptp.o
+endif
+
+ifeq ($(CONFIG_PTP_CHDK),y)
+    ML_OBJS += $(BUILD_DIR)/ptp-chdk.o
+endif
+
+ifeq ($(CONFIG_PTP_ML),y)
+    ML_OBJS += $(BUILD_DIR)/ptp-ml.o
+endif
+
+ifeq ($(CONFIG_CONSOLE),y)
+    CFLAGS += -DCONFIG_CONSOLE
+    ML_OBJS += $(BUILD_DIR)/console.o
+endif
+
+ifeq ($(CONFIG_TCC),y)
+    ifneq ($(CONFIG_CONSOLE),y)
+        $(error CONFIG_TCC requires CONFIG_CONSOLE = y, please enable it)
+    endif
+    CFLAGS += -DCONFIG_TCC
+    ML_OBJS += $(BUILD_DIR)/tcc-glue.o \
+               $(BUILD_DIR)/tcc/libtccx.o
+endif
+
+ifeq ($(CONFIG_TINYPY),y)
+    LFLAGS += -u pow -u qsort -u strstr -u atof
+endif
+
+# This var is sometimes set on a per cam basis,
+# we don't want to use it uninit
+ifdef CONFIG_LVAPP_HACK_RELOC
+    ifeq ($(CONFIG_LVAPP_HACK_RELOC),y)
+        ML_OBJS += $(BUILD_DIR)/liveview.o $(BUILD_DIR)/reloc.o
+    endif
+endif
+
+# evaluate once and only when used
+# https://stackoverflow.com/a/28542922
+# example: FOO = $(call eval_once,FOO,$(shell command))
+define eval_once
+$(eval $1 := $2)$(value $1)
+endef

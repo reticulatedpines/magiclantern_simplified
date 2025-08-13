@@ -1,2 +1,20 @@
-MODEL=650D
-include ../Makefile.installer
+MODEL = 650D
+FW_VERSION = 104
+TOP_DIR = ../..
+
+CANON_FIR = CCF13104.FIR
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+MAIN_FIRMWARE_ADDR = 0xFF0C0000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART = 0x7E100
+ML_BOOT_OBJ = boot-d45.o
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/$(INSTALLER_FIR)

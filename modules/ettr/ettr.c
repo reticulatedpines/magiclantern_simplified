@@ -128,7 +128,7 @@ static char* get_current_exposure_settings()
     static char msg[50];
     int iso1 = lens_info.iso_analog_raw;
     snprintf(msg, sizeof(msg), "ISO %d", raw2iso(iso1));
-    int iso2 = dual_iso_get_recovery_iso();
+    int iso2 = dual_iso_get_alternate_iso();
     if (iso2 && iso2 != iso1)
     {
         STR_APPEND(msg, "/%d", raw2iso(iso2));
@@ -223,13 +223,13 @@ static int auto_ettr_get_correction()
         /* we have metered the dark exposure (since ETTR is pushing that to the right), now meter the bright one too */
 
         /* EV difference between the two ISOs (from settings) */
-        float dual_iso_spacing = ABS(dual_iso_get_recovery_iso() - lens_info.iso_analog_raw) / 8.0;
+        float dual_iso_spacing = ABS(dual_iso_get_alternate_iso() - lens_info.iso_analog_raw) / 8.0;
 
         if (lv && !is_movie_mode())
         {
             /* photo LV (only one exposure) */
             /* estimate it from settings */
-            int rec_iso = dual_iso_get_recovery_iso();
+            int rec_iso = dual_iso_get_alternate_iso();
             if (rec_iso > (int)lens_info.iso_analog_raw) /* we are looking at the dark exposure */
             {
                 ev_median_hi = MIN(ev_median_lo + dual_iso_spacing, 0); /* you can't get whiter than white */
@@ -397,7 +397,7 @@ static int auto_ettr_get_correction()
 
     int iso1 = lens_info.iso_analog_raw;
     int iso2 = iso1;
-    if (dual_iso) iso2 = dual_iso_get_recovery_iso();
+    if (dual_iso) iso2 = dual_iso_get_alternate_iso();
     int iso_hi = MAX(iso1, iso2);
     int iso_lo = MIN(iso1, iso2);
     float dr_lo = get_dxo_dynamic_range(iso_lo) / 100.0;
@@ -541,7 +541,7 @@ static int auto_ettr_work(int corr)
     /* to detect whether it settled or not */
     int tv_before = tv;
     int iso_before = iso;
-    int iso2_before = dual_iso_get_recovery_iso();
+    int iso2_before = dual_iso_get_alternate_iso();
     
     if (!tv || !iso) return 0;
     //~ int old_expo = tv - iso;
@@ -657,7 +657,7 @@ static int auto_ettr_work(int corr)
 
         /* apply dual ISO settings */
         isor = base_iso;
-        dual_iso_set_recovery_iso(recovery_iso);
+        dual_iso_set_alternate_iso(recovery_iso);
         extra_snr_needed = -snr_delta;
     }
 
@@ -718,7 +718,7 @@ static int auto_ettr_work(int corr)
 
     if (dual_iso)
     {
-        int iso2_after = dual_iso_get_recovery_iso();
+        int iso2_after = dual_iso_get_alternate_iso();
         int dr2_before = dual_iso_calc_dr_improvement(iso_before, iso2_before);
         int dr2_after = dual_iso_calc_dr_improvement(iso_after, iso2_after);
 

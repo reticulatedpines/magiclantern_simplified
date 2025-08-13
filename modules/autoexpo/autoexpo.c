@@ -205,7 +205,7 @@ static unsigned int autoexpo_shoot_task(){
         autoexpo_enabled &&
         shooting_mode == SHOOTMODE_M &&
         get_ae_state() != 0 &&
-        (!lv || lv && autoexpo_lv) &&
+        (!lv || (lv && autoexpo_lv)) &&
         !autoexpo_running
     )
         task_create("autoexpo_task", 0x1c, 0x1000, autoexpo_task, (void*)0);

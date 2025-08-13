@@ -35,7 +35,7 @@
 #define HIJACK_TASK_ADDR 0x1A1C
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 /* these are used in bitrate.c for video bitrate hacks */
@@ -56,6 +56,8 @@
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 //~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x2190+something))
+
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xC0F26000
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)
@@ -265,6 +267,8 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x249e4
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F80000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5

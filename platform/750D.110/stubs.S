@@ -30,7 +30,7 @@
 /* Warning: there are some ARM32 stubs, not only thumb! */
 
 /** Startup **/
-NSTUB(  ROMBASEADDR,  firmware_entry)
+NSTUB(MAIN_FIRMWARE_ADDR,  firmware_entry)
 THUMB_FN(0xfe0ccfcc,  pre_cstart_func) // needed to easily patch for compacting firmware_entry and cstart regions
 THUMB_FN(0xfe0ccfec,  cstart)                               // calls bzero32 and create_init_task(..., init_task, ...)
 ARM32_FN(0x800072c0,  bzero32)                              // zeros out a data structure
@@ -38,7 +38,9 @@ THUMB_FN(0x80000f78,  create_init_task)                     // low-level DryOS i
 THUMB_FN(0xfe0cd214,  init_task)                            // USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc
 
 /** Tasks **/
-    DATA_PTR(    0x44D4,  current_interrupt)                    // WRONG!!! no idea how to find
+//DATA_PTR(    0x44D0,  interrupt_level)
+DATA_PTR(    0x44D4,  current_interrupt) // See fe0cd12c() which uses both current_interrupt and interrupt_level.
+                                         // It's read from d4011000, this was consistent on 3 Digic 6 cams I checked.
 DATA_PTR(    0x44F4,  current_task)                         // from task_create; pointer to the current task structure
 THUMB_FN(    0x1a9c,  msleep)                               // argument is always multiple of 10
 THUMB_FN(    0x1e44,  task_create)                          // used to start TaskMain, GuiMainTask etc
@@ -124,6 +126,7 @@ THUMB_FN(    0x3516,  ReleaseRecursiveLock)                 // "KernelDry/KerRLo
 /** Semaphores **/
 THUMB_FN(    0x2fbc,  create_named_semaphore)
 THUMB_FN(    0x30b2,  take_semaphore)                       // GetEndGuiInitState Take/Give
+THUMB_FN(    0x3082,  take_semaphore_now)
 THUMB_FN(    0x312a,  give_semaphore)
 
 /** GUI **/

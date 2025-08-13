@@ -224,12 +224,6 @@ static void cropmark_draw_from_cache()
             if (!(m & 0x80)) continue;
             if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
             B[BM(j,i)] = m & ~0x80;
-            #ifdef CONFIG_500D
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            #endif
         }
     }
 }
@@ -571,9 +565,9 @@ static void FAST default_movie_cropmarks()
 void set_movie_cropmarks(int x, int y, int w, int h)
 {
     x = COERCE(x, os.x0+1, os.x_max-1);
-    y = COERCE(y, os.y0+1, os.y_max-1);
-    w = COERCE(w, 0, os.x_max-1 - x);
-    h = COERCE(h, 0, os.y_max-1 - y);
+    y = COERCE(y, os.y0+2, os.y_max-2);
+    w = COERCE(w, 0, os.x_max-2 - x);
+    h = COERCE(h, 0, os.y_max-4 - y);
     cropmarks_x = (x << 16) | (x + w);
     cropmarks_y = (y << 16) | (y + h);
 }

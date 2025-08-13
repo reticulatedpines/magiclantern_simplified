@@ -20,7 +20,7 @@
 #define HIJACK_TASK_ADDR 0x233D8
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 // no idea if it's overflowing, need to check experimentally 
@@ -31,6 +31,9 @@
     #define YUV422_LV_BUFFER_1 0x4bde7800
     #define YUV422_LV_BUFFER_2 0x4b9d7800
     #define YUV422_LV_BUFFER_3 0x4c1f7800
+
+#define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
@@ -157,8 +160,9 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 88 to 98
+// 97 and 91 show the same dialog as on 700D
+#define GUIMODE_ML_MENU (RECORDING ? 97 : lv ? 91 : 2)
 #define NUM_PICSTYLES 10
 
 #define FLASH_MAX_EV 3
@@ -229,8 +233,10 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x4b428
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x4b428
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 #define UNAVI (MEM(0x4188c)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
 #define UNAVI_AV (MEM(0x418C0)) //Same as above, but this location is linked to the exp comp button

@@ -36,10 +36,24 @@ static uint32_t edmac_chanlist[] =
 /* guess: from 0xC0F05020 to 0xC0F05200 we have read connections */
 #define NUM_EDMAC_CONNECTIONS 120
 
+// Old devs thought these arrays held channel IDs, I'm not convinced.
+// They claim this came from LockEngineResources.  That takes a struct,
+// which doesn't directly contain any channels.  It does contain pResources.
+// If you walk the resource blocks, you can find IDs much higher than
+// max EDMAC channels ("Channel < EDMAC_NUM").
+//
+// So, I guess either:
+// - these are not channels (I think maybe device IDs / "Connections")
+// - these are channels but not all channels are EDMAC channels, and res locks can contain those too
+// - some chance these are PwrMng IDs, if those are different from device IDs
+//   - unlikely, given "ELD_PWRMNG_MODULE_MAX_NUM" compares against 14b
 /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
 static uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
 static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
 
+// Looks up supplied channel in read_edmacs[] or write_edmacs[],
+// returns the index within that array if found,
+// -1 if not.
 uint32_t edmac_channel_to_index(uint32_t channel)
 {
     if (!IS_USED(channel))
@@ -122,9 +136,9 @@ uint32_t edmac_get_base(uint32_t channel)
     return bases[edmac_block] + (edmac_num << 8);
 }
 
-static uint32_t edmac_get_block(uint32_t reg)
+static uint32_t edmac_get_block(uint32_t mmio_addr)
 {
-    switch (reg & 0xFFFFF000)
+    switch (mmio_addr & 0xFFFFF000)
     {
         case 0xC0F04000: return 0;
         case 0xC0F26000: return 1;
@@ -133,15 +147,15 @@ static uint32_t edmac_get_block(uint32_t reg)
     }
 }
 
-uint32_t edmac_get_channel(uint32_t reg)
+uint32_t edmac_get_channel(uint32_t mmio_addr)
 {
-    uint32_t block = edmac_get_block(reg);
+    uint32_t block = edmac_get_block(mmio_addr);
     if (block == 0xFFFFFFFF)
     {
         return 0xFFFFFFFF;
     }
 
-    uint32_t ch = ((reg >> 8) & 0xF) + block * 16;
+    uint32_t ch = ((mmio_addr >> 8) & 0xF) + block * 16;
     //ASSERT(edmac_get_dir(ch) != EDMAC_DIR_UNUSED);
     //ASSERT(edmac_get_base(ch) == reg);
     return ch;
@@ -312,8 +326,9 @@ struct edmac_info edmac_get_info(uint32_t channel)
     return info;
 }
 
-
-uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets)
+// Great, a "total size" function that can return two different sizes.
+// FIXME: split this into two different top-level functions.
+uint32_t edmac_get_total_size(struct edmac_info *info, int include_offsets)
 {
     int xa = info->xa; int xb = info->xb; int xn = info->xn;
     int ya = info->ya; int yb = info->yb; int yn = info->yn;

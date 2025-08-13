@@ -11,25 +11,6 @@
  * and will be called when the host initiates that operation.
  */
 
-/** \group PTP IDs
- *
- * These are some of the "well known" Canon PTP commands.
- * @{
- */
-#define PTP_FM_OBJECTSIZE       0x910a
-#define PTP_SET_DEVICE_PROP     0x9110
-#define PTP_HD_CAPACITY         0x911a
-#define PTP_GUI_OFF             0x911b
-#define PTP_LCD_ON              0x911c
-#define PTP_911E                0x911e  // unknown
-#define PTP_UPDATE_FIRMARE      0x911f
-#define PTP_LV_DATA             0x9153
-#define PTP_LV_ZOOM_MAYBE       0x9154
-#define PTP_LV_ZOOM             0x9158
-#define PTP_LV_AFFRAME          0x915a
-#define PTP_AF_START            0x9160
-#define PTP_FAPI_MESSAGE_TX     0x91fe
-
 // results
 #define PTP_RC_OK               0x2001
 #define PTP_RC_ERROR            0x2002

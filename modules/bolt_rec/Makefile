@@ -1,11 +1,8 @@
-
-# this is a very simple makefile for modules
-TOP_DIR=../..
-
 # define the module name - make sure name is max 8 characters
-MODULE_NAME=bolt_rec
-MODULE_OBJS=bolt_rec.o
+MODULE_NAME = bolt_rec
+MODULE_OBJS = $(BUILD_DIR)/bolt_rec.o
+TOP_DIR = ../..
 
 # include modules environment
-include $(TOP_DIR)/modules/Makefile.modules
-
+include $(TOP_DIR)/modules/Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/module_complete

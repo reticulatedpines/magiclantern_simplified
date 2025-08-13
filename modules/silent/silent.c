@@ -15,8 +15,11 @@
 #include <string.h>
 #include <battery.h>
 #include <powersave.h>
+#include <fps.h>
+#include <chdk-dng.h>
 #include "../lv_rec/lv_rec.h"
-#include "../mlv_rec/mlv.h"
+#include "../raw_video/mlv_rec/mlv.h"
+#include "lossless.h"
 
 static uint64_t ret_0_long() { return 0; }
 
@@ -51,9 +54,11 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_BEST_FOCUS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
+#define SILENT_PIC_MODE_FULLRES_LV 6
 
 #define SILENT_PIC_FILE_FORMAT_DNG 0
 #define SILENT_PIC_FILE_FORMAT_MLV 1
+#define SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG 2
 
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_TTB 0 // top to bottom
 #define SILENT_PIC_MODE_SLITSCAN_SCAN_BTT 1 // bottom to top
@@ -135,24 +140,40 @@ static MENU_UPDATE_FUNC(silent_pic_display)
         case SILENT_PIC_MODE_FULLRES:
             MENU_SET_VALUE("Full-res");
             break;
+
+        case SILENT_PIC_MODE_FULLRES_LV:
+            MENU_SET_VALUE("Full-res LV");
+            break;
     }
-    
-    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
+
+    switch (silent_pic_file_format)
     {
-        MENU_SET_HELP("File format: 14-bit MLV, group frames in a single file.");
-        MENU_APPEND_VALUE(", MLV");
-    }
-    else
-    {
-        MENU_SET_HELP("File format: 14-bit DNG, individual files.");
-        MENU_APPEND_VALUE(", DNG");
+        case SILENT_PIC_FILE_FORMAT_MLV:
+            MENU_SET_HELP("File format: 14-bit MLV, group frames in a single file.");
+            MENU_APPEND_VALUE(", MLV");
+            break;
+
+        case SILENT_PIC_FILE_FORMAT_DNG:
+            MENU_SET_HELP("File format: 14-bit uncompressed DNG, individual files.");
+            MENU_APPEND_VALUE(", DNG");
+            break;
+
+        case SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG:
+            MENU_SET_HELP("File format: 14-bit lossless DNG, individual files.");
+            MENU_APPEND_VALUE(", L-DNG");
+            break;
     }
     
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) photo mode.");
     }
-    
+
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV && menu_get_value_from_script("Movie", "Crop mode") == INT_MIN)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res LV requires the crop_rec module loaded.");
+    }
+
     silent_pic_check_mlv(entry, info);
 }
 
@@ -192,6 +213,52 @@ static char* silent_pic_get_name()
     }
     bmp_printf(FONT_MED, 0, 37, "%s    ", image_file_name);
     return image_file_name;
+}
+
+/* metadata */
+static struct
+{
+    int iso;        /* human-readable */
+    int tvr;        /* reciprocal x1000, e.g. 1/50 -> 1/50000, 32" -> 31 */
+    int aperture;   /* human-readable x10 */
+    int fps;        /* x1000 */
+    int focal_len;  /* mm */
+} metadata;
+
+static void silent_capture_lv_metadata()
+{
+    /* prefer low-level exposure settings from LiveView, if available */
+    int iso = get_frame_iso();
+    if (!iso) iso = lens_info.raw_iso;
+    metadata.iso = raw2iso(iso);
+
+    metadata.tvr = get_current_shutter_reciprocal_x1000();
+
+    int av = get_frame_aperture();
+    if (!av) av = lens_info.raw_aperture;
+    metadata.aperture = RAW2VALUE(aperture, av);
+
+    metadata.fps = fps_get_current_x1000();
+    metadata.focal_len = lens_info.focal_len;
+    /* todo: focus distance etc */
+}
+
+static void silent_capture_fullres_metadata(int prop_iso, int capture_time_ms)
+{
+    /* only override values that were changed from LiveView */
+    metadata.iso = raw2iso(prop_iso);
+    metadata.tvr = 1000000 / capture_time_ms;
+
+    metadata.fps = 1000;    /* dummy */
+}
+
+static void silent_set_dng_metadata()
+{
+    dng_set_iso(metadata.iso);
+    dng_set_shutter(1000, metadata.tvr);
+    dng_set_aperture(metadata.aperture, 10);
+    dng_set_framerate(metadata.fps);
+    dng_set_focal(metadata.focal_len, 1);
 }
 
 static int silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
@@ -288,7 +355,7 @@ static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
 
 /* save using the MLV file format  */
 /* returns 1 on success, 0 on error */
-static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
+static int save_mlv(struct raw_info * raw_info)
 {
     if (!silent_pic_mlv_available)
     {
@@ -411,11 +478,10 @@ static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
-    
-    if(capture_time_ms > 0)
-    {
-        expo_hdr.shutterValue = 1000 * capture_time_ms;
-    }
+
+    expo_hdr.isoValue = metadata.iso;
+    expo_hdr.shutterValue = 1000000000 / metadata.tvr;
+    lens_hdr.aperture = metadata.aperture * 10;
     
     if (FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) goto write_error;
     if (FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) goto write_error;
@@ -445,19 +511,78 @@ write_error:
     return 0;
 }
 
-static int silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
+static int save_lossless_dng(char * filename, struct raw_info * raw_info)
 {
-    if(silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
+    struct raw_info out_raw_info = *raw_info;
+
+    ASSERT(out_raw_info.bits_per_pixel == 14);
+
+    /* fixme: not all models are able to allocate such a large contiguous chunk */
+    int max_compressed_size = ((uint64_t) raw_info->frame_size * 80 / 100) & ~0xFFF;
+    struct memSuite * out_suite = shoot_malloc_suite_contig(max_compressed_size);
+
+    if (!out_suite)
     {
-        return save_mlv(raw_info, capture_time_ms);
+        bmp_printf( FONT_MED, 0, 83, "Out of memory");
+        return 0;
+    }
+
+    ASSERT(out_suite->size == max_compressed_size);
+
+    out_raw_info.frame_size = lossless_compress_raw(&out_raw_info, out_suite);
+
+    if (out_raw_info.frame_size > out_suite->size)
+    {
+        bmp_printf( FONT_MED, 0, 83, "Warning: output truncated (%s)", format_memory_size(out_suite->size));
+        out_raw_info.frame_size = out_suite->size;
+    }
+
+    if (out_raw_info.frame_size > 0)
+    {
+        out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
+
+        if (!save_dng(filename, &out_raw_info))
+        {
+            bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+            return 0;
+        }
     }
     else
     {
-        char* filename = silent_pic_get_name();
-        int ok = save_dng(filename, raw_info);
-        if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
-        return ok;
+        bmp_printf( FONT_MED, 0, 83, "Lossless compression error: %d", out_raw_info.frame_size);
     }
+
+    shoot_free_suite(out_suite);
+    return 1;
+}
+
+static int silent_pic_save_file(struct raw_info * raw_info)
+{
+    switch (silent_pic_file_format)
+    {
+        case SILENT_PIC_FILE_FORMAT_MLV:
+        {
+            return save_mlv(raw_info);
+        }
+
+        case SILENT_PIC_FILE_FORMAT_DNG:
+        {
+            silent_set_dng_metadata();
+            char* filename = silent_pic_get_name();
+            int ok = save_dng(filename, raw_info);
+            if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+            return ok;
+        }
+
+        case SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG:
+        {
+            silent_set_dng_metadata();
+            char* filename = silent_pic_get_name();
+            return save_lossless_dng(filename, raw_info);
+        }
+    }
+
+    return 0;
 }
 
 #ifdef FEATURE_SILENT_PIC_RAW
@@ -478,7 +603,7 @@ silent_pic_take_lv(int interactive)
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    int ok = silent_pic_save_file(&raw_info, 0, 0);
+    int ok = silent_pic_save_file(&raw_info);
     redraw();
     
     return ok;
@@ -570,7 +695,7 @@ static unsigned int silent_pic_preview(unsigned int ctx)
     }
     
     raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 1);
-    raw_force_aspect_ratio_1to1();
+    raw_force_aspect_ratio(0, 0);
     raw_preview_fast_ex(raw_buf, preview_buf, first_line, last_line, ultra_fast);
 
     /* we have modified the raw preview rectangle; will force a refresh of raw parameters when preview is no longer needed */
@@ -801,48 +926,39 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     return 0;
 }
 
-static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_count)
+static int silent_pic_raw_prepare_buffers(struct memSuite * mem_suite, int initial_count)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
-    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
-    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+
     int count = initial_count;
+    int max_frame_size = (raw_info.frame_size + 255) & ~255;
 
-    while (1)
+    if (mem_suite)
     {
-        void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-        int size = GetSizeOfMemoryChunk(hChunk);
-        int used = ptr - ptr0;
-        int remain = size - used;
-        //~ printf("remain: %x\n", remain);
+        /* use all chunks larger than max_frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        while(chunk)
+        {
+            int size = GetSizeOfMemoryChunk(chunk);
+            intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
 
-        /* the EDMAC might write a bit more than that,
-         * so we'll use a small safety margin (2 extra lines) */
-        if (remain < raw_info.frame_size + 2 * raw_info.pitch)
-        {
-            /* move to next chunk */
-            hChunk = GetNextMemoryChunk(hSuite, hChunk);
-            if (!hChunk)
+            /* align pointer at 64 bytes */
+            intptr_t ptr_raw = ptr;
+            ptr   = (ptr + 63) & ~63;
+            size -= (ptr - ptr_raw);
+
+            /* fit as many frames as we can */
+            while (size >= max_frame_size && count < COUNT(sp_frames))
             {
-                //~ printf("no more memory\n");
-                break;
+                sp_frames[count] = (void*) ptr;
+                ptr  += max_frame_size;
+                size -= max_frame_size;
+                count++;
             }
-            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            //~ printf("next chunk: %x %x\n", hChunk, ptr);
-            continue;
-        }
-        else /* alright, a new frame fits here */
-        {
-            //~ printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
-            sp_frames[count] = ptr;
-            count++;
-            ptr = ptr + raw_info.frame_size;
-            if (count >= SP_BUFFER_SIZE)
-            {
-                //~ printf("we have lots of RAM, lol\n");
-                break;
-            }
+
+            /* next chunk */
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
     }
     return count;
@@ -859,15 +975,38 @@ silent_pic_take_lv(int interactive)
 
     bmp_printf(FONT_MED, 0, 37, "Preparing...");
     int ok = 1;
-    int raw_flag = 0;
-    
+
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
+    {
+        /* turn on Full-res LiveView from crop_rec and refresh the display */
+        /* also prevent zoom (x5/x10) from being restored by ResumeLiveView */
+        lv_dispsize = 1;
+        PauseLiveView();
+        menu_set_str_value_from_script("Movie", "Crop mode", "Full-res LiveView", INT_MIN);
+        ResumeLiveView();
+    }
+
+    struct memSuite * hSuite1 = 0;
+    struct memSuite * hSuite2 = 0;
+
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    int raw_flag = 1;
+    raw_lv_request();
+ 
+    /* get image resolution, white level etc */
+    if (!raw_update_params())
+    {
+        goto cleanup;
+    }
+
     /* allocate RAM */
     /* we do this step first to block the shutter asap */
     /* (gui_uilock doesn't seem to work in this case, because shutter
      * is already pressed; but allocating the entire SRM memory does!)
      */
-    struct memSuite * hSuite1 = 0;
-    struct memSuite * hSuite2 = 0;
+
+    memset(sp_frames, 0, sizeof(sp_frames));
+
     switch (silent_pic_mode)
     {
         /* allocate as much as we can in burst mode */
@@ -875,16 +1014,39 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_FOCUS:
         {
+            /* when using lossless DNG, we need temporary storage for compression */
+            /* since we will allocate the entire shoot/SRM memory, we need to reserve it somehow */
+            /* fixme: ugly, hackish, duplicate code... */
+            struct memSuite * tmp_suite = 0;
+            int max_compressed_size = ((uint64_t) raw_info.frame_size * 80 / 100) & ~0xFFF;
+            if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG)
+            {
+                tmp_suite = shoot_malloc_suite_contig(max_compressed_size);
+            }
+
             hSuite1 = srm_malloc_suite(0);
             /* fixme: allocating shoot memory during picture taking causes lockup */
-            if (lens_info.job_state) break;
-            hSuite2 = shoot_malloc_suite(0);
+            if (!lens_info.job_state)
+            {
+                hSuite2 = shoot_malloc_suite(0);
+            }
+
+            if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG)
+            {
+                shoot_free_suite(tmp_suite);
+
+                /* make sure we can allocate it back */
+                tmp_suite = shoot_malloc_suite_contig(max_compressed_size);
+                ASSERT(tmp_suite);
+                if (tmp_suite) shoot_free_suite(tmp_suite);
+            }
             break;
         }
         
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
+        case SILENT_PIC_MODE_FULLRES_LV:
             hSuite1 = srm_malloc_suite(1);
             break;
     }
@@ -900,16 +1062,6 @@ silent_pic_take_lv(int interactive)
     {
         /* looks like you managed to press the shutter fully,
          * or you've got somehow out of LiveView - give up */
-        goto cleanup;
-    }
-
-    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    raw_flag = 1;
-    raw_lv_request();
- 
-    /* get image resolution, white level etc */
-    if (!raw_update_params())
-    {
         goto cleanup;
     }
 
@@ -930,14 +1082,21 @@ silent_pic_take_lv(int interactive)
     }
 
     if (sp_buffer_count > 1)
+    {
         bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (total_size / 100));
+    }
 
     if (sp_buffer_count == 0)
     {
         bmp_printf(FONT_MED, 0, 83, "Buffer error");
         goto cleanup;
     }
-    
+
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        ASSERT(sp_frames[i]);
+    }
+
     /* misc initializers */
     sp_num_frames = 0;
     sp_slitscan_line = 0;
@@ -949,6 +1108,7 @@ silent_pic_take_lv(int interactive)
     {
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
+        case SILENT_PIC_MODE_FULLRES_LV:
             sp_max_frames = 1;
             break;
 
@@ -1010,8 +1170,11 @@ silent_pic_take_lv(int interactive)
         }
     }
 
+    /* get metadata (same for all pictures in this set) */
+    silent_capture_lv_metadata();
+
     /* save the image(s) to card */
-    if (sp_num_frames > 1 || silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
+    if (1)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
@@ -1027,16 +1190,27 @@ silent_pic_take_lv(int interactive)
         
         for (int i = i0; i < sp_num_frames; i++)
         {
-            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 37,
+                SYM_ISO"%d %s "SYM_F_SLASH"%d.%d",
+                metadata.iso,
+                lens_format_shutter_reciprocal(metadata.tvr, 2),
+                metadata.aperture / 10, metadata.aperture % 10
+            );
+            bmp_printf(FONT_MED, 0, 60,
+                "Saving image %d of %d (%dx%d)...",
+                i+1, sp_num_frames,
+                raw_info.jpeg.width, raw_info.jpeg.height
+            );
 
             if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 0);
-            raw_force_aspect_ratio_1to1();
+            raw_force_aspect_ratio(0, 0);
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
-            ok = silent_pic_save_file(&local_raw_info, 0);
+            
+            ok = silent_pic_save_file(&local_raw_info);
             if (!ok) break;
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
@@ -1058,25 +1232,12 @@ silent_pic_take_lv(int interactive)
             while (!get_halfshutter_pressed())
                 msleep(20);
         }
-        
-        if (LV_PAUSED) ResumeLiveView();
-        else redraw();
-        
+
         if (sp_num_frames > 1)
         {
             /* was it a burst sequence? reset the MLV frame counter to start a new file */
             mlv_file_frame_number = 0;
         }
-    }
-    else
-    {
-        if (is_intervalometer_running())
-            idle_force_powersave_now();
-        
-        local_raw_info.buffer = sp_frames[0];
-        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        ok = silent_pic_save_file(&local_raw_info, 0);
-        redraw();
     }
     
 cleanup:
@@ -1085,6 +1246,29 @@ cleanup:
     if (hSuite1) srm_free_suite(hSuite1);
     if (hSuite2) shoot_free_suite(hSuite2);
     if (raw_flag) raw_lv_release();
+
+    if (image_review_time)
+    {
+        /* image review setting from Canon menu */
+        /* fixme: use the same code as "classic" full-res pics */
+        int preview_delay = image_review_time * 1000;
+        int t0 = get_ms_clock();
+        while (get_ms_clock() - t0 < preview_delay &&
+               !get_halfshutter_pressed())
+        {
+            msleep(10);
+        }
+    }
+
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
+    {
+        /* turn off Full-res LiveView from crop_rec */
+        PauseLiveView();
+        menu_set_value_from_script("Movie", "Crop mode", 0);
+    }
+
+    ResumeLiveView();
+
     return ok;
 }
 #endif
@@ -1148,6 +1332,9 @@ static int
 silent_pic_take_fullres(int interactive)
 {
     int ok = 1;
+
+    /* capture metadata from LiveView; will override invalid values later */
+    silent_capture_lv_metadata();
 
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
@@ -1261,6 +1448,8 @@ silent_pic_take_fullres(int interactive)
     info_led_off();
     lens_info.job_state = 0;
 
+    silent_capture_fullres_metadata(prop_iso, capture_time);
+
     if (image_review_time)
     {
         /* only preview if Image Review is enabled in Canon menu */
@@ -1342,6 +1531,14 @@ silent_pic_take_fullres(int interactive)
     int save_time;
     
     {
+        /* fixme: duplicate code */
+        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 37,
+            SYM_ISO"%d %s "SYM_F_SLASH"%d.%d",
+            metadata.iso,
+            lens_format_shutter_reciprocal(metadata.tvr, 2),
+            metadata.aperture / 10, metadata.aperture % 10
+        );
+
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", capture_time);
         
@@ -1352,8 +1549,8 @@ silent_pic_take_fullres(int interactive)
             local_raw_info.buffer = copy_buf;
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
-        
-        ok = silent_pic_save_file(&local_raw_info, capture_time);
+
+        ok = silent_pic_save_file(&local_raw_info);
         int t1 = get_ms_clock();
         save_time = t1 - t0;
      
@@ -1582,7 +1779,7 @@ static struct menu_entry silent_menu[] = {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
                 .update = silent_pic_mode_update,
-                .max = 5,
+                .max = 6,
                 .choices = CHOICES(
                     "Simple",
                     "Burst",
@@ -1590,6 +1787,7 @@ static struct menu_entry silent_menu[] = {
                     "Best Focus",
                     "Slit-Scan",
                     "Full-res",
+                    "Full-res LV",
                 ),
                 .help = "Choose the silent picture mode:",
                 .help2 = 
@@ -1598,7 +1796,8 @@ static struct menu_entry silent_menu[] = {
                     "Take pictures continuously, save the last few pics to card.\n"
                     "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
-                    "Experimental full-resolution pictures.\n",
+                    "Full-resolution pictures (limited to long exposures).\n"
+                    "Full-resolution pictures (LiveView snapshots, with crop_rec).\n",
             },
             {
                 .name = "Slit-Scan Mode",
@@ -1640,12 +1839,13 @@ static struct menu_entry silent_menu[] = {
                 .name = "File Format",
                 .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
-                .max = 1,
+                .max = 2,
                 .help = "File format to save the image as:",
                 .help2 =
                     "DNG is slow, but needs no extra post-processing.\n"
-                    "MLV is fast, and will group all frames into a single video file.\n",
-                .choices = CHOICES("DNG", "MLV"),
+                    "MLV is fast, and will group all frames into a single video file.\n"
+                    "Lossless DNG is fast and uses CR2 compression routines (experimental).\n",
+                .choices = CHOICES("DNG", "MLV", "Lossless DNG"),
             },
             MENU_EOL,
         }
@@ -1668,7 +1868,20 @@ static unsigned int silent_init()
         long_exposure_fix_enabled = 1;
     }
 
+    if (!lossless_init())
+    {
+        /* lossless DNG not available; hide from menu */
+        silent_menu[0].children[3].max = 1;
+    }
+
+    if (!is_camera("5D3",  "*"))
+    {
+        /* Full-res LV not available; hide from menu */
+        silent_menu[0].children[0].max = 5;
+    }
+
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
+
     return 0;
 }
 

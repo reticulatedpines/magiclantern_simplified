@@ -18,7 +18,7 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
@@ -47,6 +47,9 @@
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x7550C+0xA4))
+
+#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04008 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04a08 // SDRAM address of HD buffer (aka YUV)
@@ -263,11 +266,13 @@ Output size: 5496 x 3670
 // see "Malloc Information"
 #define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404E54CC) // ADTG register 805f
 #define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404E54D0) // ADTG register 8061
+#define SRM_BUFFER_SIZE 0x229C000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
-#define MALLOC_STRUCT 0x94838
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x94838
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 //~ needs fixed to prevent half shutter making canon overlays visible. sub_ff52c568.htm Not Present but probably right.
 //~ #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x84100) != 0x17) // 1 All the Time

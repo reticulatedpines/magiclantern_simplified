@@ -31,7 +31,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 THUMB_FN(0xE00400FC,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
 THUMB_FN(0xE0578D64,  bzero32)                              /* zeros out a data structure */
 THUMB_FN(0xE0143CFC,  create_init_task)                     /* low-level DryOS initialization */
@@ -131,6 +131,7 @@ THUMB_FN(0xe06d78a6,  ReleaseRecursiveLock)                 /* SystemIF::KerRLoc
 THUMB_FN(0xe0577b60,  create_named_semaphore)
 THUMB_FN(0xe0577cd6,  give_semaphore)                       /* SystemIF::KerSem.c   */
 THUMB_FN(0xe0577c5c,  take_semaphore)                       /* SystemIF::KerSem.c   */
+THUMB_FN(0xe0577c2c,  take_semaphore_now)
 
 /** GUI **/
 DATA_PTR(    0xfb38,  gui_task_list)                        // based on R. Ref to "CtrlMan: Use RecursiveLock"

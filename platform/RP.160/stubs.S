@@ -34,7 +34,7 @@
 //*************************************************************************************************************
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 THUMB_FN(0xE0040104,  cstart)                          /* calls bzero32 and create_init_task(..., init_task, ...) */
 THUMB_FN(0xE05A6CDC,  bzero32)                         /* zeros out a data structure */
 THUMB_FN(0xE05C04A4,  create_init_task)                /* low-level DryOS initialization */
@@ -153,6 +153,7 @@ THUMB_FN(0xe038a882,  ReleaseRecursiveLock)                 // Last call in afte
 THUMB_FN(0xe05a5a48,  create_named_semaphore)               // Takes0 "PU0Wait" string as argument
 THUMB_FN(0xe05a5bbe,  give_semaphore)                       // called after "fcsCreateTransformCompleteCallback (%#x)" string
 THUMB_FN(0xe05a5b44,  take_semaphore)                       // function call above "TakeSemaphore(%ld)" string
+THUMB_FN(0xe05a5b14,  take_semaphore_now)
 
 /** Queue **/
 THUMB_FN(0xe0580bf4,  msg_queue_create)                     // takes "DispOpeQueue" as argument
@@ -211,6 +212,10 @@ DATA_PTR(    0xFF78, _pXCM);                        // param1 to XCM_MakeContext
  */
 THUMB_FN(0xe0254b0c, refreshVrmsSurface);           // by debug message.
 DATA_PTR(    0xFF74, display_refresh_needed)        // Easy to spot in refreshVrmsSurface()
+DATA_PTR(   0x720f0, RENDERER_LayersMetadata);
+THUMB_FN(0xe010ef6a, XCM_SetSourceSurface);
+THUMB_FN(0xe010efd4, XCM_SetSourceArea);
+THUMB_FN(0xe0254e8c, XOC_SetLayerEnable);
 
 /**
  * General FEATURE_VRAM_RGBA stubs
@@ -228,7 +233,7 @@ DATA_PTR(    0xFF1C, _rgb_vram_info);
 DATA_PTR(   0x12928,  sd_device)                    // Used as parameter in DryosDebugMsg with "EVICE_POWER_CYCLE bPowerDown=%d" string
 THUMB_FN(0xe06f0358,  _LoadCalendarFromRTC)         // function call after "handle_LOCAL_PLUSMOVIEAUTO_REGIST_HANDLE NewCreate Handle"
                                                     // "Private" as it now has more arguments, needs a wrapper.
-//THUMB_FN(0x,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
+THUMB_FN(0xe088400e,  ErrForCamera_handler)         // ERR70, ERR80 etc (DlgErrForCamera.c)
 
 NSTUB(    0x40D0,  task_max)
 

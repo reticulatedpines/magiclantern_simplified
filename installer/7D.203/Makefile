@@ -1,4 +1,4 @@
-MODEL=7D
+MODEL = 7D
 include ../Makefile.installer
 
 dummy-master-fir: dummy-master.o
@@ -15,3 +15,5 @@ clean::
 
 build_fir: autoexec-fir.bin dummy-master-fir.bin
 	python ../../../dumper/build_fir7.py -r -s autoexec-fir.bin -m dummy-master-fir.bin ../../../dumper/7D000203.FIR $(UPDATE_NAME_FIR)
+
+RESTARTSTART = 0x88000

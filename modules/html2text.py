@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """html2text: Turn HTML into equivalent Markdown-structured text."""
 __version__ = "3.1"
 __author__ = "Aaron Swartz (me@aaronsw.com)"
@@ -40,7 +40,13 @@ import optparse, re, sys, codecs, types
 
 from align_string_proportional import word_wrap
 from rbf_read import extent_func, rbf_init_font
-rbf_init_font("../../data/fonts/argnor23.rbf")
+# allow running from modules/some_module and
+# modules/some_category/some_module
+try:
+    rbf_init_font("../../data/fonts/argnor23.rbf")
+except FileNotFoundError:
+    rbf_init_font("../../../data/fonts/argnor23.rbf")
+
 wrap = lambda text, width: word_wrap(text, width, extent_func)
 
 # Use Unicode characters instead of their ascii psuedo-replacements
@@ -132,8 +138,8 @@ def unescape(s):
 def onlywhite(line):
     """Return true if the line does only consist of whitespace characters."""
     for c in line:
-        if c is not ' ' and c is not '  ':
-            return c is ' '
+        if c != ' ' and c != '  ':
+            return c == ' '
     return line
 
 def optwrap(text):
@@ -217,7 +223,7 @@ def google_nest_count(style):
     """calculate the nesting count of google doc lists"""
     nest_count = 0
     if 'margin-left' in style:
-        nest_count = int(style['margin-left'][:-2]) / GOOGLE_LIST_INDENT
+        nest_count = int(style['margin-left'][:-2]) // GOOGLE_LIST_INDENT
     return nest_count
 
 def google_has_height(style):
@@ -627,7 +633,7 @@ class _html2text(HTMLParser.HTMLParser):
                     self.drop_white_space = 0
             
             if puredata and not self.pre:
-                data = re.sub('\s+', ' ', data)
+                data = re.sub('\\s+', ' ', data)
                 if data and data[0] == ' ':
                     self.space = 1
                     data = data[1:]

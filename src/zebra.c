@@ -60,7 +60,6 @@ extern uint32_t ml_refresh_display_needed;
 
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
-#define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
 #define MZ_WHITE 0xFE12FE34
@@ -521,11 +520,13 @@ static void hist_add_pixel(uint32_t pixel, int Y)
 #ifdef FEATURE_WAVEFORM
 static inline void waveform_add_pixel(int x, int Y)
 {
+    if (!waveform) return;
     uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
     if ((*w) < 250) (*w)++;
 }
 #endif
 
+#if defined(FEATURE_HISTOGRAM)
 static void
 hist_build()
 {
@@ -535,9 +536,7 @@ hist_build()
 
     int x,y;
 
-    #ifdef FEATURE_HISTOGRAM
     memset(&histogram, 0, sizeof(histogram));
-    #endif
 
     #ifdef FEATURE_WAVEFORM
     if (waveform_draw)
@@ -589,12 +588,10 @@ hist_build()
 
             int Y = UYVY_GET_AVG_Y(pixel);
             
-            #ifdef FEATURE_HISTOGRAM
             if (hist_draw && !histogram.is_raw)
             {
                 hist_add_pixel(pixel, Y);
             }
-            #endif
             
             #ifdef FEATURE_WAVEFORM
             if (waveform_draw) 
@@ -614,7 +611,8 @@ hist_build()
         }
     }
 }
-#endif
+#endif // FEATURE_HISTOGRAM
+#endif // FEATURE_HISTOGRAM || FEATURE_WAVEFORM || FEATURE_VECTORSCOPE
 
 #ifdef FEATURE_RAW_ZEBRAS
 
@@ -865,7 +863,7 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
     if (raw_zebra_enable)
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras %safter taking a pic.", raw_zebra_enable == 1 ? "in LiveView and " : "");
 }
-#endif
+#endif // FEATURE_RAW_ZEBRAS
 
 /* used for auto bracketing */
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
@@ -940,7 +938,7 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
         default: return 0;
     }
 }
-#endif
+#endif // FEATURE_ZEBRA
 
 #ifdef FEATURE_WAVEFORM
 /** Draw the waveform image into the bitmap framebuffer.
@@ -957,6 +955,8 @@ waveform_draw_image(
     unsigned        height
 )
 {
+    if (!waveform) return;
+
     if (!PLAY_OR_QR_MODE)
     {
         if (!lv_luma_is_accurate()) return;
@@ -1022,23 +1022,13 @@ waveform_draw_image(
                 // Draw the pixel, rounding down to the nearest
                 // quad word write (and then nop to avoid err70).
                 *(uint32_t*) ALIGN32(row + i) = pixel;
-                #ifdef CONFIG_500D // err70?!
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                asm( "nop" );
-                #endif
                 pixel = 0;
             }
         }
         bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
     }
 }
-#endif
+#endif // FEATURE_WAVEFORM
 
 static int fps_ticks = 0;
 
@@ -3150,12 +3140,6 @@ void copy_zebras_from_mirror()
             uint32_t m = M[BM(j,i)/4];
             if (p != 0) continue;
             B[BM(j,i)/4] = m & ~0x80808080;
-            #ifdef CONFIG_500D
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            #endif
         }
     }
 }
@@ -3171,12 +3155,6 @@ void clear_zebras_from_mirror()
             uint8_t m = M[BM(j,i)];
             if (m & 0x80) continue;
             M[BM(j,i)] = 0;
-            #ifdef CONFIG_500D
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            #endif
         }
     }
 }
@@ -3583,7 +3561,7 @@ int liveview_display_idle()
         )
         return 0;
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 /* For Digic 6 and up. Check if LiveViewApp dialog pointer is not null.
  * This is true only in LV.
  * Maybe this can be backported to below Digic 6 - needs research. */
@@ -3747,9 +3725,9 @@ void draw_histogram_and_waveform(int allow_play)
     if (0
         || hist_draw
         || waveform_draw
-#if defined(FEATURE_VECTORSCOPE)
+    #if defined(FEATURE_VECTORSCOPE)
         || vectorscope_should_draw()
-#endif
+    #endif
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
@@ -3791,7 +3769,7 @@ void draw_histogram_and_waveform(int allow_play)
     if (is_zoom_mode_so_no_zebras()) return;
         
 #ifdef FEATURE_WAVEFORM
-    if( waveform_draw)
+    if (waveform_draw)
     {
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE && WAVEFORM_FACTOR == 1)
@@ -3925,7 +3903,7 @@ BMP_LOCK (
     }
 #endif
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 /**
  * kitor: On D678 apps handlers that are in our interest either doesn't show up
  * on `gui_task_list` at all, or are buried down on the list (would require
@@ -3988,7 +3966,7 @@ BMP_LOCK (
             clrscr(); // out of luck, fallback
         }
     }
-#endif //CONFIG_DIGIC_678
+#endif //CONFIG_DIGIC_678X
 )
 
     // ask other stuff to redraw
@@ -4063,7 +4041,7 @@ void update_lv_fps() // to be called every 10 seconds
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
- static void
+static void
 livev_hipriority_task( void* unused )
 {
     msleep(1000);
@@ -4137,8 +4115,15 @@ livev_hipriority_task( void* unused )
         if (raw && lv_dispsize == 1 && !is_movie_mode())
         {
             /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
+            // 70D has problems with RAW zebras
+            // TODO: Adjust with appropriate internals-config: CONFIG_NO_RAW_ZEBRAS
+            // (is this name good?  We already have FEATURE_RAW_ZEBRAS...  what's the distinction?)
+            #if !defined(CONFIG_70D) && defined(FEATURE_RAW_ZEBRAS)
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
+            #endif
+            #if defined(FEATURE_HISTOGRAM)
             if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
+            #endif
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 
@@ -4158,7 +4143,7 @@ livev_hipriority_task( void* unused )
 
         int mz = should_draw_zoom_overlay();
 
-        lv_vsync(mz);
+        _lv_vsync(mz);
         guess_fastrefresh_direction();
 
         #ifdef FEATURE_MAGIC_ZOOM
@@ -4683,6 +4668,15 @@ PROP_HANDLER(PROP_LV_ACTION)
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
+    #endif
+
+    #ifdef CONFIG_500D
+    if (buf[0] == 0 && !is_manual_focus())
+    {
+        /* disable the "Perform autofocus with AE lock <*> button" message in LiveView */
+        extern void FirstWarningTimer_CBR(void);
+        FirstWarningTimer_CBR();
+    }
     #endif
 }
 

@@ -2,6 +2,10 @@
  * Camera internals for 1100D 1.0.5
  */
 
+// This cam has unusually small pools available to place autoexec.bin into.
+// Restrict some size hungry features.
+#define CONFIG_LOW_MEM_CAM
+
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 1100D port is pretty stable, so I think we can enable properties safely. **/
 #define CONFIG_PROP_REQUEST_CHANGE
@@ -138,3 +142,8 @@
 
 /** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
 #define CONFIG_LVAPP_HACK_RELOC
+
+#define CONFIG_MALLOC_STRUCT_V2
+
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2

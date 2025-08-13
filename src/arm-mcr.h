@@ -35,7 +35,10 @@ asm(
 #include <limits.h>
 #include <sys/types.h>
 #include "compiler.h"
+#include "mutex.h"
+#ifndef MODULE
 #include "internals.h"  /* from platform directory (for CONFIG_DIGIC_VI) */
+#endif // MODULE
 
 typedef void (*thunk)(void);
 
@@ -76,15 +79,19 @@ read_cpsr( void )
     return cpsr;
 }
 
+/* only used for clang's thread safety analysis */
+typedef int __interrupt_mutex_t CAPABILITY("mutex");
+static __interrupt_mutex_t IRQ_mutex __attribute__((unused));
+
 /** Routines to enable / disable interrupts */
-static inline uint32_t
+static inline uint32_t ACQUIRE(IRQ_mutex) NO_THREAD_SAFETY_ANALYSIS
 cli(void)
 {
     uint32_t old_irq;
     
     asm __volatile__ (
         "mrs %0, CPSR\n"
-        "orr r1, %0, #0xC0\n" // set I flag to disable IRQ
+        "orr r1, %0, #0xC0\n" // set I and F flags to disable IRQ and FIQ
         "msr CPSR_c, r1\n"
         "and %0, %0, #0xC0\n"
         : "=r"(old_irq) : : "r1"
@@ -92,18 +99,18 @@ cli(void)
     return old_irq; // return the flag itself
 }
 
-static inline void
+static inline void RELEASE(IRQ_mutex) NO_THREAD_SAFETY_ANALYSIS
 sei( uint32_t old_irq )
 {
     asm __volatile__ (
         "mrs r1, CPSR\n"
-        "bic r1, r1, #0xC0\n"
+        "bic r1, r1, #0xC0\n" // clear IRQ and FIQ flags
         "and %0, %0, #0xC0\n"
         "orr r1, r1, %0\n"
         "msr CPSR_c, r1" : : "r"(old_irq) : "r1" );
 }
 
-#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
 /* from https://app.assembla.com/spaces/chdk/subversion/source/HEAD/trunk/lib/armutil/cache.c */
 
 // ARMv7 cache control (based on U-BOOT cache_v7.c, utils.h, armv7.h)
@@ -117,7 +124,7 @@ static void __attribute__((naked,noinline)) _icache_flush_all(void)
      */
     asm volatile (
         "mov    r1, #0\n"
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
         "mcr    p15, 0, r1, c7, c1, 0\n"        /* Invalidate entire instruction cache Inner Shareable (Multiprocessing Extensions) */
 #else
         "mcr    p15, 0, r1, c7, c5, 0\n"        /* Instruction cache invalidate all to PoU */
@@ -187,6 +194,26 @@ static u32 get_ccsidr(void)
     asm volatile ("mrc p15, 1, %0, c0, c0, 0" : "=r" (ccsidr));
     return ccsidr;
 }
+
+#ifdef CONFIG_MMU
+static u32 get_ttbr0(void)
+{
+    u32 ttbr0;
+
+    /* Read TTBR0 */
+    asm volatile ("mrc p15, 0, %0, c2, c0, 0" : "=r" (ttbr0));
+    return ttbr0;
+}
+
+static u32 get_ttbr1(void)
+{
+    u32 ttbr1;
+
+    /* Read TTBR1 */
+    asm volatile ("mrc p15, 0, %0, c2, c0, 1" : "=r" (ttbr1));
+    return ttbr1;
+}
+#endif
 
 static void set_csselr(u32 level, u32 type)
 {   u32 csselr = level << 1 | type;
@@ -272,7 +299,7 @@ static void _dcache_clean_all(void) {
     v7_maint_dcache_all(ARMV7_DCACHE_CLEAN_ALL);
     /* anything else? */
 
-    #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+    #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
     /* guess: tell the other CPU to do the same? (see B2.2.5 in ARM ARM v7) */
     asm volatile("dsb sy\n");
     *(volatile uint32_t *)0xC1100730 = 0;
@@ -280,6 +307,8 @@ static void _dcache_clean_all(void) {
     #endif
 }
 
+// This attempts to do a multi-processor flush of both
+// icache and dcache
 static inline void _sync_caches()
 {
     /* Self-modifying code (from uncacheable memory) */
@@ -506,7 +535,7 @@ blob_memcpy(
  * for single-core models, return 0 */
 static inline uint32_t get_cpu_id( void )
 {
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
     /* Dual core Cortex A9 */
     /* Extract CPU ID bits from the MPIDR register */
     /* http://infocenter.arm.com/help/topic/com.arm.doc.ddi0388e/CIHEBGFG.html */
@@ -522,7 +551,24 @@ static inline uint32_t get_cpu_id( void )
 #endif
 }
 
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+// get MIDR: Main ID Register, holds cpu identification info
+static inline uint32_t get_cpu_info(void)
+{
+#if defined(CONFIG_DIGIC_678X)
+    // bad ifdef guard, really this should be something like CONFIG_ARMv7
+    uint32_t cpu_info;
+    asm __volatile__ (
+        "MRC p15, 0, %0, c0, c0, 0\n" // read MIDR register
+        : "=&r"(cpu_info));
+    return cpu_info;
+#else
+    // Haven't looked up how to get this for ARMv5 etc, don't care at this point
+    return 0;
+#endif
+}
+
+
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
 
 /* Canon stub; used in AllocateMemory/FreeMemory and others */
 /* it clears the interrupts, does some LDREX/STREX and returns CPSR */

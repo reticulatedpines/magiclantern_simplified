@@ -52,9 +52,17 @@ void FAST hist_build_raw()
 
     int step = lv ? 4 : 2;
 
+    /* mapping from 14-bit RAW to EV on the 12-bit histogram:
+     * above raw_info.white_level: last bin (HIST_WIDTH-1)
+     * 12 stops below that: first bin (0)
+     * raw_to_ev returns 0 at white level or above,
+     * and negative floating point values below */
     char r2ev[16384];
     for (int i = 0; i < 16384; i++)
+    {
         r2ev[i] = COERCE((raw_to_ev(i) + 12) * (HIST_WIDTH-1) / 12, 0, HIST_WIDTH-1);
+        qprintf("[HIST] RAW %d => %d (white=%d)\n", i, r2ev[i], raw_info.white_level);
+    }
 
     for (int i = os.y0; i < os.y_max; i += step)
     {
@@ -276,9 +284,9 @@ void hist_draw_image(
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
             if (histogram.is_rgb)
             {
-                unsigned int over_r = histogram.hist_r[i] + histogram.hist_r[i-1];
-                unsigned int over_g = histogram.hist_g[i] + histogram.hist_g[i-1];
-                unsigned int over_b = histogram.hist_b[i] + histogram.hist_b[i-1];
+                unsigned int over_r = histogram.hist_r[i];
+                unsigned int over_g = histogram.hist_g[i];
+                unsigned int over_b = histogram.hist_b[i];
 
                 if (over_r > thr) hist_dot(x_origin + HIST_WIDTH/2 - 25, yw, COLOR_RED,        bg, hist_dot_radius(over_r, histogram.total_px), hist_dot_label(over_r, histogram.total_px));
                 if (over_g > thr) hist_dot(x_origin + HIST_WIDTH/2     , yw, COLOR_GREEN1,     bg, hist_dot_radius(over_g, histogram.total_px), hist_dot_label(over_g, histogram.total_px));

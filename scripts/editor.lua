@@ -268,7 +268,7 @@ function filedialog:update_focus()
 end
 
 function filedialog:handle_key(k)
-    if k == KEY.Q then
+    if k == KEY.MENU or k == key.Q then
         self:focus_next()
     elseif self.save_mode and self.focused_index == 2 then
         return self.save_box:handle_key(k)
@@ -455,10 +455,11 @@ editor =
             name = "Edit",
             items = {"Cut","Copy","Paste","Select All"},
         },
-        {
-            name = "Debug",
-            items = {"Run","Step Into","Stacktrace","Locals","Detach"},
-        },
+        -- FIXME: doesn't seem to work
+        --{
+        --    name = "Debug",
+        --    items = {"Run","Step Into","Stacktrace","Locals","Detach"},
+        --},
         {
             name = "Font",
             items = {}
@@ -473,9 +474,9 @@ editor =
 }
 
 for k,v in pairs(FONT) do
-    table.insert(editor.menu[4].items,k)
+    table.insert(editor.menu[3].items,k)
 end
-table.sort(editor.menu[4].items)
+table.sort(editor.menu[3].items)
 
 editor.lines_per_page = (display.height - 20 - FONT.LARGE.height) / editor.font.height / 2
 editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 + FONT.LARGE.height,2)
@@ -542,7 +543,7 @@ function editor:main_loop()
 end
 
 function editor:handle_key(k)
-    if k == KEY.Q then
+    if k == KEY.MENU or k == key.Q then
         self.menu_open = true
     elseif k == KEY.WHEEL_DOWN then
         self.scrollbar:down()
@@ -657,7 +658,7 @@ function editor:update_title(mod, force)
 end
 
 function editor:handle_menu_key(k)
-    if k == KEY.Q then
+    if k == KEY.MENU or k == key.Q then
         self.menu_open = false
     elseif k == KEY.LEFT or k == KEY.WHEEL_LEFT then
         self.menu_index = dec(self.menu_index, 1, #(self.menu))
@@ -914,7 +915,7 @@ function editor:toggle_breakpoint(line)
 end
 
 function editor:handle_debug_key(k)
-    if k == KEY.Q then
+    if k == KEY.MENU or k == key.Q then
         self.menu_open = true
     elseif k == KEY.WHEEL_DOWN then
         self.scrollbar:down()
@@ -1040,10 +1041,10 @@ function editor:draw_title()
     display.rect(0,0,display.width,h,fg,bg)
     if self.menu_open then
         display.rect(0,0,w,h,fg,COLOR.BLUE)
-        display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,COLOR.BLUE)
+        display.print("M",10,10,FONT.LARGE,COLOR.WHITE,COLOR.BLUE)
     else
         display.rect(0,0,w,h,fg,bg)
-        display.print("Q",10,10,FONT.LARGE,COLOR.WHITE,bg)
+        display.print("M",10,10,FONT.LARGE,COLOR.WHITE,bg)
     end
     display.print(self.title,w + 10,10,FONT.LARGE,COLOR.WHITE,bg)
     return h

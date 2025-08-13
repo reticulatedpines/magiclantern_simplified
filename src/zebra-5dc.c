@@ -792,8 +792,8 @@ int tic()
 {
     dump_big_seg(4, "ML/LOGS/4.bin");
     dump_big_seg(4, "ML/LOGS/4-1.bin");
-    //dump_seg(0x1000, 0x100000, "ML/LOGS/ram.bin");
-    //~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "ML/LOGS/VRAM.BIN");
+    //save_mem_to_file(0x1000, 0x100000, "ML/LOGS/ram.bin");
+    //~ save_mem_to_file(YUV422_IMAGE_BUFFER, 1920*1080*2, "ML/LOGS/VRAM.BIN");
 }*/
 
 int fps_ticks = 0;

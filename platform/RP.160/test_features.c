@@ -2,7 +2,7 @@
  * Temporary tests for features, specific for RP 1.6.0
  *
  * When porting to a new model, using this camera as a base, remove this file
- * and remove it from ML_SRC_EXTRA_OBJS in Makefile.platform.default!
+ * and remove it from ML_SRC_EXTRA_OBJS in Makefile!
  */
 /*
  * Copyright (C) 2022 Magic Lantern Team

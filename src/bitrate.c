@@ -83,7 +83,7 @@ void bitrate_write_mvr_config()
     }
 }
 
-#endif
+#endif // CONFIG_7D
 
 #ifdef FEATURE_NITRATE
 static struct mvr_config mvr_config_copy;
@@ -174,12 +174,12 @@ static void opt_set(int num, int den)
     for (i = 0; i < MOV_RES_AND_FPS_COMBINATIONS; i++) // 7 combinations of resolution / fps
     {
 #ifdef CONFIG_500D
-#define fullhd_30fps_opt_size_I fullhd_20fps_opt_size_I
-#define fullhd_30fps_gop_opt_0 fullhd_20fps_gop_opt_0
+    #define fullhd_30fps_opt_size_I fullhd_20fps_opt_size_I
+    #define fullhd_30fps_gop_opt_0 fullhd_20fps_gop_opt_0
 #endif
 
 #ifdef CONFIG_5D2
-#define fullhd_30fps_opt_size_I v1920_30fps_opt_size_I
+    #define fullhd_30fps_opt_size_I v1920_30fps_opt_size_I
 #endif
         for (j = 0; j < MOV_OPT_NUM_PARAMS; j++)
         {
@@ -199,7 +199,7 @@ static void opt_set(int num, int den)
         }
         #endif
     }
-#endif
+#endif // FEATURE_NITRATE
 }
 
 static void bitrate_set()
@@ -455,12 +455,15 @@ static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 static int warning = 0;
 int is_mvr_buffer_almost_full()
 {
-    if (NOT_RECORDING) return 0;
-    if (RECORDING_H264_STARTING) return 1;
+    if (NOT_RECORDING)
+        return 0;
+    if (RECORDING_H264_STARTING)
+        return 1;
     // 2
 
-    int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
-    if (ans) warning = 1;
+    if (MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level)
+        warning = 1;
+
     return warning;
 }
 
@@ -646,4 +649,4 @@ bitrate_task( void* unused )
 
 TASK_CREATE("bitrate_task", bitrate_task, 0, 0x1d, 0x1000 );
 
-#endif
+#endif // FEATURE_NITRATE

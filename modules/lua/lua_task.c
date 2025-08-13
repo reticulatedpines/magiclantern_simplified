@@ -150,11 +150,21 @@ static int luaCB_task_yield(lua_State * L)
         return luaL_error(L, "FIXME: cannot use task.yield() from two tasks");
     }
 
+    /* let's hope the stack is not going to be modified by other tasks */
+    int t1 = lua_gettop(L);         /* current stack top */
+    int v1 = lua_tointeger(L, t1);  /* duration (integer) */
+
     lua_set_cant_yield(L, 1);
     lua_give_semaphore(L, NULL);
     msleep(duration);
     lua_take_semaphore(L, 0, NULL);
     lua_set_cant_yield(L, 0);
+
+    /* check the stack */
+    int t2 = lua_gettop(L);
+    int v2 = lua_tointeger(L, t2);
+    ASSERT(t1 == t2);
+    ASSERT(v1 == v2);
     return 0;
 }
 

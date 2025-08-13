@@ -31,7 +31,7 @@
 
 
 /** Startup **/
-NSTUB(  ROMBASEADDR,  firmware_entry)
+NSTUB(MAIN_FIRMWARE_ADDR,  firmware_entry)
 THUMB_FN(0xE0040104,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
 THUMB_FN(0xE056313c,  bzero32)                              /* zeros out a data structure */
 THUMB_FN(0xE011E120,  create_init_task)                     /* low-level DryOS initialization */
@@ -82,7 +82,7 @@ THUMB_FN(0xE053AF42,  CancelTimer)                          /* CancelRefreshTime
 
 /** Memory allocation **/
 //THUMB_FN(0xE0552814, _AllocateMemory)                       /* NG AllocateMemory */
-//THUMB_FN(0XE05529CC, _FreeMemory)                           /* uses the same heap */
+//THUMB_FN(0xE05529CC, _FreeMemory)                           /* uses the same heap */
 //THUMB_FN(0xE055269E,  GetMemoryInformation)                 /* called from AllocateMemory */
 //THUMB_FN(0xE0552672,  GetSizeOfMaxRegion)                   /* same */
 THUMB_FN(0xE0552274, _alloc_dma_memory)                     /* allocates 64 bytes more, aligns at 32 and sets the uncacheable bit */
@@ -145,6 +145,7 @@ THUMB_FN(0xe025056e,  ReleaseRecursiveLock)                 /* SystemIF::KerRLoc
 THUMB_FN(0xE0562DD4,  create_named_semaphore)
 THUMB_FN(0xE0562f4A,  give_semaphore)                       /* SystemIF::KerSem.c   */
 THUMB_FN(0xE0562ED0,  take_semaphore)                       /* SystemIF::KerSem.c   */
+THUMB_FN(0xE0562ea0,  take_semaphore_now)
 
 /** GUI **/
 DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
@@ -281,9 +282,9 @@ DATA_PTR(    0xFE6C, display_refresh_needed)                // Easy to spot in r
  * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for EOS R only!
  * See https://www.magiclantern.fm/forum/index.php?topic=26024
  */
-DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
-DATA_PTR(   0x6F2A4, VMIX_LayersArr);
-DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
+DATA_PTR(   0x6EFA0, RENDERER_Layers);
+DATA_PTR(   0x6F2A4, VMIX_Layers);
+DATA_PTR(   0x6F2BC, VMIX_LayersEnable);
 
 /**
  * General FEATURE_VRAM_RGBA stubs

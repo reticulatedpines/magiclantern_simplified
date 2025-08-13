@@ -20,7 +20,7 @@
 #include "property.h"
 #include "bmp.h"
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 #include "property_whitelist.h"
 #endif
 
@@ -90,9 +90,10 @@ void prop_add_handler (uint32_t property, void *handler)
 {
     // SJE TODO investigate and fix all currently denied
     // properties (those known to cause problems on D678 cams)
-    #ifdef CONFIG_DIGIC_678
+    #ifdef CONFIG_DIGIC_678X
+    const uint32_t deny_count = sizeof(prop_handler_deny) / sizeof(*prop_handler_deny);
     for(uint32_t i = 0;
-        i < sizeof(prop_handler_deny) / sizeof(*prop_handler_deny);
+        deny_count > 0 && i < deny_count;
         i++)
     {
         if (prop_handler_deny[i] == property)
@@ -298,7 +299,7 @@ static void prop_reset_ack(uint32_t property)
     }
 }
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 static int is_prop_allowed(uint32_t property)
 {
     for(int32_t i = 0;
@@ -386,7 +387,7 @@ ok:
     (void)0;
     //~ printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
 
-    #ifdef CONFIG_DIGIC_678
+    #ifdef CONFIG_DIGIC_678X
     if (is_prop_allowed(property))
     {
         // SJE TODO could put some logging here, but I'm betting
@@ -442,3 +443,5 @@ REGISTER_PROP_HANDLER(PROP_WB_MODE_PH, NULL);
 REGISTER_PROP_HANDLER(PROP_WB_KELVIN_PH, NULL);
 REGISTER_PROP_HANDLER(PROP_ICU_AUTO_POWEROFF, NULL);
 REGISTER_PROP_HANDLER(PROP_REBOOT, NULL);
+REGISTER_PROP_HANDLER(PROP_NUMBER_OF_CONTINUOUS_MODE, NULL);
+REGISTER_PROP_HANDLER(PROP_LV_AF_RESULT, NULL);

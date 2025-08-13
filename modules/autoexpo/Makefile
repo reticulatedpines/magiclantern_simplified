@@ -1,9 +1,8 @@
-
 # define the module name - make sure name is max 8 characters
-MODULE_NAME=autoexpo
-MODULE_OBJS=autoexpo.o
+MODULE_NAME = autoexpo
+MODULE_OBJS = $(BUILD_DIR)/autoexpo.o
+TOP_DIR = ../..
 
 # include modules environment
-include ../Makefile.modules
-
-
+include $(TOP_DIR)/modules/Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/module_complete

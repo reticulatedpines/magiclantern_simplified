@@ -38,6 +38,7 @@ static struct menu_entry module_menu[];
 CONFIG_INT("module.autoload", module_autoload_disabled, 0);
 CONFIG_INT("module.console", module_console_enabled, 0);
 CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
+CONFIG_INT("module.show_hidden", module_show_hidden, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
 
 static struct msg_queue * module_mq = 0;
@@ -128,6 +129,40 @@ static int module_load_symbols(TCCState *s, char *filename)
     return 0;
 }
 
+// Modules are invisible if they have a .hid file of their name,
+// in the same dir.  The build system produces these per cam.
+static int is_module_visible(char *filepath)
+{
+    if (filepath == NULL)
+        return 0;
+
+    if (module_show_hidden)
+        return 1;
+
+    char hid_file_path[MODULE_FILENAME_LENGTH + 2];
+    strncpy(hid_file_path, filepath, MODULE_FILENAME_LENGTH + 1);
+    hid_file_path[MODULE_FILENAME_LENGTH + 1] = '\0';
+
+    int len = strlen(hid_file_path);
+    if (hid_file_path[len - 3] != '.') // we expect end to be ".mo"
+        return 0;
+
+    // edit .mo -> .hid
+    hid_file_path[len - 2] = 'h';
+    hid_file_path[len - 1] = 'i';
+    hid_file_path[len - 0] = 'd';
+    hid_file_path[len + 1] = '\0';
+
+    // Check for existence of .hid file.  Ridiculously, we use FIO_GetFileSize()
+    // for this, even though FIO_GetFileInfo() exists, and GetFileSize()
+    // calls that internally.  But FIO_GetFileInfo() isn't a stub.
+    // SJE FIXME FIO_GetFileSize() can't possibly be reliable for this, since files
+    // can exist and be all of the sizes returned by the function.
+    if (!is_file(hid_file_path))
+        return 1;
+    return 0;
+}
+
 /* this is not perfect, as .Mo and .mO aren't detected. important? */
 static int module_valid_filename(char* filename)
 {
@@ -190,7 +225,7 @@ static void module_update_core_symbols(TCCState* state)
 //
 // Copying in the version in tcc/tcc.h, which is terribly ugly just for
 // finding the module load address.  There must be a better way.
-#if 1
+#if 0
 #include <setjmp.h>
 #define addr_t uint32_t
 #define IO_BUF_SIZE 8192
@@ -521,7 +556,9 @@ static void _module_load_all(uint32_t list_only)
 
     do
     {
-        if (file.mode & ATTR_DIRECTORY) continue; // is a directory
+        if (file.mode & ATTR_DIRECTORY)
+            continue; // is a directory, don't add to module list
+
         if (module_valid_filename(file.name))
         {
             char module_name[MODULE_FILENAME_LENGTH];
@@ -533,7 +570,11 @@ static void _module_load_all(uint32_t list_only)
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
             strncpy(module_list[module_cnt].filename, file.name, MODULE_FILENAME_LENGTH);
-            snprintf(module_list[module_cnt].long_filename, sizeof(module_list[module_cnt].long_filename), "%s%s", MODULE_PATH, module_list[module_cnt].filename);
+            snprintf(module_list[module_cnt].long_filename,
+                     sizeof(module_list[module_cnt].long_filename),
+                     "%s%s", MODULE_PATH, file.name);
+
+            module_list[module_cnt].visible = is_module_visible(module_list[module_cnt].long_filename);
 
             uint32_t pos = 0;
             while(module_name[pos])
@@ -824,8 +865,9 @@ static void _module_load_all(uint32_t list_only)
                     /* register "named" callbacks through ml-cbr */
                     if(cbr->type == CBR_NAMED)
                     {
-                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n", cbr->name, cbr->handler, cbr->symbol);
-                        ml_register_cbr(cbr->name, (cbr_func)cbr->handler, 0);
+                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n",
+                               cbr->name, cbr->named_handler, cbr->symbol);
+                        ml_register_cbr(cbr->name, cbr->named_handler, 0);
                     }
                     else
                     {
@@ -887,7 +929,7 @@ static void _module_unload_all(void)
                 /* unregister "named" callbacks through ml-cbr */
                 if(cbr->type == CBR_NAMED)
                 {
-                    ml_unregister_cbr(cbr->name, (cbr_func)cbr->handler);
+                    ml_unregister_cbr(cbr->name, cbr->named_handler);
                 }
                 cbr++;
             }
@@ -1351,15 +1393,58 @@ int module_display_filter_update()
     return 0;
 }
 
-static MENU_SELECT_FUNC(module_menu_update_select)
+// Toggles the enable status of a module.
+// Won't take effect until next restart, see _module_load_all()
+void toggle_module_enabled(int mod_number)
 {
     char enable_file[FIO_MAX_PATH_LENGTH];
-    int mod_number = (int) priv;
     
+    if (mod_number < 0 || mod_number > MODULE_COUNT_MAX)
+        return;
+
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
     snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
     ASSERT(is_file(enable_file) == module_list[mod_number].enabled);
+}
+
+static MENU_SELECT_FUNC(module_menu_update_select)
+{
+    int mod_number = (int)priv;
+    toggle_module_enabled(mod_number);
+
+    // If we're disabling a module, nothing more to do.
+    if (!module_list[mod_number].enabled)
+        return;
+
+    // We're enabling a module, check if it depends on any others.
+    // If so, also enable those.
+
+    char *mod_name = module_list[mod_number].long_filename;
+
+    extern void *tcc_load_offline_section(char *filename, char *section_name);
+    char *mod_deps = tcc_load_offline_section(mod_name, ".module_deps");
+
+    // If the section exists, mod_deps should be an array of null-terminated strings,
+    // each a module name.  This is generated by mark_cross_module_deps.py during build.
+    if (mod_deps != NULL)
+    {
+        char *mod_name = mod_deps;
+        size_t name_len = strlen(mod_name);
+        while (name_len != 0)
+        {
+            int dep_number = module_get_number(mod_name);
+            // we don't want unloading a module to also unload deps,
+            // users may separately want the features they provide
+            if (!module_list[dep_number].enabled)
+                toggle_module_enabled(dep_number);
+
+            mod_name += (name_len + 1);
+            name_len = strlen(mod_name);
+        }
+    }
+
+    free(mod_deps);
 }
 
 static int startswith(const char* str, const char* prefix)
@@ -1514,35 +1599,36 @@ static MENU_SELECT_FUNC(module_menu_select_empty)
 /* check which modules are loaded and hide others */
 static void module_menu_update()
 {
-    int mod_number = 0;
-    struct menu_entry * entry = module_menu;
+    int i = 0;
+    struct menu_entry *entry = module_menu;
 
     while (entry)
     {
         /* only update those which display module information */
         if(entry->update == module_menu_update_entry)
         {
-            ASSERT(mod_number == (int) entry->priv);
+            ASSERT(i == (int)entry->priv);
+            module_entry_t *mod = &module_list[i];
 
-            if(module_list[mod_number].valid)
+            MENU_SET_SHIDDEN(1);
+            if (mod->visible)
             {
-                MENU_SET_SHIDDEN(0);
+                if (mod->valid)
+                {
+                    MENU_SET_SHIDDEN(0);
+                }
+                else if (strlen(mod->filename))
+                {
+                    MENU_SET_SHIDDEN(0);
+                }
             }
-            else if(strlen(module_list[mod_number].filename))
-            {
-                MENU_SET_SHIDDEN(0);
-            }
-            else
-            {
-                MENU_SET_SHIDDEN(1);
-            }
-            mod_number++;
+            i++;
         }
         entry = entry->next;
     }
 
     /* make sure we have as many menu entries as modules */
-    ASSERT(mod_number == MODULE_COUNT_MAX);
+    ASSERT(i == MODULE_COUNT_MAX);
 }
 
 /* check which modules are loaded and hide others */
@@ -1585,6 +1671,21 @@ const char* module_get_string(int mod_number, const char* name)
     }
     
     return NULL;
+}
+
+// returns -1 if name cannot be found
+int module_get_number(const char *name)
+{
+    int i = 0;
+    while(i < MODULE_COUNT_MAX)
+    {
+        if (strcmp(name, module_list[i].name) == 0)
+        {
+            return i;
+        }
+        i++;
+    }
+    return -1;
 }
 
 const char* module_get_name(int mod_number)
@@ -1880,6 +1981,7 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(13)
     MODULE_ENTRY(14)
     MODULE_ENTRY(15)
+#ifndef CONFIG_LOW_MEM_CAM
     MODULE_ENTRY(16)
     MODULE_ENTRY(17)
     MODULE_ENTRY(18)
@@ -1928,6 +2030,7 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(61)
     MODULE_ENTRY(62)
     MODULE_ENTRY(63)
+#endif
 };
 
 static struct menu_entry module_debug_menu[] = {
@@ -1955,6 +2058,12 @@ static struct menu_entry module_debug_menu[] = {
                 .priv = &module_ignore_crashes,
                 .max = 1,
                 .help = "Load modules even after camera crashed and you took battery out.",
+            },
+            {
+                .name = "Show hidden modules",
+                .priv = &module_show_hidden,
+                .max = 1,
+                .help = "If modules have .hid files, show them anyway. Requires restart.",
             },
             MENU_EOL,
         },

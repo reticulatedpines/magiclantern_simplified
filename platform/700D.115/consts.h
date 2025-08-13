@@ -17,7 +17,7 @@
 #define HIJACK_TASK_ADDR 0x233DC
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 /*
@@ -31,6 +31,9 @@
 #define YUV422_LV_BUFFER_1 0x4bde7800
 #define YUV422_LV_BUFFER_2 0x4b9d7800
 #define YUV422_LV_BUFFER_3 0x4c1f7800
+
+#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
@@ -157,8 +160,10 @@
     #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
     // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-    // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-    #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 90 : 2) // any from 88...98 ?!
+    // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 88 to 98
+    // 97 works both in standby and while recording H.264, allows scrollwheel events, only shows a "return" touch button
+    // 91 works better in standby, as 97 may display the exposure compensation bar over ML menu
+    #define GUIMODE_ML_MENU (RECORDING ? 97 : lv ? 91 : 2)
     #define NUM_PICSTYLES 10
 
     #define FLASH_MAX_EV 3
@@ -230,8 +235,10 @@
 #define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 
     // see "Malloc Information"
-#define MALLOC_STRUCT 0x4b908
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x4b908
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 //TODO: Check if this hack works again or not :(
 #define UNAVI_BASE (0x41948)

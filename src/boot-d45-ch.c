@@ -31,7 +31,7 @@ copy_and_restart( )
     qprint("to "); qprintn((uint32_t) my_init_task); qprint("\n");
 
     /* now start main firmware */
-    void (*reset)(void) = (void*) ROMBASEADDR;
+    void (*reset)(void) = (void*)MAIN_FIRMWARE_ADDR;
     reset();
 
     // Unreachable

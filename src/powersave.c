@@ -70,11 +70,15 @@ int ResumeLiveView()
         int x = 0;
         BMP_LOCK(
             prop_request_change_wait(PROP_LV_ACTION, &x, 4, 1000);
-            int iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
+            int iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(20);
         )
         while (sensor_cleaning) msleep(100);
         if (lv) set_lv_zoom(lv_zoom_before_pause);
+#ifdef CONFIG_STATE_OBJECT_HOOKS
+        wait_lv_frames(1);
+#else
         msleep(100);
+#endif
         ans = 1;
     }
     lv_paused = 0;

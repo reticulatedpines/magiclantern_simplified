@@ -51,11 +51,11 @@
 
 #define BGMT_LV 0x1e
 
-// wrong - avoiding conflicting definitions
-#define BGMT_WHEEL_LEFT 77
-#define BGMT_WHEEL_RIGHT 88
-#define BGMT_WHEEL_UP 55
-#define BGMT_WHEEL_DOWN 66
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+// wrong (this wheel doesn't exist on 200D), but menu.c expects uniqueness in a dumb way:
+#define BGMT_WHEEL_UP 77
+#define BGMT_WHEEL_DOWN 88
 
 #define BGMT_FLASH_MOVIE 0
 #define BGMT_PRESS_FLASH_MOVIE 0

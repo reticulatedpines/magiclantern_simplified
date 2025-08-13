@@ -26,6 +26,7 @@
  */
 
 #include "dryos.h"
+#include "dryos_rpc.h"
 #include "config.h"
 #include "version.h"
 #include "bmp.h"
@@ -48,6 +49,10 @@ extern void platform_post_init();
 
 #if defined(CONFIG_HELLO_WORLD)
 #include "fw-signature.h"
+#endif
+
+#if defined(CONFIG_MMU_REMAP)
+#include "patch.h"
 #endif
 
 static int _hold_your_horses = 1; // 0 after config is read
@@ -252,15 +257,15 @@ static void draw_test_pattern(int colour)
     uint8_t *b = bmp_vram();
 
     // draw a rectangle on the exact visible border
-    for (int y=30; y < 510; y++)
+    for (int y=0; y < 480; y++)
     {
-        bmp_putpixel_fast(b, 120, y, colour);
-        bmp_putpixel_fast(b, 839, y, colour);
+        bmp_putpixel_fast(b, 0, y, colour);
+        bmp_putpixel_fast(b, 719, y, colour);
     }
-    for (int x=120; x < 840; x++)
+    for (int x=0; x < 720; x++)
     {
-        bmp_putpixel_fast(b, x, 30, colour);
-        bmp_putpixel_fast(b, x, 509, colour);
+        bmp_putpixel_fast(b, x, 0, colour);
+        bmp_putpixel_fast(b, x, 479, colour);
     }
 }
 
@@ -340,8 +345,6 @@ static void hello_world()
         //DryosDebugMsg(0, 15, "display mode: %d", display_output_mode);
         DryosDebugMsg(0, 15, "colour: %d", colour);
         draw_test_pattern(colour);
-
-        bmp_fill(6, 140, 200, 40, 1);
 
         ml_refresh_display_needed = 1;
         msleep(200);
@@ -437,6 +440,12 @@ static void my_big_init_task()
         return;
     }
 
+#if defined(CONFIG_MMU_REMAP) && defined(CONFIG_RPC)
+    int err = apply_normal_patches();
+    if (err < 0)
+        qprintf("Error from apply_normal_patches: %d\n", err);
+#endif
+
     _load_fonts();
 
     // SJE not sure on best place to do this.  Before HELLO_WORLD is nice
@@ -457,20 +466,28 @@ static void my_big_init_task()
     dumper_bootflag();
     return;
 #endif
-   
+
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, before early tasks");
+#endif
+
     call("DisablePowerSave");
     _ml_cbr_init();
     menu_init();
     debug_init();
-    call_init_funcs();
+    call_init_funcs(); // among other things, this initialises modules
     msleep(200); // leave some time for property handlers to run
+
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, after early tasks");
+#endif
 
     /**
      * kitor FIXME: disabling rom dump for D678 as it uses different addresses
      * and offsets. I feel those should be per generation, or maybe per camera
      * as R has different rom size than RP in same gen...
      */
-    #if defined(CONFIG_AUTOBACKUP_ROM)
+    #if defined(CONFIG_AUTOBACKUP_ROM) && !defined(CONFIG_QEMU)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
     task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
@@ -487,7 +504,7 @@ static void my_big_init_task()
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job
 
-    // Create all of our auto-create tasks
+    // Create all of our auto-create tasks, defined via TASK_CREATE()
     extern struct task_create _tasks_start[];
     extern struct task_create _tasks_end[];
     struct task_create * task = _tasks_start;
@@ -511,6 +528,10 @@ static void my_big_init_task()
     }
     
     msleep(500);
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, after late tasks");
+#endif
+
     ml_started = 1;
 }
 
@@ -533,9 +554,12 @@ const char* get_assert_msg() { return assert_msg; }
 
 static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
+    if (msg == NULL)
+        msg = "nullptr";
+
     uint32_t lr = read_lr();
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     // compiler warning on unused len
     snprintf(assert_msg, sizeof(assert_msg),
 #else
@@ -550,7 +574,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     uart_printf("[SJE] my_assert_msg: %s", assert_msg);
 #else
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -571,7 +595,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     uart_printf("[SJE] ml_assert_msg: %s", assert_msg);
 #endif
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -584,10 +608,30 @@ void ml_crash_message(char* msg)
     request_crash_log(1);
 }
 
+#ifdef CONFIG_RPC
+uint32_t is_cpu1_ready = 0;
+static void cpu1_ready(void)
+{
+    is_cpu1_ready = 1;
+}
+#endif
+
 /* called before Canon's init_task */
 void boot_pre_init_task()
 {
-#if !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
+#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
+    // don't hook
+#else
+    // normally, we create sems via INIT_FUNC macro,
+    // but that happens via tasks, which is later than we need
+    // for early MMU remapping.
+    #if defined(CONFIG_RPC)
+    RPC_sem = create_named_semaphore("RPC", SEM_CREATE_UNLOCKED);
+    #endif
+    #if defined(CONFIG_MMU_REMAP)
+    if (mmu_init() < 0)
+        DryosDebugMsg(0, 15, "ERROR doing mmu_init()");
+    #endif
     // Install our task creation hooks
     qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     DryosDebugMsg(0, 15, "replacing task_dispatch_hook");
@@ -641,6 +685,12 @@ void boot_post_init_task(void)
     additional_version[11] = build_version[7];
     additional_version[12] = build_version[8];
     additional_version[13] = '\0';
+#endif
+
+#ifdef CONFIG_RPC
+    // Get cpu1 to flag when it's fully active,
+    // this proves SGI handlers are usable, so we can use request_RPC()
+    task_create_ex(NULL, 0x10, 0x200, cpu1_ready, NULL, 1);
 #endif
 
     #ifdef FEATURE_VRAM_RGBA

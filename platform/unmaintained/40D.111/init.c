@@ -237,7 +237,7 @@ void copy_and_restart()
 
     /* now start main firmware */
     /* I don't know why, the firmware_entry() method don't work */
-    void (*reset)(void) = (void*) ROMBASEADDR;
+    void (*reset)(void) = (void*)MAIN_FIRMWARE_ADDR;
     reset();
 
     // unreachable

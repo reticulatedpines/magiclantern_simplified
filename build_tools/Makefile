@@ -1,14 +1,23 @@
 # Makefile for the various tools used in the build process
 
 ifndef TOP_DIR
-# if this is used as a standalone makefile, we need to include some additional stuff
-TOP_DIR=..
-include $(TOP_DIR)/Makefile.setup
+# if standalone build, suppress some warnings,
+# and change config so it builds outside of an ML context
+TOP_DIR = ../
+include $(TOP_DIR)/Makefile.globals
+CFLAGS =
+MAKEFLAGS =
+LFLAGS =
+LDFLAGS =
+AFLAGS =
+CC = gcc
+LD = ld
+
 XOR_CHK:=$(notdir $(XOR_CHK))
 endif
 
 $(XOR_CHK): $(XOR_CHK).c
-	$(call build,XOR_CHK,$(HOST_CC) $< -o xor_chk)
+	$(HOST_CC) $< -o xor_chk
 
 clean::
-	$(call rm_files, xor_chk xor_chk.exe)
+	@rm -f -- xor_chk xor_chk.exe ||:

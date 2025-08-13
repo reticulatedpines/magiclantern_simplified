@@ -96,7 +96,7 @@
 #define PROP_LV_FOCUS           0x80050001 // only works in liveview mode; LVCAF_LensDriveStart
 #define PROP_LV_FOCUS_DONE      0x80050002 // output when focus motor is done?
 #define PROP_LV_FOCUS_STOP      0x80050003 // LVCAF_LensDriveStop
-#define PROP_LV_FOCUS_BAD       0x80050029 // true if camera couldn't focus?
+#define PROP_LV_AF_RESULT       0x80050029 // 0 = OK, 1 = couldn't focus; triggered at the end of AF operation
 #define PROP_LV_FOCUS_STATE     0x80050009 // 1 OK, 101 bad, 201 not done?
 #define PROP_LV_FOCUS_STATUS    0x80050023 // 1 = idle, 3 = focusing in LiveView
 #define PROP_LV_FOCUS_CMD       0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
@@ -130,7 +130,7 @@
 #if defined(CONFIG_60D) || defined(CONFIG_7D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_70D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
     #define DRIVE_SILENT 0x13
@@ -191,7 +191,6 @@
 #define PROP_DEFAULT_BRACKET    0x8002000A
 #define PROP_PARTIAL_SETTING    0x8002000B
 #define PROP_EMPOWER_OFF        0x80030007      // 1 == prohibit, 2 == permit
-#define PROP_LVAF_550D          0x8004001d      // 0 = shutter killer, 1 = live mode, 2 = face detect; introduced by a1ex on 550D branch
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C     // 1 == cleaning sensor?
 
@@ -322,6 +321,7 @@
 #define PROP_HTP 0x8000004a
 
 #if defined(CONFIG_5D3)
+#define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MLU 0x80000047
 #endif
@@ -338,8 +338,18 @@
 
 #endif
 
+// verified with prop spy
+#ifdef CONFIG_70D
+#define PROP_HI_ISO_NR 0x80000049
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MULTIPLE_EXPOSURE_SETTING 0x8000003F
+#define PROP_MLU 0x80000047
+#endif
+
 #ifdef CONFIG_6D //May work for others.
 #define PROP_HI_ISO_NR 0x80000049 //Len 4, 4 is multishot
+#define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MULTIPLE_EXPOSURE_SETTING 0x8000003F
 #define PROP_MLU 0x80000047
@@ -356,6 +366,22 @@
 #define PROP_MOVIE_REC_VOLUME 0x2050017 //Len 4, Vol00Vol
 #define PROP_HEADPHONE_PHYSICAL_CONNECT 0x80030055
 #endif
+
+#ifdef CONFIG_6D2
+// SJE unconfirmed, copying from 6D
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MLU 0x80000047
+#endif
+
+#ifdef CONFIG_7D2
+#define PROP_MLU 0x80000047 // SJE FIXME check this is really the same as 6d and 5d3
+#endif
+
+#ifdef CONFIG_5D4
+#define PROP_MLU 0x80000047 // SJE FIXME check this is really the same as 6d and 5d3
+#endif
+
 /** Job progress
  * 0xB == capture end?
  * 0xA == start face catch pass?
@@ -451,6 +477,9 @@
     #define PROP_CLUSTER_SIZE_C      0x02010008
     #define PROP_FREE_SPACE_C        0x0201000b
     #define PROP_CARD_RECORD_C       0x8003000d
+
+    #define PROP_FILE_NUMBERING_MODE        0x02040001
+    #define PROP_NUMBER_OF_CONTINUOUS_MODE  0x02040008
 #endif
 
 #define PROP_USER_FILE_PREFIX  0x02050004
@@ -505,6 +534,7 @@
 #define PROP_ICU_AUTO_POWEROFF  0x80030024
 #define PROP_AUTO_POWEROFF_TIME 0x80000024
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
+#define PROP_ABORT              0x80010002 // when opening the battery door
 #define PROP_REBOOT             0x80010003 // used by firmware update code
 
 #define PROP_SHUTDOWN_REASON    0x8002005b
@@ -525,10 +555,13 @@
 
 #define PROP_INFO_BUTTON_FUNCTION 0x02070006
 
-#define PROP_CONTINUOUS_AF_MODE 0x80000042
-#define PROP_CONTINUOUS_AF_VALID 0x80000043 //also toggles servo
+#define PROP_LIVE_VIEW_AF_SYSTEM        0x8004001D // 0 = quick AF, 1 = live mode, 2 = face detect, 3 = multi
+#define PROP_CONTINUOUS_AF              0x80040040 // bool, new models only, photo mode only
+#define PROP_MOVIE_SERVO_AF             0x80000042 // old name: PROP_CONTINUOUS_AF_MODE, bool, new models only
+#define PROP_MOVIE_SERVO_AF_VALID       0x80000043 // old name: PROP_CONTINUOUS_AF_VALID, to MPU only?
+#define PROP_SHUTTER_AF_DURING_RECORD   0x8000003C // old name: PROP_MOVIE_REC_AF
+
 #define PROP_REGISTRATION_DATA_UPDATE_FUNC 0x80000044 // custom slave cBr?
-#define PROP_MOVIE_REC_AF 0x8000003C
 
 // #define PROP_AF_CURRENT_AISERVO_STYLE 0x8004004B
 
@@ -658,6 +691,8 @@ void prop_reset_registration(void);
 /* only re-register handlers in case it was updated in meantime */
 void prop_update_registration(void);
 
+THREAD_ROLE(PropMgrTask);
+
 /** Register a property handler with automated token function. module.h will define it for modules */
 #if !defined(MODULE)
 #define REGISTER_PROP_HANDLER_EX( id, func, length ) \
@@ -674,7 +709,7 @@ static struct prop_handler _prop_handler_##id##_block = { \
 #define PROP_HANDLER(id) \
 static void _prop_handler_##id(); \
 REGISTER_PROP_HANDLER( id, _prop_handler_##id ); \
-void _prop_handler_##id( \
+void REQUIRES(PropMgrTask) _prop_handler_##id( \
         unsigned                property, \
         void *                  token, \
         uint32_t *              buf, \

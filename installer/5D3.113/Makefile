@@ -1,2 +1,20 @@
-MODEL=5D3
-include ../Makefile.installer
+MODEL = 5D3
+FW_VERSION = 113
+TOP_DIR = ../..
+
+CANON_FIR = 5D300113.FIR
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+MAIN_FIRMWARE_ADDR = 0xFF0C0000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART = 0x69500
+ML_BOOT_OBJ = boot-d45.o
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/$(INSTALLER_FIR)

@@ -31,7 +31,7 @@
     #define CONFIG_TSKMON
 
 /**
- * Some debug stuff - you should enable it Makefile.user to avoid pushing unwanted changes to the repo
+ * Some debug stuff
  */
     /** This may help discovering some cool new stuff - http://magiclantern.wikia.com/wiki/Register_Map/Brute_Force **/
     /** For developers only; can be dangerous **/
@@ -44,11 +44,13 @@
     /** warning: it will slow down boot by a few seconds */
     //~ #define CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
 
+#ifndef MODULE
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory
 #include "internals-common.h"
 
 /** What features are enabled on each camera? **/
 #include "features.h" // from platform directory
+#endif // MODULE
 
 #endif // _config_defines_h_

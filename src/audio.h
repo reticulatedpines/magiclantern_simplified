@@ -634,9 +634,8 @@ struct audio_level
 static inline int16_t
 audio_read_level( int channel )
 {
-        #ifdef CONFIG_DIGIC_VIII // confirmed to crash on R, RP, M50, 850D
-        //kitor FIXME: Hard crash on R. Address is not valid anymore?
-        //      Skip for now.
+        #if defined(CONFIG_DIGIC_8X)
+        // crashes on DIGIC 8+, untested but doesn't crash on D67
         return 0;
         #endif
         uint32_t *audio_level = (uint32_t*)( 0xC0920000 + 0x110 );

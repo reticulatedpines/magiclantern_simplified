@@ -41,14 +41,26 @@
 /**
 * 14-bit encoding:
 
-hi          lo
-aaaaaaaaaaaaaabb
-bbbbbbbbbbbbcccc
-ccccccccccdddddd
-ddddddddeeeeeeee
-eeeeeeffffffffff
-ffffgggggggggggg
-gghhhhhhhhhhhhhh
+hi             lo
+aaaaaaaa aaaaaabb
+bbbbbbbb bbbbcccc
+cccccccc ccdddddd
+dddddddd eeeeeeee
+eeeeeeff ffffffff
+ffffgggg gggggggg
+gghhhhhh hhhhhhhh
+
+The above is 16 bit big endian.
+Linear bytes in a file look like this:
+aaaaaabb aaaaaaaa
+bbbbcccc bbbbbbbb
+ccdddddd cccccccc
+eeeeeeee dddddddd
+ffffffff eeeeeeff
+gggggggg ffffgggg
+hhhhhhhh gghhhhhh
+
+Which better explains the layout of the following raw_pixblock struct.
 */
 
 #ifndef _raw_h_
@@ -130,6 +142,8 @@ void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int 
 /* you have to call request/release in pairs (be careful not to request once and release twice) */
 void raw_lv_request();
 void raw_lv_release();
+void raw_lv_request_bpp(int bpp);
+void raw_lv_request_digital_gain(int gain); /* 4096 = 1.0, 0 = disable */
 int raw_lv_enabled();
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
@@ -143,7 +157,7 @@ int raw_lv_shave_right(int offset);
 int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
-void raw_force_aspect_ratio_1to1();
+void raw_force_aspect_ratio(int factor_x, int factor_y);
 void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars);
 
 /* call this after you have altered the preview settings, and you want to restore the original ones */
@@ -153,7 +167,10 @@ void raw_set_dirty(void);
 int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y); /* this is in shoot.c */
 
 /* called from state-object.c */
-void raw_lv_vsync_cbr();
+void raw_lv_vsync();
+
+/* called from lv-img-engio.c */
+int _raw_lv_get_iso_post_gain();
 
 /* units: EV x100 */
 int get_dxo_dynamic_range(int raw_iso);
@@ -161,11 +178,7 @@ int get_dxo_dynamic_range(int raw_iso);
 /* raw image info (geometry, calibration levels, color, DR etc); parts of this were copied from CHDK */
 struct raw_info {
     uint32_t api_version;           // increase this when changing the structure
-    #if INTPTR_MAX == INT32_MAX     // only works on 32-bit systems
     void* buffer;                   // points to image data
-    #else
-    uint32_t do_not_use_this;       // this can't work on 64-bit systems
-    #endif
     
     int32_t height, width, pitch;
     int32_t frame_size;
@@ -202,7 +215,95 @@ struct raw_info {
     int32_t dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
 };
 
+/* raw image info "raw_info_t" used for file IO on host pc tools */
+#if INTPTR_MAX != INT32_MAX
+typedef struct {
+    uint32_t api_version;           // increase this when changing the structure
+    uint32_t do_not_use_this;       // was the memory buffer, this can't work on 64-bit systems
+    
+    int32_t height, width, pitch;
+    int32_t frame_size;
+    int32_t bits_per_pixel;         // 14
+
+    int32_t black_level;            // autodetected
+    int32_t white_level;            // somewhere around 13000 - 16000, varies with camera, settings etc
+                                    // would be best to autodetect it, but we can't do this reliably yet
+    union                           // DNG JPEG info
+    {
+        struct
+        {
+            int32_t x, y;           // DNG JPEG top left corner
+            int32_t width, height;  // DNG JPEG size
+        } jpeg;
+        struct
+        {
+            int32_t origin[2];
+            int32_t size[2];
+        } crop;
+    };
+    union                       // DNG active sensor area (Y1, X1, Y2, X2)
+    {
+        struct
+        {
+            int32_t y1, x1, y2, x2;
+        } active_area;
+        int32_t dng_active_area[4];
+    };
+    int32_t exposure_bias[2];       // DNG Exposure Bias (idk what's that)
+    int32_t cfa_pattern;            // stick to 0x02010100 (RGBG) if you can
+    int32_t calibration_illuminant1;
+    int32_t color_matrix1[18];      // DNG Color Matrix
+    int32_t dynamic_range;          // EV x100, from analyzing black level and noise (very close to DxO)
+} raw_info_t;
+#else
+typedef struct raw_info raw_info_t;
+#endif
+
 extern struct raw_info raw_info;
+
+static inline void raw_info_to_camera(raw_info_t *dst, struct raw_info *src)
+{
+    dst->api_version = src->api_version;
+    dst->height = src->height;
+    dst->width = src->width;
+    dst->pitch = src->pitch;
+    dst->bits_per_pixel = src->bits_per_pixel;
+    dst->black_level = src->black_level;
+    dst->white_level = src->white_level;
+    dst->jpeg.x = src->jpeg.x;
+    dst->jpeg.y = src->jpeg.y;
+    dst->jpeg.width = src->jpeg.width;
+    dst->jpeg.height = src->jpeg.height;
+    dst->exposure_bias[0] = src->exposure_bias[0];
+    dst->exposure_bias[1] = src->exposure_bias[1];
+    dst->cfa_pattern = src->cfa_pattern;
+    dst->calibration_illuminant1 = src->calibration_illuminant1;
+    memcpy(dst->color_matrix1, src->color_matrix1, sizeof(dst->color_matrix1));
+    memcpy(dst->dng_active_area, src->dng_active_area, sizeof(dst->dng_active_area));
+    dst->dynamic_range = src->dynamic_range;
+}
+
+static inline void raw_info_from_camera(struct raw_info *dst, raw_info_t *src)
+{
+    dst->api_version = src->api_version;
+    dst->height = src->height;
+    dst->width = src->width;
+    dst->pitch = src->pitch;
+    dst->bits_per_pixel = src->bits_per_pixel;
+    dst->black_level = src->black_level;
+    dst->white_level = src->white_level;
+    dst->jpeg.x = src->jpeg.x;
+    dst->jpeg.y = src->jpeg.y;
+    dst->jpeg.width = src->jpeg.width;
+    dst->jpeg.height = src->jpeg.height;
+    dst->exposure_bias[0] = src->exposure_bias[0];
+    dst->exposure_bias[1] = src->exposure_bias[1];
+    dst->cfa_pattern = src->cfa_pattern;
+    dst->calibration_illuminant1 = src->calibration_illuminant1;
+    memcpy(dst->color_matrix1, src->color_matrix1, sizeof(dst->color_matrix1));
+    memcpy(dst->dng_active_area, src->dng_active_area, sizeof(dst->dng_active_area));
+    dst->dynamic_range = src->dynamic_range;
+}
 
 /* image capture parameters */
 struct raw_capture_info {

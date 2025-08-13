@@ -1,8 +1,0 @@
-
-ML_BITRATE_OBJ = bitrate-5d3.o
-ML_AF_PATTERNS_OBJ = n
-
-ML_SRC_EXTRA_OBJS = \
-	video_hacks.o \
-	afma.o \
-	asm.o

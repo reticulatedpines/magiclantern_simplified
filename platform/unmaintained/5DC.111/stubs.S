@@ -30,7 +30,7 @@
 
 .text
 
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF81005C,  firmware_entry_2_params)
 
 

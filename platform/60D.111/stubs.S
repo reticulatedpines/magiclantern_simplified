@@ -40,7 +40,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF011028,  cstart)
 NSTUB(0xFF53801C,  bzero32)                                 // called by cstart()
 NSTUB(0xFF017B68,  create_init_task)
@@ -283,6 +283,7 @@ NSTUB(0xFF1C8CD4,  UnLockEngineResources)
 NSTUB(0xFF06E3D4,  create_named_semaphore)                  // found by finsig
 NSTUB(0xFF06E61C,  give_semaphore)
 NSTUB(0xFF06E534,  take_semaphore)
+NSTUB(0xFF06E4DC,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x3234,  task_max)

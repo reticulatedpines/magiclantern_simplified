@@ -981,7 +981,7 @@ static void config_menu_init()
 {
 #ifdef CONFIG_CONFIG_FILE
     menu_add( "Prefs", cfg_menus, COUNT(cfg_menus) );
-    config_save_sem = create_named_semaphore("config_save_sem",1);
+    config_save_sem = create_named_semaphore("config_save_sem", SEM_CREATE_UNLOCKED);
 #endif
 }
 

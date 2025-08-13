@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # http://code.activestate.com/recipes/577946-word-wrap-for-proportional-fonts/
 # MIT license
 
@@ -25,7 +25,7 @@ def word_wrap(text, width, extent_func):
         tokens.append('')
         widths = [sum(lookup[c] for c in token) for token in tokens]
         start, total = 0, 0
-        for index in xrange(0, len(tokens), 2):
+        for index in range(0, len(tokens), 2):
             if total + widths[index] > width:
                 end = index + 2 if index == start else index
                 lines.append(''.join(tokens[start:end]))
@@ -55,4 +55,4 @@ if __name__ == '__main__':
     # wrap to 80 columns
     lines = word_wrap(text, 80, extent_func)
     for line in lines:
-        print line
+        print(line)

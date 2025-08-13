@@ -1,28 +1,39 @@
 # Makefile for the io_decrypt software
 
-C_FILES=io_decrypt.c crypt_lfsr64.c crypt_xtea.c crypt_rsa.c hash_password.c bigdigits.c bigd.c
-C_DEPS=crypt_lfsr64.h
+# FIXME - this is broken on linux, it's missing something that causes
+# uint32_t to be used, in bigdtypes.h, leading to:
+# bigdtypes.h:52:25: error: duplicate 'unsigned'
+#   52 |         #define uint8_t unsigned char
+#
+# Consequently, I've only partially fixed it for the big build system
+# refactor, because I can't build it to test.
+# More things will need to be output to $(BUILD_DIR),
+# and something will need to trigger the HOST_BIN target in this file.
+# Maybe adding a prerequisite to modules/Makefile for MODULE_NAME.mo
+# target?  Via a variable?
 
-HOST_BIN=io_decrypt
-HOST_OBJ=${C_FILES:.c=.host.o}
+C_FILES = io_decrypt.c crypt_lfsr64.c crypt_xtea.c crypt_rsa.c hash_password.c bigdigits.c bigd.c
+C_DEPS = crypt_lfsr64.h
 
-HOSTCC=gcc
-HOST_CFLAGS=-m32 -ggdb -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -I. -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -std=c99 -DHAVE_C99INCLUDES -D_GNU_SOURCE
-HOST_LDFLAGS=-lm -m32
+HOST_BIN = $(BUILD_DIR)/io_decrypt
+HOST_OBJ = ${C_FILES:.c = .host.o}
 
+HOSTCC = gcc
+HOST_CFLAGS = -m32 -ggdb -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) \
+              -I. -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -std=c99 \
+              -DHAVE_C99INCLUDES -D_GNU_SOURCE
+HOST_LDFLAGS = -lm -m32
 
-MINGW=i686-w64-mingw32
-MINGW_GCC=$(MINGW)-gcc
-MINGW_AR=$(MINGW)-ar
-MINGW_OBJ=${C_FILES:.c=.w32.o}
-MINGW_CFLAGS=$(HOST_CFLAGS)
-MINGW_LDFLAGS=$(HOST_LDFLAGS)
-
+MINGW = i686-w64-mingw32
+MINGW_GCC = $(MINGW)-gcc
+MINGW_AR = $(MINGW)-ar
+MINGW_OBJ = ${C_FILES:.c = .w32.o}
+MINGW_CFLAGS = $(HOST_CFLAGS)
+MINGW_LDFLAGS = $(HOST_LDFLAGS)
 
 ifdef FOR_OSX
-    HOST_CFLAGS=$(HOST_CFLAGS) -arch i386 -mmacosx-version-min=10.6
+    HOST_CFLAGS = $(HOST_CFLAGS) -arch i386 -mmacosx-version-min=10.6
 endif
-
 
 %.host.o: %.c
 	$(HOSTCC) $(HOST_CFLAGS) -o $@ -c $<
@@ -35,9 +46,3 @@ $(HOST_BIN): $(HOST_OBJ) $(C_DEPS)
 
 $(HOST_BIN).exe: $(MINGW_OBJ) $(C_DEPS)
 	$(MINGW_GCC) $(MINGW_CFLAGS) $(MINGW_LDFLAGS) -o $@ $(MINGW_OBJ)
-
-clean::
-	$(call rm_files, $(HOST_BIN) $(HOST_BIN).exe)
-
-all:: $(HOST_BIN)
-

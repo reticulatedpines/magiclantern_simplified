@@ -2,17 +2,20 @@
 # Tiny C Compiler Makefile
 #
 
+# FIXME this module has not been fully converted to output all build artifacts
+# to build/ - because it looked hard and I was tired.
+# The .mo builds there though, so perhaps enough works?
+
 TOP ?= .
 
-# this is a very simple makefile for modules
-TOP_DIR=$(TOP)/../..
-
 # define the module name - make sure name is max 8 characters
-MODULE_NAME=tcc
-MODULE_OBJS=libtccx.o
+MODULE_NAME = tcc
+MODULE_OBJS = libtccx.o
+TOP_DIR = $(TOP)/../..
 
 # include modules environment
-include $(TOP_DIR)/modules/Makefile.modules
+include $(TOP_DIR)/modules/Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/module_complete
 
 include $(TOP)/config.mak
 
@@ -258,9 +261,11 @@ export LIBTCC1
 %est:
 	$(MAKE) -C tests $@
 
-clean::
+clean:
 	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test$(EXESUF)
+	rm -r -- $(BUILD_DIR)
 	#~ $(MAKE) -C tests $@
+
 ifneq ($(LIBTCC1),)
 	$(MAKE) -C lib $@
 endif

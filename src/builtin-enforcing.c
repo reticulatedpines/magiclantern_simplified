@@ -43,6 +43,31 @@
 #include <stdint.h>
 #include <math.h>
 
+// SJE the following used an unpleasant hack to force various
+// symbols to be present in main ML binary, so that modules could have
+// them as dependencies.
+//
+// This is now handled directly in platform/Makefile:
+//
+// LFLAGS += -u __aeabi_f2ulz -u __aeabi_f2lz
+//
+// a) this is much cleaner
+// b) it saves about 800 bytes for all builds
+//
+// Note this only includes those symbols I found to need it at the time.
+// It is possible that new modules, or different build config of main ML,
+// might have different deps.
+// The symptom would be a module that builds fine but the dep cannot
+// be found in ML or any other module.
+// The missing symbol can be added to the above Makefile line.
+//
+// Code below preserved for historical reasons - and because it's
+// quite possible I've missed some dep, and maybe the above approach can't
+// be used to fix it?
+//
+// 2025-04-03
+#if 0
+
 /* this macro simplifies creation of a series of instructions that do type conversion */
 #define CREATE_BUILTIN_CONVERSION(type1,type2) \
     do \
@@ -118,3 +143,4 @@ void unused_dummy_func()
 
 #endif
 }
+#endif // if 0

@@ -43,6 +43,15 @@
     // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
     uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
     {
+        #ifdef CONFIG_500D
+        if (RECORDING_H264 && sound_recording_enabled_canon())
+        {
+            /* trick to slow down writes to BMP buffer */
+            /* apparently this causes ERR70 while recording H.264 with sound */
+            bmp_buf = UNCACHEABLE(bmp_buf);
+        }
+        #endif
+
         // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
         // 500D: LCD: 003638100 / HDMI: 003631008
         // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
@@ -189,14 +198,16 @@ void refresh_yuv_from_rgb(void)
     uint32_t *rgb_data = NULL;
 
     if (rgb_vram_info != NULL)
+    {
         rgb_data = (uint32_t *)rgb_vram_info->bitmap_data;
+    }
     else
     {
         DryosDebugMsg(0, 15, "rgb_vram_info was NULL, can't refresh OSD");
         return;
     }
 
-    //SJE FIXME benchmark this loop, it probably wants optimising
+#if !defined(CONFIG_INSTALLER)
     if(zebra_should_run()){
         // always draw our stuff, including full alpha
         for (size_t n = 0; n < BMP_VRAM_SIZE; n++){
@@ -205,6 +216,31 @@ void refresh_yuv_from_rgb(void)
         }
     }
     else{
+#endif
+#if defined(CONFIG_DIGIC_X) && !defined(CONFIG_COMPOSITOR_DEDICATED_LAYER)
+        // kitor FIXME this is the loop altered to work with 2048x1080 layers.
+        // Resolution needs confirmation on R6.
+        //
+        // I think this could be used as general solution?
+        // Shall we use per-camera constants in bmp.c? Or maybe get this at runtime
+        // from Ximr / XCM?
+        uint32_t *rgb_row = rgb_data;
+        for (uint y = 0; y < BMP_H_PLUS - BMP_H_MINUS; y++ )
+        {
+            rgb_data = rgb_row;
+            for(uint x = 0; x < BMPPITCH; x++ )
+            {
+                uint32_t rgb = indexed2rgb(*b);
+                if ((rgb && 0xff000000) == 0x00000000)
+                    rgb_data++;
+                else
+                    *rgb_data++ = rgb;
+                b++;
+            }
+            rgb_row = rgb_row + BMP_LAYER_WIDTH;
+        }
+#else
+        //SJE FIXME benchmark this loop, it probably wants optimising
         for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
         {
             // limited alpha support, if dest pixel would be full alpha,
@@ -217,7 +253,10 @@ void refresh_yuv_from_rgb(void)
                 *rgb_data++ = rgb;
             b++;
         }
+#endif
+#if !defined(CONFIG_INSTALLER)
     }
+#endif
 
     // trigger Ximr to render to OSD from RGB buffer
 #ifdef CONFIG_DIGIC_VI
@@ -230,7 +269,13 @@ void refresh_yuv_from_rgb(void)
     ml_refresh_display_needed = 0;
 }
 
-static void refresh_yuv_from_rgb_task(void *unused)
+#if defined(CONFIG_INSTALLER)
+// Normally in tasks.c, which installer builds don't include.
+// Unused, just need it defined to build.
+int ml_shutdown_requested = 0;
+#endif
+
+void refresh_yuv_from_rgb_task(void *unused)
 {
     #ifdef CONFIG_COMPOSITOR_DEDICATED_LAYER
     DryosDebugMsg(0, 15, "Canon layer: 0x%08x", rgb_vram_info);
@@ -317,26 +362,7 @@ inline void bmp_putpixel_fast(uint8_t *const bvram, int x, int y, uint8_t color)
         SET_4BIT_PIXEL(p, x, color);
     #else
         bvram[x + y * BMPPITCH] = color;
-        #ifdef CONFIG_500D // err70?!
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-         #endif
-     #endif
-     ml_refresh_display_needed = 1;
+    #endif
 }
 
 
@@ -555,25 +581,6 @@ bmp_fill(
 #else
         memset(row, color, w);
 #endif
-
-     #ifdef CONFIG_500D // err70?!
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-     #endif
     }
     ml_refresh_display_needed = 1;
 }
@@ -596,6 +603,14 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
         goto offsetsize_fail;
     }
 
+     if (bmp->height < 0)
+     {
+         // MS decided this would be a great idea;
+         // If height is negative the image is stored upside down,
+         // and you should negate height to get real height.
+         bmp->height = 0 - bmp->height;
+     }
+
     // Since the read was into uncacheable memory, it will
     // be very slow to access.  Copy it into a cached buffer
     // and release the uncacheable space.
@@ -612,7 +627,7 @@ struct bmp_file_t *bmp_load_ram(uint8_t *buf, uint32_t size, uint32_t compressio
         uint32_t size_needed = sizeof(struct bmp_file_t);
         uint8_t* fast_buf;
         uint32_t x = 0;
-        uint32_t y = 0;
+        int32_t y = 0;
         uint8_t* gpos;
         uint8_t count = 0;
         uint8_t color = 0;
@@ -693,6 +708,7 @@ bmp_load(
     struct bmp_file_t *ret = bmp_load_ram(buf, size, compression);
     
     fio_free( buf );
+    buf = NULL;
     
     if(ret)
     {
@@ -1171,7 +1187,9 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     // if c < 0 we can always proceed as these are built-in via ico.c
     if (c >= 0 && !bfnt_ok())
     {
+        #ifndef PYCPARSER   /* circular dependency */
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+        #endif
         return 0;
     }
 
@@ -1443,12 +1461,12 @@ void bmp_zoom(uint8_t* dst, uint8_t* src, int x0, int y0, int denx, int deny)
     }
 }
 
-void * bmp_lock = 0;
+void *bmp_lock = NULL;
 
 
 static void bmp_init(void* unused)
 {
-    bmp_lock = CreateRecursiveLock(0);
+    bmp_lock = CreateRecursiveLock(NULL);
     ASSERT(bmp_lock)
     bvram_mirror_init();
 #ifdef FEATURE_VRAM_RGBA

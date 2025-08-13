@@ -1,10 +1,8 @@
 #define FEATURE_VRAM_RGBA
 
-//enable XCM only in full build
-#ifndef ML_MINIMAL_OBJ
 #define CONFIG_COMPOSITOR_XCM
 #define CONFIG_COMPOSITOR_DEDICATED_LAYER
-#endif
+#define CONFIG_COMPOSITOR_XCM_V1
 
 // Don't Click Me menu looks to be intended as a place
 // for devs to put custom code in debug.c run_test(),
@@ -31,6 +29,10 @@
 
 // enable for testing gui structure changes
 #define CONFIG_RESTORE_AFTER_FORMAT
+
+// We can't yet rely on image capture.  Cam crashes due to null pointer,
+// I think?  If it fails to AF lock, for example.
+#define CONFIG_IMAGE_CAPTURE_NOT_WORKING
 
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_PROP_REQUEST_CHANGE

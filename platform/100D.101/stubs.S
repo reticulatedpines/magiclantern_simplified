@@ -28,10 +28,10 @@
 #include <stub.h>
 
 .text
-#define RAM_OFFSET 0xFFA9C4B8                               // (0xFFA9DDB8-0x1900)
+//#define RAM_OFFSET 0xFFA9C4B8                               // (0xFFA9DDB8-0x1900)
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
 NSTUB(0xFF0C1BD0,  cstart)                                    
 NSTUB(   0x5E3A8,  bzero32)                                    
 NSTUB(    0x2F28,  create_init_task)                        
@@ -75,7 +75,7 @@ NSTUB(0xFF1127A8,  StartASIFDMADAC)
 NSTUB(0xFF112A28,  StopASIFDMADAC)
 NSTUB(0xFF112680,  StopASIFDMAADC)
 NSTUB(0xFF114EB0,  SoundDevActiveIn)
-NSTUB(0xFF112680,  SoundDevShutDownIn)
+NSTUB(0xFF115108,  SoundDevShutDownIn)
 
 /** Audio **/
 NSTUB(   0x65900,  sounddev)
@@ -115,8 +115,8 @@ NSTUB(0xFF545F38,  LiveViewApp_handler)
 NSTUB(0xFF5485FC,  LiveViewApp_handler_end)
 NSTUB(0xFF546CC4,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF7103A4,  LiveViewShutterApp_handler)
-NSTUB(0xFF72EC20,  PlayMain_handler)
-NSTUB(0xFF56436C,  PlayMovieGuideApp_handler)
+NSTUB(0xFF72EC20,  PlayMain_handler)                        // StartPlayTouchPassFilterApp
+NSTUB(0xFF56436C,  PlayMovieGuideApp_handler)               // StartPlayMovieGuideApp
 NSTUB(0xFF553078,  ShootOlcApp_handler)
 
 /** Display **/
@@ -238,11 +238,12 @@ NSTUB(0xFF2B689C,  UnLockEngineResources)
 NSTUB(    0x72F8,  create_named_semaphore)
 NSTUB(    0x7544,  give_semaphore)
 NSTUB(    0x7458,  take_semaphore)
+NSTUB(    0x7400,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x259C,  get_current_task)
-NSTUB(0xFFAABFD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
-NSTUB(0xFFAE833C - RAM_OFFSET,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
+NSTUB(    0xFB20,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(   0x4BE84,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
 NSTUB(   0x6669C,  task_max)
 NSTUB(   0x652AC,  current_task)
 NSTUB(     0x64C,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
@@ -256,6 +257,6 @@ NSTUB(   0x652C0,  task_dispatch_hook)                      // task_trampoline -
 NSTUB(    0xD070,  task_trampoline)
 
 /** Misc **/
-NSTUB(0xFFAD5048 - RAM_OFFSET,  vsnprintf)
+NSTUB(   0x38B90,  vsnprintf)
 NSTUB(0xFF13A87C,  LoadCalendarFromRTC)
 NSTUB(0xFFAA4070,  GetTaskName)

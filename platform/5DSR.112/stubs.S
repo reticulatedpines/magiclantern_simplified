@@ -29,7 +29,8 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)
+THUMB_FN(0xfe0ee2dc,  pre_cstart_func) // needed to easily patch for compacting firmware_entry and cstart regions
 THUMB_FN(0xFE0EE2FC,  cstart)
 ARM32_FN(0xFE3F4470,  bzero32)
 ARM32_FN(0xFE3F3F20,  create_init_task)
@@ -40,6 +41,7 @@ DATA_PTR(    0x44D4,  current_interrupt)
 DATA_PTR(    0x44F4,  current_task)
 ARM32_FN(0xFE3F4458,  msleep)
 ARM32_FN(0xFE3F43D0,  task_create)
+THUMB_FN(0x80001358,  get_task_info_by_id)
 
 /** Interrupts **/
 DATA_PTR(   0x1A770,  isr_table_handler)

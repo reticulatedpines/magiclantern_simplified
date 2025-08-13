@@ -44,6 +44,98 @@
 #include "string.h"
 #include "powersave.h"
 
+
+// exact ISO values would break the feature of coloring ISO's :)
+// sprintf("%d,", round(12800 ./ 2.^([56:-1:0]./8)))
+                               //~ 100,109,119,130,141,154,168,183,200,218,238,259,283,308,336,367,400,436,476,519,566,617,673,734,800,872,951,1037,1131,1234,1345,1467,1600,1745,1903,2075,2263,2468,2691,2934,3200,3490,3805,4150,4525,4935,5382,5869,6400,6979,7611,12800,25600};
+const uint16_t values_iso[ISO_ARRAY_LEN] =
+        {0,100,110,115,125,140,160,170,185,200,
+         220,235,250,280,320,350,380,400,435,470,
+         500,560,640,700,750,800,860,930,1000,1100,
+         1250,1400,1500,1600,1750,1900,2000,2250,2500,2800,
+         3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,
+         12800,25600};
+const uint8_t codes_iso[ISO_ARRAY_LEN] =
+        {0, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+         81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+         91, 92, 93, 94, 95, 96, 97, 98,  99, 100,
+         101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+         111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
+         128,  136};
+
+// measured from 5D3 in movie mode with expo override, and rounded manually to match Canon values
+// at long exposures, the real durations are 32 seconds and 16 seconds;
+// don't round those, since it may be important to know if you are using the intervalometer
+// the others are more or less exact (25.5, 20, 12.5, 10...)
+// market values:
+// 30"  25"  20" 20"  15"  13"  10"  10"   8"   6"
+// 6"    5"   4"  3"2  3"   2"5  2"   1"6  1"5  1"3
+// 1"    0"8  0"7 0"6  0"5  0"4  0"3  0"3  1/4  1/5
+// 1/6  1/6   1/8 1/10 1/10 1/13 1/15 1/20 1/25 30
+// 40    45    50 60   80   90   100  125  160  180
+// 200   250  320 350  400  500  640  750  800  1000
+// 1250 1500 1600 2000 2500 3000 3200 4000 5000 6000
+// 6400 8000
+const uint16_t values_shutter[SHUTTER_ARRAY_LEN] =
+        {0, 320, 320, 320, 250, 200, 200, 200, 200, 160,
+         160, 160, 125, 100, 100, 100, 100,  80,  80,  80,
+         60,  60,  50,  50,  50,  40,  40,  40,  32,  30,
+         25,  25,  25,  20,  20,  20,  16,  15,  13,  13,
+         13,  10,  10,  10,   8,   7,   6,   6,   6,   5,
+         5,   5,   4,   3,   3,   3,   3,   4,   4,   4,
+         5,   6,   6,   6,   6,   8,   8,   8,  10,  10,
+         13,  13,  13,  15,  15,  15,  20,  20,  25,  27,
+         28,  30,  35,  38,  40,  45,  50,  55,  58,  60,
+         70,  80,  80,  90, 100, 110, 120, 125, 140, 150,
+         160, 180, 200, 215, 235, 250, 280, 300, 320, 350,
+         400, 430, 470, 500, 560, 600, 640, 750, 800, 850,
+         900,1000,1100,1200,1250,1500,1600,1700,1900,2000,
+         2300,2400,2500,3000,3200,3500,3800,4000,4500,4800,
+         5000,6000,6400,7200,7800,8000};
+const uint8_t codes_shutter[SHUTTER_ARRAY_LEN] =
+        {0,  16,  17,  18,  19,  20,  21,  22,  23,  24,
+        25,  26,  27,  28,  29,  30,  31,  32,  33,  34,
+        35,  36,  37,  38,  39,  40,  41,  42,  43,  44,
+        45,  46,  47,  48,  49,  50,  51,  52,  53,  54,
+        55,  56,  57,  58,  59,  60,  61,  62,  63,  64,
+        65,  66,  67,  68,  69,  70,  71,  72,  73,  74,
+        75,  76,  77,  78,  79,  80,  81,  82,  83,  84,
+        85,  86,  87,  88,  89,  90,  91,  92,  93,  94,
+        95,  96,  97,  98,  99, 100, 101, 102, 103, 104,
+        105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+        115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
+        125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
+        135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
+        145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+        155, 156, 157, 158, 159, 160};
+
+// aperture*10
+// in 1/8ev, but values different than Canon display:
+const uint16_t values_aperture[APERTURE_ARRAY_LEN] =
+        {0,  10,  11,  11,  12,  12,  13,  14,  14,  15,
+        16,  16,  17,  18,  19,  20,  20,  21,  22,  23,
+        24,  25,  27,  28,  29,  30,  32,  33,  35,  36,
+        38,  40,  41,  43,  45,  47,  49,  51,  54,  56,
+        59,  61,  64,  67,  70,  73,  76,  80,  83,  87,
+        91,  95,  99, 103, 108, 113, 118, 123, 128, 134,
+        140, 146, 153, 160, 167, 174, 182, 190, 198, 207,
+        216, 226, 236, 246, 257, 269, 281, 293, 306, 320,
+        334, 348, 364, 380, 397, 414, 433, 452};
+const uint8_t codes_aperture[APERTURE_ARRAY_LEN] =
+        {0,  10,  11,  12,  13,  14,  15,  16,  17,  18,
+        19,  20,  21,  22,  23,  24,  25,  26,  27,  28,
+        29,  30,  31,  32,  33,  34,  35,  36,  37,  38,
+        39,  40,  41,  42,  43,  44,  45,  46,  47,  48,
+        49,  50,  51,  52,  53,  54,  55,  56,  57,  58,
+        59,  60,  61,  62,  63,  64,  65,  66,  67,  68,
+        69,  70,  71,  72,  73,  74,  75,  76,  77,  78,
+        79,  80,  81,  82,  83,  84,  85,  86,  87,  88,
+        89,  90,  91,  92,  93,  94,  95,  96};
+
+// in 1/2 - 1/3 EV, same values as Canon display:
+//~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
+//~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
+
 // for movie logging
 #ifdef FEATURE_MOVIE_LOGGING
 static char* mvr_logfile_buffer = 0;
@@ -62,7 +154,7 @@ static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 10
 #define crop_info 0
-#elif defined(CONFIG_600D)
+#elif defined(CONFIG_600D) || defined(CONFIG_70D)
 static PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 #define DIGITAL_ZOOM ((is_movie_mode() && video_mode_crop && video_mode_resolution == 0) ? digital_zoom_ratio : 100)
 #define SENSORCROPFACTOR (16 * DIGITAL_ZOOM / 100)
@@ -444,9 +536,13 @@ static int round_nicely(int x, int digits)
 const char * lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 {
     static char shutter[32];
-    if (shutter_reciprocal_x1000 == 0)
+    if (shutter_reciprocal_x1000 <= 0)
     {
         snprintf(shutter, sizeof(shutter), "N/A");
+    }
+    else if (shutter_reciprocal_x1000 == INT_MAX)
+    {
+        snprintf(shutter, sizeof(shutter), "0.0");
     }
     else if (shutter_reciprocal_x1000 >= 10000000)
     {
@@ -578,6 +674,12 @@ static volatile int lv_focus_requests = 0;
 static volatile int lv_focus_done = 1;
 static volatile int lv_focus_error = 0;
 
+// 70D focus features don't play well with this and
+// soft limit is reached very quickly
+// see http://www.magiclantern.fm/forum/index.php?topic=14309.msg152551#msg152551
+// skipping the check helps but for e.g. focus stacking is still buggy
+// and takes 1 behind and 1 before all others afterwards are before at the same
+// position no matter what's set in menu
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
     /* turn off the LED we enabled in lens_focus */
@@ -657,11 +759,17 @@ lens_focus(
     int extra_delay
 )
 {
+#ifdef CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
+    /* always wait on old models */
+    wait = 1;
+#endif
+
     lv_focus_done = 0;
     lv_focus_error = 0;
 
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
+    if (is_continuous_af()) return 0;
 
     if (num_steps < 0)
     {
@@ -689,13 +797,23 @@ lens_focus(
                 /* not all cameras having this string require this though (550D, maybe 7D as well) */
                 /* todo: VxWorks cameras may require this too */
                 extern volatile int pfAfComplete_counter;
+
                 int old = pfAfComplete_counter;
-
-                prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
-
                 while (pfAfComplete_counter == old)
                 {
-                    msleep(10);
+                    msleep(20);
+                }
+
+                /* send focus command */
+                prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+
+                /* wait for confirmation from PROP_LV_FOCUS_DONE */
+                lens_focus_wait();
+
+                old = pfAfComplete_counter;
+                while (pfAfComplete_counter == old)
+                {
+                    msleep(20);
                 }
 #else
                 /* request and wait for confirmation */
@@ -745,17 +863,34 @@ lens_focus(
     return lv_focus_error ? 0 : 1;
 }
 
+// wait is max wait in seconds
 void lens_wait_readytotakepic(int wait)
 {
     int i;
     for (i = 0; i < wait * 20; i++)
     {
-        if (ml_shutdown_requested) return;
-        if (sensor_cleaning) { msleep(50); continue; }
-        if (shooting_mode == SHOOTMODE_M && lens_info.raw_shutter == 0) { msleep(50); continue; }
-        if (job_state_ready_to_take_pic() && burst_count > 0 && ((icu_uilock & 0xFF) == 0)) break;
+        if (ml_shutdown_requested)
+            return;
+        if (sensor_cleaning)
+        {
+            msleep(50);
+            continue;
+        }
+        if (shooting_mode == SHOOTMODE_M && lens_info.raw_shutter == 0)
+        {
+            // "Canon firmware was reporting shutter speed as 0 in M mode while the flash was recharging."
+            // The intent here is to wait for flash unit to charge.
+            // We handle a different case of raw_shutter == 0 in lens_init().
+            msleep(50);
+            continue;
+        }
+        if (job_state_ready_to_take_pic() && burst_count > 0 && ((icu_uilock & 0xFF) == 0))
+        {
+            break;
+        }
         msleep(50);
-        if (NOT_RECORDING) info_led_on();
+        if (NOT_RECORDING)
+            info_led_on();
     }
     if (NOT_RECORDING) info_led_off();
 }
@@ -1228,13 +1363,13 @@ PROP_HANDLER( PROP_MVR_REC_START )
     #endif
 }
 
-#ifdef CONFIG_DIGIC_VIII //confirmed R, RP, M50
+#if defined(CONFIG_DIGIC_8X)
+//confirmed R, RP, M50
 PROP_HANDLER( PROP_LENS_STATIC_DATA )
 {
     ASSERT(len == sizeof(struct prop_lens_static_data));
 
     const struct prop_lens_static_data * _static = (void*) buf;
-
     strncpy( lens_info.name, _static->lens_name, sizeof(lens_info.name) );
     lens_info.name[sizeof(lens_info.name) - 1] = '\0'; //null terminate
 
@@ -1763,8 +1898,8 @@ void _lens_dynamic_data_post_update()
     update_stuff();
 }
 
-#if !defined(CONFIG_DIGIC_VIII)
-// DIGIC8 uses PROP_LENS_DYNAMIC_DATA
+#if !defined(CONFIG_DIGIC_VIII) && !defined(CONFIG_DIGIC_X)
+// DIGIC8+ uses PROP_LENS_DYNAMIC_DATA
 /* only used for requesting a refresh of PROP_LV_LENS;
  * raw data is model-dependent, do not use directly */
 static struct prop_lv_lens lv_lens_raw;
@@ -1802,7 +1937,10 @@ void _prop_lv_lens_request_update()
 {
 #if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
     // this will make PROP_LV_LENS update itself outside LV mode on D67 models.
-    call("msub.lensdata");
+    // But it will spam uart with EvtMainSubRequestLensData
+// SJE FIXME this is far too annoying to enable during dev,
+// but may be wanted later (can we make it quieter?)
+//    call("msub.lensdata");
 #elif defined(CONFIG_DIGIC_45)
     /* this property is normally active only in LiveView
      * however, the MPU can be tricked into sending its value outside LiveView as well
@@ -1817,7 +1955,7 @@ void _prop_lv_lens_request_update()
 }
 #endif
 
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 PROP_HANDLER( PROP_LENS_DYNAMIC_DATA )
 {
     if(len != sizeof(struct prop_lens_dynamic_data))
@@ -2148,7 +2286,13 @@ crop_factor_menu_init()
 static void
 lens_init( void* unused )
 {
-    focus_done_sem = create_named_semaphore( "focus_sem", 1 );
+    // On some cams, at least 200D, if you start in M mode, raw_shutter is 0.
+    // This can cause problems with intervalometer logic in lens_wait_readytotakepic(),
+    // which waits for too long, thinking the flash is charging.
+    // We expect PROP_SHUTTER_* to fire and update this, but it doesn't happen on 200D.
+    lens_info.raw_shutter = 100;
+
+    focus_done_sem = create_named_semaphore("focus_sem", SEM_CREATE_UNLOCKED);
 #ifndef CONFIG_5DC
     menu_add("Movie Tweaks", lens_menus, COUNT(lens_menus));
 #endif
@@ -2215,6 +2359,7 @@ LENS_SET_IN_PICSTYLE(saturation, -4, 4)
 LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
 
+// half shutter
 void SW1(int v, int wait)
 {
     v = COERCE(v, 0, 1);
@@ -2224,6 +2369,7 @@ void SW1(int v, int wait)
     if (wait) msleep(wait);
 }
 
+// full shutter
 void SW2(int v, int wait)
 {
     v = COERCE(v, 0, 1);
@@ -2762,7 +2908,7 @@ static LVINFO_UPDATE_FUNC(picq_update)
 
     if (!is_movie_mode())
     {
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 /* via R.180, confirmed RP.160; M50 and 850D have the same set of modes:
  * L        03030100   .XX .... ..XX .... ...X .... ....
  * l        03020100   .XX .... ..X. .... ...X .... ....
@@ -2792,9 +2938,9 @@ static LVINFO_UPDATE_FUNC(picq_update)
         int rawsize = pic_quality & 0xF;
         int jpegtype = pic_quality >> 24;
         int jpegsize = (pic_quality >> 8) & 0xFF;
-#endif //CONFIG_DIGIC_VIII
+#endif //CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
         snprintf(buffer, sizeof(buffer), "%s%s%s",
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
             raw ? (rawsize ? "RAW" : "CRAW") : "",  // just two options on D8
 #else
             rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
@@ -2899,6 +3045,8 @@ static LVINFO_UPDATE_FUNC(fps_update)
     if (is_movie_mode())
     {
         int f = fps_get_current_x1000();
+        if (f == 0)
+            return;
         snprintf(buffer, sizeof(buffer), 
             "%2d.%03d", 
             f / 1000, f % 1000
@@ -3006,7 +3154,7 @@ static LVINFO_UPDATE_FUNC(tv_update)
 }
 
 static int (*dual_iso_is_active)() = MODULE_FUNCTION(dual_iso_is_active);
-static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
+static int (*dual_iso_get_alternate_iso)() = MODULE_FUNCTION(dual_iso_get_alternate_iso);
 
 static LVINFO_UPDATE_FUNC(iso_update)
 {
@@ -3024,7 +3172,7 @@ static LVINFO_UPDATE_FUNC(iso_update)
     {
         snprintf(buffer, sizeof(buffer), SYM_ISO"%d/%d", 
             raw2iso(lens_info.iso_analog_raw),
-            raw2iso(dual_iso_get_recovery_iso())
+            raw2iso(dual_iso_get_alternate_iso())
         );
     }
     else if (is_movie_mode())
@@ -3052,7 +3200,11 @@ static LVINFO_UPDATE_FUNC(iso_update)
             item->color_fg = COLOR_ORANGE;
         }
 
+        #ifdef FRAME_ISO
         int lv_iso = (FRAME_ISO & 0xFF) + (get_htp() ? 8 : 0);
+        #else
+        int lv_iso = lens_info.raw_iso;
+        #endif
 
         if (ABS(lv_iso - lens_info.raw_iso) > 3)
         {

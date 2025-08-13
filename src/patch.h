@@ -2,17 +2,17 @@
 
 /* Features:
  * - Keep track of all memory patches
- * - Patch either a single address or an array/matrix of related memory addresses
- * - Undo the patches (built-in undo storage for simple patches, user-supplied storage for array/matrix patches)
+ * - Patch a single address at a time
+ * - Undo the patches
  * - Menu display
  */
 
 /* Design goals:
  * - Traceability: be able to see and review all patched addresses from menu
  * - Safety checking: do not patch if the memory contents is not what you expected
- * - Minimally invasive: only lock down cache when there's some ROM address to patch, and unlock it when it's no longer needed
+ * - Minimally invasive: for Digic 4 and 5, only lock down cache when there's some ROM address to patch, and unlock it when it's no longer needed
  * - Troubleshooting: automatically check whether the patch is still active or it was overwritten
- * - Versatility: cover a wide range of situations (bit patching, scaling, offset) with the same API
+ * - Unified interface: same external APIs for D45 and D78X patching, despite internal mechanism differing
  * 
  * Please do not patch memory directly; use these functions instead (especially for patches that can be undone at runtime).
  * RAM patches applied at boot time can be hardcoded for now (this may change).
@@ -25,6 +25,8 @@
 #ifndef _patch_h_
 #define _patch_h_
 
+#include <stdint.h>
+
 #define E_PATCH_OK 0
 #define E_PATCH_UNKNOWN_ERROR       0x1
 #define E_PATCH_ALREADY_PATCHED     0x2
@@ -33,107 +35,114 @@
 #define E_PATCH_CACHE_COLLISION     0x10
 #define E_PATCH_CACHE_ERROR         0x20
 #define E_PATCH_REG_NOT_FOUND       0x40
+#define E_PATCH_WRONG_CPU           0x80
+#define E_PATCH_NO_SGI_HANDLER      0x100
+#define E_PATCH_CPU1_SUSPEND_FAIL   0x200
+#define E_PATCH_MMU_NOT_INIT        0x400
+#define E_PATCH_BAD_MMU_PAGE        0x800
+#define E_PATCH_CANNOT_MALLOC       0x1000
+#define E_PATCH_MALFORMED           0x2000
+#define E_PATCH_TOO_SMALL           0x4000
+#define E_PATCH_BAD_ADDR            0x8000
+// max E_PATCH, anything more conflicts with
+// E_UNPATCH below.
 
 #define E_UNPATCH_OK                0
 #define E_UNPATCH_NOT_PATCHED       0x10000
 #define E_UNPATCH_OVERWRITTEN       0x20000
 #define E_UNPATCH_REG_NOT_FOUND     0x80000
 
-/****************
- * Data patches *
- ****************/
+#undef PATCH_DEBUG
 
-/* simple data patch */
-int patch_memory(
-    uintptr_t addr,             /* patched address (32 bits) */
-    uint32_t old_value,         /* old value before patching (if it differs, the patch will fail) */
-    uint32_t new_value,         /* new value */
-    const char* description     /* what does this patch do? example: "raw_rec: slowdown dialog timers" */
-                                /* note: you must provide storage for the description string */
-                                /* a string literal will do; a local variable where you sprintf will not work */
-);
+#ifdef PATCH_DEBUG
+#define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
+#else
+#define dbg_printf(fmt,...) {}
+#endif
 
-/* a more complex patch (e.g. for 16-bit values, or for flipping only some bits) */
-int patch_memory_ex(
-    uintptr_t addr,             /* patched address (up to 32 bits) */
-    uint32_t check_mask,        /* before patching: what bits to check to make sure we are patching the right thing */
-    uint32_t check_value,       /* before patching: expected value of the checked bits */
-    uint32_t patch_mask,        /* what bits to patch (up to 32) */
-    uint32_t patch_scaling,     /* scaling factor for the old value (0x10000 = 1.0; 0 discards the old value, obviously) */
-    uint32_t patch_offset,      /* offset added after scaling (this becomes new_value when scaling factor is 0, also obviously) */
-    const char* description     /* what does this patch do? example: "mini_iso: patch CMOS[4] to reduce shadow noise" */
-);
+struct patch
+{
+    uint8_t *addr; // first memory address to patch (RAM or ROM)
+    union
+    {
+        uint8_t *old_values; // pre-patch values at addr (to undo the patch)
+        uint32_t old_value; // if change is small enough, store here directly
+    };
+    union
+    {
+        uint8_t *new_values; // values after patching
+        uint32_t new_value; // if small enough, store here directly
+    };
+    uint32_t size; // number of bytes of values to patch (D45 cams can only do 4 or less per patch)
+    const char *description; // displayed in the menu as help text
+    uint8_t is_instruction; // D45 needs separate code paths for patching via icache or dcache,
+                            // D78X do not and ignore this field.
+};
 
-/* A patch described by mask, scaling and offset is applied as follows (imagine a masked saxpy):
- *      uint32_t old = backup & mask;
- *      uint32_t new = (uint64_t) old * scaling / 0x10000 + offset;
- *      return new & p->patch_mask;
- *
- * Therefore, a simple 32-bit patch has mask=0xFFFFFFFF, scaling=0 and offset=new_value.
- * This trick covers a lot of cases with a minimal description (without too much increase in complexity).
- */
+#if defined(CONFIG_DIGIC_678X) || defined(MODULE)
+// D45 cams use a different style of function hooking
+// and don't need these definitions.
+//
+// Modules need visibility because our module separation is
+// bad and needs to be redesigned.
 
-/* patch a linear array of values (all altered in the same way, as described by mask, scaling and offset) */
-int patch_memory_array(
-    uintptr_t addr,             /* first patched address (up to 32 bits) */
-    int num_items,              /* how many items do we have in the array? */
-    int item_size,              /* how many bytes until the second patched address? */
-    uint32_t check_mask,        /* before patching: what bits to check to make sure we are patching the right thing */
-    uint32_t check_value,       /* before patching: expected value of the checked bits */
-    uint32_t patch_mask,        /* what bits to patch (up to 32) */
-    uint32_t patch_scaling,     /* scaling factor for the old value (0x10000 = 1.0; 0 discards the old value, obviously) */
-    uint32_t patch_offset,      /* offset added after scaling (this becomes new_value when scaling factor is 0, also obviously) */
-    uint32_t* backup_storage,   /* must be an array with "num_items" items */
-    const char* description     /* what does this patch do? example: "dual_iso: patch CMOS[0] gains" */
-);
+struct function_hook_patch
+{
+    uint32_t patch_addr; // VA to patch.
+    uint8_t orig_content[8]; // Used as a check before applying patch.
+    uint32_t target_function_addr;
+    const char *description;
+};
 
-/* patch a matrix of values (all altered in the same way, as described by mask, scaling and offset) */
-int patch_memory_matrix(
-    uintptr_t addr,             /* first patched address (up to 32 bits) */
-    int num_columns,            /* how many columns do we have in the matrix? */
-    int col_size,               /* how many bytes until the second column? */
-    int num_rows,               /* how many rows do we have in the matrix? */
-    int row_size,               /* how many bytes until the second column? */
-    uint32_t check_mask,        /* before patching: what bits to check to make sure we are patching the right thing */
-    uint32_t check_value,       /* before patching: expected value of the checked bits */
-    uint32_t patch_mask,        /* what bits to patch (up to 32) */
-    uint32_t patch_scaling,     /* scaling factor for the old value (0x10000 = 1.0; 0 discards the old value, obviously) */
-    uint32_t patch_offset,      /* offset added after scaling (this becomes new_value when scaling factor is 0, also obviously) */
-    uint32_t* backup_storage,   /* old values; must be a uint32_t[num_items] array; it can be 0 for a 1x1 matrix => internal storage */
-    const char* description     /* what does this patch do? example: "mini_iso: scale ADTG gains" */
-);
+// Given a well formed function_hook_patch, convert to a standard patch.
+// We use function_hook_patch because it's easier for the caller to specify,
+// e.g. there's no need to compute the asm for the hook.
+//
+// patch_out must point to enough space for a patch,
+// this function populates it but does not allocate memory.
+//
+// hook_mem_out must point to at least 8 bytes of valid mem.
+// The hook asm is written here, and associated with patch_out.new_values.
+int convert_f_patch_to_patch(struct function_hook_patch *f_patch_in,
+                             struct patch *patch_out,
+                             uint8_t *hook_mem_out);
+#endif
 
-/* undo the patching done by one of the above calls */
+
+// SJE TODO we're not restricted as much on number of patches
+// for MMU cams, we can completely replace all content in
+// multiple 64kB pages.  That said, we don't use anywhere near
+// 32 in practice, so it's fine for now.  We could still make
+// these limits more intelligent, probably by moving the "too much"
+// logic out of patch.c and into patch_cache.c and patch_mmu.c
+#ifdef CONFIG_LOW_MEM_CAM
+    #define MAX_PATCHES 16
+    #define MAX_FUNCTION_HOOKS 16
+#else
+    #define MAX_PATCHES 32
+    #define MAX_FUNCTION_HOOKS 32
+#endif
+
+extern int num_patches;
+extern struct patch patches_global[MAX_PATCHES];
+
+// Reads value at address, truncated according to alignment of addr.
+// E.g. reads from 0x1001 return only 1 byte.
+uint32_t read_value(uint8_t *addr, int is_instruction);
+
+int is_patch_still_applied(struct patch *patch);
+
+// Given an array of patch structs, and a count of elements in
+// said array, either apply all patches or none.
+// If any error is returned, no patches have been applied.
+// If E_PATCH_OK is returned, all applied successfully.
+int apply_patches(struct patch *patches, uint32_t count);
+
+/* undo the patching done by apply_patches or patch_hook_function */
 int unpatch_memory(uintptr_t addr);
 
-/* patch a ENGIO register in a FFFFFFFF-terminated list */
-/* this will also prevent Canon code from changing that register to some other value (*) */
-/* (*) this will only work for Canon code that looks up the register in a list, sets the value if found, and does no error checking */
-int patch_engio_list(uint32_t * engio_list, uint32_t patched_register, uint32_t patched_value, const char * description);
-int unpatch_engio_list(uint32_t * engio_list, uint32_t patched_register);
-
-/******************************
- * Instruction (code) patches *
- ******************************/
-
-/* patch an executable instruction (will clear the instruction cache) */
-/* same arguments as patch_memory */
-int patch_instruction(
-    uintptr_t addr,
-    uint32_t old_value,
-    uint32_t new_value,
-    const char* description
-);
-
-/* to undo, use unpatch_memory(addr) */
-
-
-/*****************
- * Logging hooks *
- *****************/
-
 /* 
- * Hook a custom logging function in the middle of some ASM code
+ * Hook a custom function in the middle of some ASM code
  * similar to GDB hooks, but lighter:
  * - patches only a single address (slightly lower chances of collision)
  * - does not patch anything when the hook is triggered (self-modifying code runs only once, when set up => faster and less stuff that can break)
@@ -147,16 +156,18 @@ int patch_instruction(
  * 
  * credits: Maqs
  */
-typedef void (*patch_hook_function_cbr)(uint32_t* regs, uint32_t* stack, uint32_t pc);
+typedef void (*patch_hook_function_cbr)(uint32_t *regs, uint32_t *stack, uint32_t pc);
 
-/* to be called only from a patch_hook_function_cbr */
-#define PATCH_HOOK_CALLER() (regs[13]-4)    /* regs[13] contains LR, not SP */
-
-int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr logging_function, const char * description);
-
+int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr hook_function, const char *description);
 /* to undo, use unpatch_memory(addr) */
 
-/* cache sync helper */
-int _patch_sync_caches(int also_data);
-
+#if defined(CONFIG_MMU_REMAP)
+#include "patch_mmu.h"
+#endif // CONFIG_MMU_REMAP
+#if defined(CONFIG_DIGIC_45)
+#include "patch_cache.h"
+#elif defined(CONFIG_DIGIC_VI)
+#include "patch_d6.h"
 #endif
+
+#endif // _patch_h_

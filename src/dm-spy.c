@@ -75,7 +75,7 @@ void debug_intercept()
     else // subsequent call, save log to file
     {
         buf[len] = 0;
-        dump_seg(buf, len, "dm.log");
+        save_mem_to_file(buf, len, "dm.log");
         NotifyBox(2000, "Saved %d bytes.", len);
         len = 0;
     }

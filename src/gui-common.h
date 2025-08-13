@@ -270,16 +270,18 @@ int handle_scrollwheel_fast_clicks(struct event * event);
 int is_canon_bottom_bar_dirty();
 
 
-/* todo: refactor with CBRs */
-/* these are private (I'm declaring them here just for letting the compiler checking the type) */
+// These are implemented in a wide mix of source files, all using this header.
+// Can't say I like that pattern.  Some didn't require external visibility,
+// I've made those static, which reduces build size for all cams, as the code
+// can be removed if unused.
 int handle_tricky_canon_calls(struct event * event);
 int handle_select_config_file_by_key_at_startup(struct event * event);
 int handle_disp_preset_key(struct event * event);
-int handle_av_short_for_menu(struct event * event);
+//int handle_av_short_for_menu(struct event * event);
 int handle_module_keys(struct event * event);
 int handle_flexinfo_keys(struct event * event);
 int handle_picoc_keys(struct event * event);
-int handle_digital_zoom_shortcut(struct event * event);
+//int handle_digital_zoom_shortcut(struct event * event);
 int handle_upside_down(struct event * event);
 int handle_swap_menu_erase(struct event * event);
 int handle_swap_info_play(struct event * event);
@@ -302,7 +304,6 @@ int handle_zoom_x5_x10(struct event * event);
 int handle_quick_access_menu_items(struct event * event);
 int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);
-int handle_disp_preset_key(struct event * event);
 int handle_fast_zoom_box(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);

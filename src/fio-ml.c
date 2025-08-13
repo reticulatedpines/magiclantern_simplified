@@ -7,6 +7,10 @@
 #include "config.h"
 #include "fio-ml.h"
 
+#if defined(MODULE)
+    #error "Module builds shouldn't use fio-ml.c directly!  Call the exports of ML!"
+#endif
+
 #define CARD_DRIVE_INIT(_letter, _type) { .drive_letter = _letter, .type = _type,  .cluster_size = 0, .free_space_raw = 0, .file_number = 0, .folder_number = 0, }
 
 static struct card_info available_cards[] = { CARD_DRIVE_INIT("A","CF"), CARD_DRIVE_INIT("B", "SD"), CARD_DRIVE_INIT("C","EXT") };
@@ -71,7 +75,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 1);
+static CONFIG_INT("card.force_type", card_force_type, 0);
 
 #ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
@@ -336,6 +340,11 @@ static void fixup_filename(char* new_filename, const char* old_filename, int siz
 #define IS_DRV_PATH(filename)    (filename[1] == ':')
     char* drive_letter = ML_CARD->drive_letter;
 
+    if ((new_filename == NULL) || (old_filename == NULL))
+    {
+        return;
+    }
+
     if (IS_DRV_PATH(old_filename))
     {
         strncpy(new_filename, old_filename, size-1);
@@ -361,6 +370,12 @@ FILE* _FIO_OpenFile(const char* filename, unsigned mode );
 FILE* FIO_OpenFile(const char* filename, unsigned mode )
 {
     char new_filename[FIO_MAX_PATH_LENGTH];
+
+    if (filename == NULL)
+    {
+        return 0;
+    }
+
     fixup_filename(new_filename, filename, sizeof(new_filename));
     
     FILE* f = _FIO_OpenFile(new_filename, mode);
@@ -377,6 +392,11 @@ int _FIO_GetFileSize(const char * filename, uint32_t * size);
 int FIO_GetFileSize(const char * filename, uint32_t * size)
 {
     char new_filename[FIO_MAX_PATH_LENGTH];
+    if (filename == NULL)
+    {
+        return -1;
+    }
+
     fixup_filename(new_filename, filename, sizeof(new_filename));
     return _FIO_GetFileSize(new_filename, size);
 }
@@ -385,6 +405,11 @@ int _FIO_RemoveFile(const char * filename);
 int FIO_RemoveFile(const char * filename)
 {
     char new_filename[FIO_MAX_PATH_LENGTH];
+    if (filename == NULL)
+    {
+        return -1;
+    }
+
     fixup_filename(new_filename, filename, sizeof(new_filename));
     return _FIO_RemoveFile(new_filename);
 }
@@ -393,14 +418,65 @@ struct fio_dirent * _FIO_FindFirstEx(const char * dirname, struct fio_file * fil
 struct fio_dirent * FIO_FindFirstEx(const char * dirname, struct fio_file * file)
 {
     char new_dirname[FIO_MAX_PATH_LENGTH];
+    if (dirname == NULL)
+    {
+        return NULL;
+    }
+
     fixup_filename(new_dirname, dirname, sizeof(new_dirname));
     return _FIO_FindFirstEx(new_dirname, file);
+}
+
+// This func allows a module to get the cam to alloc space,
+// since the module doesn't know the size.
+struct fio_file *alloc_fio_file(void)
+{
+    return malloc(sizeof(struct fio_file));
+}
+
+struct file_info convert_fio_file_info(struct fio_file *fio_file)
+{
+    // Takes a DryOS file info struct pointer, returns
+    // a struct with only those fields we understand,
+    // in a manner that can be the same on all cams.
+    // Intended for modules, to hide the differences in DryOS
+    // struct on different cams.
+    struct file_info file_info;
+
+    if (fio_file == NULL)
+    {
+        file_info.mode = 0;
+        file_info.size = 0;
+        file_info.timestamp = 0;
+        file_info.name[0] = '\0';
+    }
+    else
+    {
+        file_info.mode = fio_file->mode;
+        file_info.size = fio_file->size;
+        file_info.timestamp = fio_file->timestamp;
+    #if defined(CONFIG_DIGIC_78X)
+        file_info.timestamp |= ((uint64_t)fio_file->timestamp2 << 0x20);
+    #elif defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_VI)
+        ;
+    #else
+        #error "New code needed to extract timestamp on this Digic version"
+    #endif
+        strncpy(file_info.name, fio_file->name, FIO_MAX_PATH_LENGTH);
+    }
+
+    return file_info;
 }
 
 int _FIO_CreateDirectory(const char * dirname);
 int FIO_CreateDirectory(const char * dirname)
 {
     char new_dirname[FIO_MAX_PATH_LENGTH];
+    if (dirname == NULL)
+    {
+        return -1;
+    }
+
     fixup_filename(new_dirname, dirname, sizeof(new_dirname));
     if (is_dir(new_dirname)) return 0;
     return _FIO_CreateDirectory(new_dirname);
@@ -412,6 +488,14 @@ int FIO_RenameFile(const char * src, const char * dst)
 {
     char newSrc[FIO_MAX_PATH_LENGTH];
     char newDst[FIO_MAX_PATH_LENGTH];
+    if (src == NULL)
+    {
+        return -1;
+    }
+    if (dst == NULL)
+    {
+        return -1;
+    }
     fixup_filename(newSrc, src, FIO_MAX_PATH_LENGTH);
     fixup_filename(newDst, dst, FIO_MAX_PATH_LENGTH);
     return _FIO_RenameFile(newSrc, newDst);
@@ -421,6 +505,14 @@ int FIO_RenameFile(const char * src, const char * dst)
 {
     // FIO_RenameFile not known, or doesn't work
     // emulate it by copy + erase (poor man's rename :P )
+    if (src == NULL)
+    {
+        return -1;
+    }
+    if (dst == NULL)
+    {
+        return -1;
+    }
     return FIO_MoveFile(src, dst);
 }
 #endif
@@ -428,6 +520,10 @@ int FIO_RenameFile(const char * src, const char * dst)
 static unsigned _GetFileSize(char* filename)
 {
     uint32_t size;
+    if (filename == NULL)
+    {
+        return -1;
+    }
     if( _FIO_GetFileSize( filename, &size ) != 0 )
         return 0xFFFFFFFF;
     return size;
@@ -436,6 +532,10 @@ static unsigned _GetFileSize(char* filename)
 uint32_t FIO_GetFileSize_direct(const char* filename)
 {
     char new_filename[FIO_MAX_PATH_LENGTH];
+    if (filename == NULL)
+    {
+        return -1;
+    }
     fixup_filename(new_filename, filename, sizeof(new_filename));
     return _GetFileSize(new_filename);
 }
@@ -445,6 +545,11 @@ static void _FIO_CreateDir_recursive(char* path)
     //~ NotifyBox(2000, "create dir: %s ", path); msleep(2000);
     // B:/ML/something
     
+    if (path == NULL)
+    {
+        return;
+    }
+
     if (is_dir(path)) return;
 
     int n = strlen(path);
@@ -470,6 +575,10 @@ FILE* _FIO_CreateFile(const char* filename );
 /* this one returns 0 on error, just like in plain C */
 static FILE* _FIO_CreateFileEx(const char* name)
 {
+    if (name == NULL)
+    {
+        return NULL;
+    }
     // first assume the path is alright
     _FIO_RemoveFile(name);
     FILE* f = _FIO_CreateFile(name);
@@ -506,6 +615,10 @@ static FILE* _FIO_CreateFileEx(const char* name)
 FILE* FIO_CreateFile(const char* name)
 {
     char new_name[FIO_MAX_PATH_LENGTH];
+    if (name == NULL)
+    {
+        return NULL;
+    }
     fixup_filename(new_name, name, sizeof(new_name));
     return _FIO_CreateFileEx(new_name);
 }
@@ -532,6 +645,7 @@ int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
             ASSERT(0);
             return 0;
         }
+        ASSERT(stream != NULL) // no sensible way to return error given how we use it
         int ans = _FIO_ReadFile(stream, ubuf, count);
         memcpy(ptr, ubuf, count);
         free(ubuf);
@@ -565,6 +679,11 @@ int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
 
 FILE* FIO_CreateFileOrAppend(const char* name)
 {
+    if (name == NULL)
+    {
+        DryosDebugMsg(0, 15, "F_cfoa NULL");
+        return NULL;
+    }
     /* credits: https://bitbucket.org/dmilligan/magic-lantern/commits/d7e0245b1c62c26231799e9be3b54dd77d51a283 */
     FILE * f = FIO_OpenFile(name, O_RDWR | O_SYNC);
     if (!f)
@@ -580,6 +699,14 @@ FILE* FIO_CreateFileOrAppend(const char* name)
 
 int FIO_CopyFile(const char * src, const char * dst)
 {
+    if (src == NULL)
+    {
+        return -1;
+    }
+    if (dst == NULL)
+    {
+        return -1;
+    }
     FILE* f = FIO_OpenFile(src, O_RDONLY | O_SYNC);
     if (!f) return -1;
 
@@ -619,6 +746,14 @@ int FIO_CopyFile(const char * src, const char * dst)
 
 int FIO_MoveFile(const char * src, const char * dst)
 {
+    if (src == NULL)
+    {
+        return -1;
+    }
+    if (dst == NULL)
+    {
+        return -1;
+    }
     int err = FIO_CopyFile(src,dst);
     if (!err)
     {
@@ -656,6 +791,14 @@ int is_dir(const char* path)
 
 int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen)
 {
+    if (filename == NULL)
+    {
+        return -1;
+    }
+    if (pattern == NULL)
+    {
+        return -1;
+    }
     for (int num = 0; num <= nmax; num++)
     {
         snprintf(filename, maxlen, pattern, num);
@@ -668,18 +811,21 @@ int get_numbered_file_name(const char* pattern, int nmax, char* filename, int ma
     return -1;
 }
 
-void dump_seg(void* start, uint32_t size, char* filename)
+void save_mem_to_file(void *start, uint32_t size, char *filename)
 {
     DEBUG();
-    FILE* f = FIO_CreateFile(filename);
+    FILE *f = FIO_CreateFile(filename);
     if (f)
     {
-        FIO_WriteFile( f, start, size );
+        FIO_WriteFile(f, start, size);
         FIO_CloseFile(f);
     }
     DEBUG();
 }
 
+// This name is bad, should probably be something like
+// save_256MB_mem_to_file(), and take a start address, not
+// an index for no apparent reason.
 void dump_big_seg(int k, char* filename)
 {
     DEBUG();
@@ -806,7 +952,8 @@ struct menu_entry card_menus[] = {
                 .min = 0,
                 .max = 2,
                 .choices = CHOICES("OFF", "CF", "SD"),
-                .help = "Make sure your preferred card is selected at startup."
+                .help  = "Make sure your preferred card is selected at startup.",
+                .help2 = "This changes Canon card selection at startup - nothing else."
             },
             MENU_EOL,
         }

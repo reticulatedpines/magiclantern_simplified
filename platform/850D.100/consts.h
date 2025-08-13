@@ -14,54 +14,22 @@
 #define BR_BZERO32        0xe0040152  // called from cstart
 #define BR_CREATE_ITASK   0xe00401b4  // called from cstart
 
-#define PTR_USER_MEM_SIZE           0xe00401d8   /* easier to patch the size; start address is computed */
-#define PTR_SYS_OFFSET              0xe00401d0   // offset from DryOS base to sys_mem start
-#define PTR_SYS_OBJS_OFFSET         0xe00401dc   // offset from DryOS base to sys_obj start
-#define PTR_DRYOS_BASE              0xe00401bc
-
-#define ML_MAX_USER_MEM_STOLEN 0x44000 // True max differs per cam, 0x40000 has been tested on
-                                       // the widest range of D678 cams with no observed problems,
-                                       // but not all cams have been tested!
-
-// On some cams, e.g. 200D, there is a gap after sys_mem that we can steal from.
-// Some cams, e.g. 750D, do not have this and moving it up conflicts with
-// other hard-coded uses of the region - DO NOT do this.
-// Check for xrefs into the region before attempting this.
-#define ML_MAX_SYS_MEM_INCREASE 0x0
-
-#define ML_RESERVED_MEM 0x42000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                // but must not be higher; sys_objs would get overwritten by ML code.
-                                // Must be larger than MemSiz reported by build for magiclantern.bin
-
 // Used for copying and modifying ROM code before transferring control.
-// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in BR_ macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 // On 850D there is an extra call, the code of which is after cstart, so we must
 // also ensure this is covered.
 #define FIRMWARE_ENTRY_LEN 0x1000
 
-/*
-Before patching:
-DryOS base    user_start                       sys_objs_start    sys_start
-    |-------------|--------------------------------|---------------|--------------------->
-                   <-------  user_mem_size ------->                 <---- sys_len ------->
-    ---------------- sys_objs_offset ------------->
-    ---------------- sys_mem_offset ------------------------------>
-
-After patching, user mem reduced and sys mem moved up
-DryOS base    user_start                                 sys_objs_start    sys_start
-    |-------------|-------------------|<-- ml_reserved_mem -->|---------------|--------------------->
-                   <- user_mem_size ->                                         <---- sys_len ------->
-    ---------------- sys_objs_offset ------------------------>
-    ---------------- sys_mem_offset ----------------------------------------->
-*/
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
+#define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
 
 #define HALFSHUTTER_PRESSED 0 // doesn't seem similar to 200D.  Perhaps gone, like R?
 
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert
+#define DRYOS_SGI_HANDLERS_PTR 0x4008 // holds pointer to base of SGI handlers (each is 8 bytes, a pointer and something else)
+                                      // Found in func passing "Illegal GIC inter" string to another func.
 #define CURRENT_GUI_MODE (*(int*)0x83a0) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
 
 #define GUIMODE_PLAY 8194
@@ -99,8 +67,8 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 //
 // It's initialised from MALLOC_STRUCT, you want to use the offsets from that.
 // The larger struct has printfs that let you assign names.
-#define MALLOC_STRUCT 0x2d3f8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x2d3f8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define GMT_FUNCTABLE 0xe09981d4
 #define GMT_NFUNCS 0x7
@@ -140,7 +108,6 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "Q/SET"
-#define ARROW_MODE_TOGGLE_KEY "FUNC"
 
 // "SDPowerOn" / "SDPowerOff", passed to DryosDebugMsg in a function
 // that changes states for several devices (presumably not all LEDs?).
@@ -159,9 +126,6 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 // Below here, things are hacks or guesses, try not to use them!
 // And do fix them!
 ////////////////
-
-// SJE wrong, copied from 200d, which has long comments
-#define LV_STRUCT_PTR 0xaf2d0
 
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
@@ -188,12 +152,6 @@ extern int winsys_bmp_dirty_bit_neg;
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 //#define MALLOC_FREE_MEMORY 0
-// below definitely wrong, just copied from 50D
-#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2
@@ -224,4 +182,3 @@ extern int winsys_bmp_dirty_bit_neg;
 // SJE new stuff added after we have ML menus working!
 // Not needed for early code.
 #define CANON_SHUTTER_RATING 100000
-

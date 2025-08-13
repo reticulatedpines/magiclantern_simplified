@@ -18,6 +18,7 @@
 #include "beep.h"
 #include "lvinfo.h"
 #include "powersave.h"
+#include "patch.h"
 
 
 #ifdef FEATURE_REC_NOTIFY
@@ -246,6 +247,11 @@ void force_liveview()
 
 void close_liveview()
 {
+    if (lv_paused)
+    {
+        ResumeLiveView();
+    }
+
     if (lv)
 #ifdef CONFIG_EOSM
     {
@@ -255,10 +261,19 @@ void close_liveview()
     }
 #else
     {
-        /* in photo mode, just exit LiveView by "pressing" the LiveView button */
-        /* in movie mode, pressing LiveView would start recording,
-         * so go to PLAY mode instead */
-        fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
+        if (!is_movie_mode()) {
+            /* in photo mode, just exit LiveView by "pressing" the LiveView button */
+            fake_simple_button(BGMT_LV);
+        } else {
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+            /* on these cameras, pressing the LiveView button won't start recording */
+            fake_simple_button(BGMT_LV);
+            #else
+            /* in movie mode, pressing LiveView would start recording,
+             * so go to PLAY mode instead */
+            enter_play_mode();
+            #endif
+        }
         msleep(1000);
     }
 #endif
@@ -326,25 +341,6 @@ void shutter_btn_rec_do(int rec)
 #endif
 
 int movie_was_stopped_by_set = 0;
-
-void
-movtweak_task_init()
-{
-#ifdef FEATURE_FORCE_LIVEVIEW
-    if (!lv && enable_liveview && is_movie_mode()
-        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
-    {
-        force_liveview();
-    }
-#endif
-
-    extern int ml_started;
-    while (!ml_started) msleep(100);
-
-#ifdef FEATURE_EXPO_OVERRIDE
-    bv_auto_update();
-#endif
-}
 
 static int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 {
@@ -870,6 +866,124 @@ void smooth_iso_step()
 }
 #endif
 
+#ifdef FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+static CONFIG_INT("movie.time_limit", mov_time_limit, 30 * 60);
+
+static MENU_UPDATE_FUNC(print_mov_time_limit)
+{
+    if (mov_time_limit >= 60)
+    {
+        MENU_SET_VALUE("%d min", mov_time_limit / 60);
+    }
+    else
+    {
+        MENU_SET_VALUE("%d sec", mov_time_limit);
+    }
+    MENU_SET_WARNING(MENU_WARN_ADVICE, entry->help2);
+}
+
+static void change_mov_time_limit(void* priv, int delta)
+{
+    // Time is in held in seconds.  Defaults to 30m.
+    // Allow upwards changes 10m at a time, max 90m (it is not determined what true max is).
+    // Allow downwards changes 5m at a time until 5m, then 1m, then 10s,
+    // 10s minimum.
+
+    // Lets be extra sure to avoid negatives since we're MMU patching ROM code
+    // with this value.
+    if (mov_time_limit <= 0)
+    {
+        mov_time_limit = 10;
+        return;
+    }
+
+    if (delta < 0)
+    {
+        if (mov_time_limit <= 10)
+            mov_time_limit = 10;
+        else if (mov_time_limit <= 60)
+            mov_time_limit -= 10;
+        else if (mov_time_limit <= 5 * 60)
+            mov_time_limit -= 60;
+        else if (mov_time_limit <= 30 * 60)
+            mov_time_limit -= 5 * 60;
+        else if (mov_time_limit <= 90 * 60)
+            mov_time_limit -= 15 * 60;
+        else if (mov_time_limit <= 180 * 60)
+            mov_time_limit -= 30 * 60;
+    }
+    else if (delta > 0)
+    {
+        if (mov_time_limit >= 180 * 60)
+            mov_time_limit = 180 * 60;
+        else if (mov_time_limit >= 90 * 60)
+            mov_time_limit += 30 * 60;
+        else if (mov_time_limit >= 30 * 60)
+            mov_time_limit += 15 * 60;
+        else if (mov_time_limit >= 5 * 60)
+            mov_time_limit += 5 * 60;
+        else if (mov_time_limit >= 60)
+            mov_time_limit += 60;
+        else if (mov_time_limit >= 10)
+            mov_time_limit += 10;
+    }
+    // We deliberately fall through if delta == 0,
+    // to allow restoring saved settings without adjusting them.
+
+    // We have our target max time. If user requests 30 min,
+    // we revert to stock, which technically is 29m 59s.
+    // Otherwise, we patch in the new limit.
+    struct patch patches[2] = {
+        {
+            .addr = (uint8_t *)MVR_TIME_LIMIT_NORMAL_FPS,
+            .old_value = 0x1b7358, // 29m59s
+            .new_value = mov_time_limit * 1000,
+            .size = 4,
+            .description = "MOV time limit"
+        },
+        {
+            .addr = (uint8_t *)MVR_TIME_LIMIT_HIGH_FPS,
+            .old_value = 0x6d9e8, // 7m29s
+            .new_value = mov_time_limit * 1000,
+            .size = 4,
+            .description = "MOV time limit, high FPS"
+        }
+    };
+    unpatch_memory((uint32_t)patches[0].addr);
+    unpatch_memory((uint32_t)patches[1].addr);
+    if (mov_time_limit == 30 * 60)
+    {
+        return;
+    }
+
+    apply_patches(patches, 2);
+    return;
+}
+#endif // FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+
+void movtweak_task_init()
+{
+#ifdef FEATURE_FORCE_LIVEVIEW
+    if (!lv && enable_liveview && is_movie_mode()
+        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+    {
+        force_liveview();
+    }
+#endif
+
+    extern int ml_started;
+    while (!ml_started) msleep(100);
+
+#ifdef FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+    // This restores saved time limit from config file
+    change_mov_time_limit(NULL, 0);
+#endif
+
+#ifdef FEATURE_EXPO_OVERRIDE
+    bv_auto_update();
+#endif
+}
+
 static struct menu_entry mov_menus[] = {
     #ifdef FEATURE_MOVIE_RECORDING_50D
     {
@@ -925,6 +1039,18 @@ static struct menu_entry mov_menus[] = {
         },
     },
     #endif
+    #ifdef FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+    {
+        .name = "MOV/MP4 time limit",
+        .priv = &mov_time_limit,
+        .update = print_mov_time_limit,
+        .select = change_mov_time_limit,
+        .min = 1,
+        .max = 180,
+        .help = "Change 29:59 movie recording limit",
+        .help2 = "Too long recording makes empty files on ExFAT, ok on FAT32",
+    }
+    #endif
     #ifdef FEATURE_GRADUAL_EXPOSURE
     {
         .name = "Gradual Exposure",
@@ -950,6 +1076,10 @@ static struct menu_entry mov_menus[] = {
     #endif
 };
 
+// Only create this menu if the cam has any feature that needs it
+#if defined(FEATURE_NITRATE) || defined(FEATURE_MOVIE_RESTART) \
+    || defined(FEATURE_REC_NOTIFY) || defined(FEATURE_FORCE_LIVEVIEW) \
+    || defined(FEATURE_SHUTTER_LOCK) || defined(FEATURE_MOVIE_LOGGING)
 static struct menu_entry movie_tweaks_menus[] = {
     {
         .name = "Movie Tweaks",
@@ -1018,6 +1148,19 @@ static struct menu_entry movie_tweaks_menus[] = {
     },
 };
 
+void movie_tweak_menu_init()
+{
+    menu_add( "Movie", movie_tweaks_menus, COUNT(movie_tweaks_menus) );
+}
+#else // end of any defines that want Movie Tweaks menu
+// Here we don't want Movie Tweak menu to display,
+// but we must do dummy init since this is used extern.
+void movie_tweak_menu_init()
+{
+    ;
+}
+#endif
+
 #ifdef FEATURE_EXPO_OVERRIDE
 struct menu_entry expo_override_menus[] = {
     {
@@ -1033,15 +1176,11 @@ struct menu_entry expo_override_menus[] = {
 };
 #endif
 
-void movie_tweak_menu_init()
-{
-    menu_add( "Movie", movie_tweaks_menus, COUNT(movie_tweaks_menus) );
-}
 static void movtweak_init()
 {
-    menu_add( "Movie", mov_menus, COUNT(mov_menus) );
+    menu_add("Movie", mov_menus, COUNT(mov_menus));
     #ifdef FEATURE_EXPO_OVERRIDE
-    bv_sem = create_named_semaphore( "bv", 1 );
+    bv_sem = create_named_semaphore("bv", SEM_CREATE_UNLOCKED);
     #endif
 }
 

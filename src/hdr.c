@@ -472,7 +472,9 @@ static void iso_test()
     while(1)
     {
         static int iso = 72;
+    #ifdef FRAME_ISO
         FRAME_ISO = iso | (iso<<8);
+    #endif
         msleep(10);
         iso++;
         if (iso > 120) iso = 72;

@@ -6,6 +6,10 @@
 /* returns true if the AF/MF switch is in the MF position, or you have a manual lens */
 int is_manual_focus();
 
+/* returns true in LiveView, if AF is enabled and
+ * Continuous AF (photo mode) or Movie Servo AF (movie mode) is selected in Canon menu */
+int is_continuous_af();
+
 /* enqueue some focus steps in the focus task */
 void lens_focus_enqueue_step(int dir);
 

@@ -91,6 +91,7 @@ void fsuDecodePartitionTable(void * partIn, struct partition_table * pTable){
     uart_printf("CS: Start %04x End %04x\n", pTable->start_cylinder_sector, pTable->end_cylinder_sector);
 }
 
+#ifndef CONFIG_INSTALLER
 int get_task_info_by_id(int unknown_flag, int task_id, void *task_attr)
 {
     // task_id is something like two u16s concatenated.  The flag argument,
@@ -105,6 +106,7 @@ int get_task_info_by_id(int unknown_flag, int task_id, void *task_attr)
     struct task *task = first_task + (task_id & 0xffff);
     return _get_task_info_by_id(task->taskId, task_attr);
 }
+#endif
 
 /** WRONG: temporary overrides to get CONFIG_HELLO_WORLD working **/
 

@@ -11,3 +11,4 @@
 
 /* Not working */
 #undef FEATURE_TRAP_FOCUS
+#undef FEATURE_MAGIC_ZOOM_FULL_SCREEN // https://bitbucket.org/hudson/magic-lantern/issues/2842

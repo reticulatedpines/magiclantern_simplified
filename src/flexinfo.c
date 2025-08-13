@@ -91,12 +91,12 @@ extern int menu_redraw_blocked;
  
 info_elem_t info_config_dynamic[FLEXINFO_DYNAMIC_ENTRIES];
 
-//#define i_want_to_test_flexinfo_bars 1
 
 info_elem_t info_config_liveview[] =
 {
     { .config = { { INFO_TYPE_CONFIG } } },
     
+#define i_want_to_test_flexinfo_bars 0
 #if i_want_to_test_flexinfo_bars
 
     /* entry 1, top bar */
@@ -3243,7 +3243,7 @@ TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
 
 static void info_init()
 {
-    info_sem = create_named_semaphore("flexinfo_sem", 1);
+    info_sem = create_named_semaphore("flexinfo_sem", SEM_CREATE_UNLOCKED);
 
     /* init the pre-configured lists */
     for(int pos = 0; pos < COUNT(info_config_photo); pos++)

@@ -610,10 +610,10 @@ my_sounddev_task()
     //~ some_param
     //~ );      
     
-    gain.sem = create_named_semaphore( "audio_gain", 1 );
+    gain.sem = create_named_semaphore("audio_gain", SEM_CREATE_UNLOCKED);
     
     // Fake the sound dev task parameters
-    sounddev.sem_alc = create_named_semaphore( 0, 0 );
+    sounddev.sem_alc = create_named_semaphore(NULL, SEM_CREATE_LOCKED);
     
     sounddev_active_in(0,0);
     

@@ -20,7 +20,8 @@
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
 #define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOM_OUT, was 0xA
-#define BGMT_Q 0x13
+#define BGMT_Q 0x13         /* used in Canon menu */
+#define BGMT_Q_ALT_ 0x1C    /* used in LiveView; auto-translated to BGMT_Q in ML; do not use directly */
 #define BGMT_LV 0x1D // new
 #define BGMT_PRESS_RIGHT 0x23 // was 0x1a
 #define BGMT_UNPRESS_RIGHT 0x24 // was 0x1b

@@ -189,7 +189,7 @@ void disp_init()
     }
     
     /* first clear, then init */
-    disp_fill(COLOR_BLACK);
+    disp_fill(COLOR_BLACK_DD);
     
     /* this one initializes everyhting that is needed for display usage. PWM, PWR, GPIO, SIO and DISPLAY */
     fromutil_disp_init(0);
@@ -198,7 +198,7 @@ void disp_init()
     disp_set_palette();
     
     /* BMP foreground is transparent */
-    disp_fill(COLOR_BLACK);
+    disp_fill(COLOR_BLACK_DD);
     
     /* set frame buffer memory area */
     MEM(0xC0F140D0) = (uint32_t)disp_framebuf & ~0x40000000;

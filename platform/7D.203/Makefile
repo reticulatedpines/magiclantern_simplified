@@ -2,7 +2,7 @@
 
 MODEL=7D
 
-include ../Makefile.platform
+include ../Makefile
 
 FIR-MASTER: autoexec-fir-master
 FIR-SLAVE: autoexec-fir-slave
@@ -33,3 +33,4 @@ build_fir: all
 		-m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin \
 		$(TOP_DIR)/../dumper/7D000203.FIR \
 		$(UPDATE_NAME_FIR)
+.DEFAULT_GOAL := $(BUILD_DIR)/cam_complete

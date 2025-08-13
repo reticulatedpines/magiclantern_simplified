@@ -2,6 +2,7 @@
 #define fio_5d3_h
 
 #include <stdio.h>
+#include "compiler.h"
 
 #define CARD_A 0
 #define CARD_B 1
@@ -86,29 +87,56 @@ int get_numbered_file_name(const char* pattern, int nmax, char* filename, int ma
 struct fio_dirent;
 
 /** Directory entry returned by FIO_FindFirstEx() */
+#ifdef CONFIG_DIGIC_78X
 struct fio_file {
-        //! 0x10 == directory, 0x22 
-        uint16_t                mode;           // off_0x00;
-        uint16_t                off_0x02;
-        #ifdef CONFIG_DIGIC_78
-        uint32_t                off_0x04;
-        #endif
-        uint32_t                size;
-        #ifdef CONFIG_DIGIC_78
-        uint32_t                off_0x0C;
-        #endif
-        uint32_t                timestamp;      // off_0x08;
-        #ifdef CONFIG_DIGIC_78
-        uint32_t                timestamp2;
-        #else
-        uint32_t                off_0x0c;
-        #endif
-        char                    name[ FIO_MAX_PATH_LENGTH ];
-        uint32_t                a;
-        uint32_t                b;
-        uint32_t                c;
-        uint32_t                d;
+    uint16_t mode;
+    uint16_t unk_01;
+    uint32_t unk_02;
+    uint32_t size;
+    uint32_t unk_03;
+    uint32_t timestamp;
+    uint32_t timestamp2;
+    char name[FIO_MAX_PATH_LENGTH];
+    uint32_t unk_04[4];
 };
+SIZE_CHECK_STRUCT(fio_file, 0x28 + FIO_MAX_PATH_LENGTH);
+#elif defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_VI)
+struct fio_file {
+    uint16_t mode;
+    uint16_t unk_01;
+    uint32_t size;
+    uint32_t timestamp;
+    uint32_t unk_02;
+    char name[FIO_MAX_PATH_LENGTH];
+    uint32_t unk_04[4];
+};
+SIZE_CHECK_STRUCT(fio_file, 0x20 + FIO_MAX_PATH_LENGTH);
+#elif defined(MODULE)
+// In a module context, this is an opaque pointer.
+// This prevents modules using fields in fio_file, which,
+// as can been seen above, differ in offsets on different cams.
+// Modules are supposed to be cam independent so this is not allowed.
+//
+// Modules can convert fio_file to file_info (which has the same field names),
+// using convert_fio_file_info().
+struct fio_file;
+#endif
+
+// Cam independent struct for converting the above cam specific struct
+// to a format modules can use.
+struct file_info
+{
+    uint16_t mode;
+    uint32_t size;
+    uint64_t timestamp;
+    char name[FIO_MAX_PATH_LENGTH];
+};
+SIZE_CHECK_STRUCT(file_info, 0x10 + FIO_MAX_PATH_LENGTH);
+
+// This func allows a module to get the cam to alloc space,
+// since the module doesn't know the size.
+struct fio_file *alloc_fio_file(void);
+struct file_info convert_fio_file_info(struct fio_file *);
 
 // file IO
 extern FILE* FIO_OpenFile( const char* filename, unsigned mode );
@@ -144,7 +172,7 @@ void _find_ml_card();
 void _card_tweaks();
 
 /* dump anything from RAM to a file */
-void dump_seg(void* start, uint32_t size, char* filename);
+void save_mem_to_file(void *start, uint32_t size, char *filename);
 
 /* dump 0x10000000 bytes (256MB) from 0x10000000 * k */
 void dump_big_seg(int k, char* filename);

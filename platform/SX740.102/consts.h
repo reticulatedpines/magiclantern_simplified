@@ -16,30 +16,15 @@
 #define BR_CREATE_ITASK     0xE00401aC   /* called from cstart */
 
 
-#define ML_MAX_USER_MEM_STOLEN 0x48000  // True max differs per cam, 0x40000 has been tested on
-                                        // the widest range of D678 cams with no observed problems,
-                                        // but not all cams have been tested!
-
-#define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                    // higher in memory, at some point that must cause Bad Things,
-                                    // consequences unknown.  0x40000 has been tested, a little...
-
-#define ML_RESERVED_MEM 0x47000  // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                 // but must not be higher; sys_objs would get overwritten by ML code.
-                                 // Must be larger than MemSiz reported by build for magiclantern.bin
-
 // Used for copying and modifying ROM code before transferring control.
-// Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
+// Approximately: look at BR_ macros for the highest address, subtract MAIN_FIRMWARE_ADDR,
 // align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
 #define FIRMWARE_ENTRY_LEN 0x230 // 0x220 should be enough, but better safe than sorry
 
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
 
 /* "Malloc Information" */
-#define MALLOC_STRUCT 0x5B748
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x5B748
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER        0x4000               //from debug_asset function, hard to miss
@@ -142,7 +127,6 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME               "INFO"
 #define Q_BTN_NAME                  "Q/SET"
-#define ARROW_MODE_TOGGLE_KEY       "FUNC"
 
 #define MIN_MSLEEP 11
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
@@ -150,20 +134,12 @@
 
 /* WRONG: copied straight from 200d/50d */
 // Definitely wrong / hacks / no testing at all:
-#define LV_STRUCT_PTR 0xaf2d0
-
 #define IMGPLAY_ZOOM_LEVEL_ADDR (0x2CBC) //wrong
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-// below definitely wrong, just copied from 50D
-#define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
-#define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
-#define FRAME_ISO *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x58)
-#define FRAME_SHUTTER_TIMER *(uint16_t*)(MEM(LV_STRUCT_PTR) + 0x5c)
-#define FRAME_BV ((int)FRAME_SHUTTER + (int)FRAME_APERTURE - (int)FRAME_ISO)
 // this block all copied from 50D, and probably wrong, though likely safe
 #define FASTEST_SHUTTER_SPEED_RAW 160
 #define MAX_AE_EV 2

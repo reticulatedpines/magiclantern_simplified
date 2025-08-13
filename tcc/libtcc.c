@@ -199,6 +199,8 @@ PUB_FUNC char *tcc_fileextension (const char *name)
 /* redirect memory allocation calls */
 #define MEM_TEMPORARY 2 /* this will allocate TCC temporary memory from shoot_malloc, because it will be freed quickly at startup */
 /* without it, the backend will allocate TCC memory from main buffers => it may end up with the module code in shoot_malloc (not exactly a good idea) */
+extern void *__mem_malloc(size_t len, unsigned int flags, const char *file, unsigned int line);
+extern void __mem_free(void *buf);
 #define AllocateMemory(len)         (void*)__mem_malloc(len, MEM_TEMPORARY, __FILE__, __LINE__)
 #define FreeMemory(buf)           __mem_free(buf)
 

@@ -1,4 +1,26 @@
-#Makefile for 1100D
+MODEL = 1100D
+FW_VERSION = 105
 
-MODEL=1100D
-include ../Makefile.platform
+TOP_DIR = ../..
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+ML_SRC_SMALL_FONTS = y
+CONFIG_LVAPP_HACK_RELOC = y
+
+ML_MODULES_SYM_NAME = t3_$(FW_VERSION).sym
+
+MAIN_FIRMWARE_ADDR = 0xFF010000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART = 0xC80100
+ML_BOOT_OBJ = boot-d45-am.o
+
+FIRMWARE_ID_1100D = 0x80000288
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/cam_complete

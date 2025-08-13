@@ -53,7 +53,7 @@ int digic_zoom_overlay_enabled();
 int nondigic_zoom_overlay_enabled();
 
 /* MZ vsync in vsync-lite.c (to be cleaned up somehow) */
-void lv_vsync(int mz);
+void _lv_vsync(int mz);
 
 /* todo: move to separate file */
 int arrow_keys_shortcuts_active();
@@ -110,6 +110,8 @@ struct raw_highlight_info
 #define ZEBRA_FILL_DIAG 1
 #define ZEBRA_FILL_50_PERCENT 2
 #define ZEBRA_FILL_SOLID 3
+
+#define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 /**
  * Custom highlighting of raw zones / levels

@@ -11,6 +11,13 @@
 #include "dryos.h"
 //#include <errno.h>
 
+#if 0 // We do, in fact, have strcmp.  And using it saves 130 bytes per build.
+// Note that the implementation below does not test for string equality.
+// It's really either_startswith_other(a, b), since the while will
+// exit early if one string is shorter, and then the terminating null char
+// in one string gets compared against some non-null char in the other.
+// And the func returns non-0 to mean "yes, string starts are equal".
+
 // Don't use strcmp since we don't have it
 int
 streq( const char * a, const char * b )
@@ -22,6 +29,11 @@ streq( const char * a, const char * b )
         if( *a++ != *b++ )
             return 0;
     return *a == *b;
+}
+#endif
+int streq(const char *a, const char *b)
+{
+    return strcmp(a, b) == 0;
 }
 
 int toupper(int c)
@@ -84,10 +96,16 @@ snprintf(
     {
         return -1;
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull-compare"
+// we can't control how this is used at runtime, so,
+// suppress gcc's annoying warning.  I don't know why it believes
+// it must be non-null.
     if (fmt == NULL)
     {
         return -2;
     }
+#pragma GCC diagnostic pop
 // SJE TODO: what cases should we abort on here?
 // Canon vsnprintf doesn't handle 0, maybe 1 is bad
 // because we decrement before passing?

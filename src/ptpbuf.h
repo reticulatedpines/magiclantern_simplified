@@ -1,7 +1,6 @@
 #ifndef _ptpbuf_h_
 #define _ptpbuf_h_
 
-#define UNCACHEABLE(x)   ((void*)(((uint32_t)(x)) | 0x40000000))
 #define PTPBUF_BUFS      16
 #define PTPBUF_BUFSIZE   256
 #define PTPBUF_MAGIC     0xEAEA3388

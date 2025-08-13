@@ -21,6 +21,7 @@
 #include <fileprefix.h>
 #include <string.h>
 #include <config.h>
+#include <propvalues.h>
 
 #include "lua_common.h"
 
@@ -28,6 +29,8 @@ static int luaCB_card_index(lua_State * L);
 static int luaCB_card_newindex(lua_State * L);
 static int luaCB_directory_index(lua_State * L);
 static int luaCB_directory_newindex(lua_State * L);
+static int luaCB_directory_tostring(lua_State * L);
+static int luaCB_card_image_path(lua_State * L);
 
 const char * lua_dryos_directory_fields[] =
 {
@@ -41,11 +44,13 @@ const char * lua_dryos_directory_fields[] =
 
 const char * lua_dryos_card_fields[] =
 {
-    "cluster_size",
     "drive_letter",
+    "dcim_dir",
     "file_number",
     "folder_number",
     "free_space",
+    "image_path",
+  //"path",
     "type",
     NULL
 };
@@ -88,6 +93,8 @@ static int luaCB_dryos_directory(lua_State * L)
     }
     lua_setfield(L, -2, "path");
     lua_newtable(L);
+    lua_pushcfunction(L, luaCB_directory_tostring);
+    lua_setfield(L, -2, "__tostring");
     lua_pushcfunction(L, luaCB_directory_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_directory_newindex);
@@ -165,7 +172,7 @@ static int luaCB_dryos_call(lua_State * L)
     }
     else if(lua_isnumber(L, 2))
     {
-        float arg = lua_tonumber(L, 2);
+        double arg = lua_tonumber(L, 2);
         result = call(function_name, arg);
     }
     else if(lua_isstring(L, 2))
@@ -190,6 +197,36 @@ static void setboolfield (lua_State *L, const char *key, int value) {
     lua_setfield(L, -2, key);
 }
 
+static int lua_card_obj(lua_State * L, struct card_info * card)
+{
+    if(!card) return luaL_error(L, "Card info error");
+
+    char root_path[] = "X:/";
+    root_path[0] = card->drive_letter[0];
+    if (!is_dir(root_path))
+    {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_newtable(L);
+    lua_pushlightuserdata(L, card);
+    lua_setfield(L, -2, "_card_ptr");
+    lua_pushfstring(L, "%s:/", card->drive_letter);
+    lua_setfield(L, -2, "path");
+    lua_newtable(L);
+    lua_pushcfunction(L, luaCB_card_index);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, luaCB_card_newindex);
+    lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_dryos_card_fields);
+    lua_setfield(L, -2, "fields");
+    lua_setmetatable(L, -2);
+    return 1;
+}
+
 static int luaCB_dryos_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
@@ -204,14 +241,6 @@ static int luaCB_dryos_index(lua_State * L)
     /// Set to empty string to restore default value.
     // @tfield string image_prefix
     else if(!strcmp(key, "image_prefix")) lua_pushstring(L, get_file_prefix());
-    /// Get the DCIM directory.
-    // @tfield directory dcim_dir
-    else if(!strcmp(key, "dcim_dir"))
-    {
-        lua_pushcfunction(L, luaCB_dryos_directory);
-        lua_pushstring(L, get_dcim_dir());
-        lua_call(L, 1, 1);
-    }
     /// Get the ML config directory.
     // @tfield directory config_dir
     else if(!strcmp(key, "config_dir"))
@@ -222,48 +251,16 @@ static int luaCB_dryos_index(lua_State * L)
     }
     /// Get the card ML was started from.
     // @tfield card ml_card
-    else if(!strcmp(key, "ml_card"))
-    {
-        lua_newtable(L);
-        struct card_info * card = get_ml_card();
-        if(!card) return luaL_error(L, "Error getting ml_card");
-        lua_pushlightuserdata(L, card);
-        lua_setfield(L, -2, "_card_ptr");
-        lua_pushfstring(L, "%s:/", card->drive_letter);
-        lua_setfield(L, -2, "path");
-        lua_newtable(L);
-        lua_pushcfunction(L, luaCB_card_index);
-        lua_setfield(L, -2, "__index");
-        lua_pushcfunction(L, luaCB_card_newindex);
-        lua_setfield(L, -2, "__newindex");
-        lua_pushcfunction(L, luaCB_pairs);
-        lua_setfield(L, -2, "__pairs");
-        lua_pushlightuserdata(L, lua_dryos_card_fields);
-        lua_setfield(L, -2, "fields");
-        lua_setmetatable(L, -2);
-    }
+    else if(!strcmp(key, "ml_card")) return lua_card_obj(L, get_ml_card());
     /// Get the shooting card (the one selected in Canon menu for taking pictures / recording videos).
     // @tfield card shooting_card
-    else if(!strcmp(key, "shooting_card"))
-    {
-        lua_newtable(L);
-        struct card_info * card = get_shooting_card();
-        if(!card) return luaL_error(L, "Error getting shooting_card");
-        lua_pushlightuserdata(L, card);
-        lua_setfield(L, -2, "_card_ptr");
-        lua_pushfstring(L, "%s:/", card->drive_letter);
-        lua_setfield(L, -2, "path");
-        lua_newtable(L);
-        lua_pushcfunction(L, luaCB_card_index);
-        lua_setfield(L, -2, "__index");
-        lua_pushcfunction(L, luaCB_card_newindex);
-        lua_setfield(L, -2, "__newindex");
-        lua_pushcfunction(L, luaCB_pairs);
-        lua_setfield(L, -2, "__pairs");
-        lua_pushlightuserdata(L, lua_dryos_card_fields);
-        lua_setfield(L, -2, "fields");
-        lua_setmetatable(L, -2);
-    }
+    else if(!strcmp(key, "shooting_card")) return lua_card_obj(L, get_shooting_card());
+    /// Get the CF card if your camera has one, otherwise nil
+    // @tfield ?card|nil cf_card
+    else if(!strcmp(key, "cf_card")) return lua_card_obj(L, get_card(CARD_A));
+    /// Get the SD card if your camera has one, otherwise nil
+    // @tfield ?card|nil sd_card
+    else if(!strcmp(key, "sd_card")) return lua_card_obj(L, get_card(CARD_B));
     /// Gets a table representing the current date/time.
     // @tfield date date
     else if(!strcmp(key, "date"))
@@ -361,7 +358,7 @@ static int luaCB_directory_create(lua_State * L)
 }
 
 /***
- Get a table (of @{directory} objects) containing this directory's child directories.
+ Get a list of subdirectories, as table of @{directory} objects.
  @treturn {directory,...}
  @function children
  */
@@ -370,36 +367,42 @@ static int luaCB_directory_children(lua_State * L)
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
     const char * path = lua_tostring(L, -1);
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx(path, &file);
+    struct fio_file *file = alloc_fio_file();
+    struct fio_dirent * dirent = FIO_FindFirstEx(path, file);
     int index = 1;
     if(!IS_ERROR(dirent))
     {
         lua_newtable(L);
         do
         {
-            if (file.mode & ATTR_DIRECTORY)
+            struct file_info file_info = convert_fio_file_info(file);
+            if (file_info.mode & ATTR_DIRECTORY)
             {
-                //call the directory constructor
-                lua_pushcfunction(L, luaCB_dryos_directory);
-                lua_pushfstring(L, "%s%s/", path, file.name);
-                lua_call(L, 1, 1);
-                lua_seti(L, -2, index++);
+                if (!streq(file_info.name, ".") && !streq(file_info.name, ".."))
+                {
+                    //call the directory constructor
+                    lua_pushcfunction(L, luaCB_dryos_directory);
+                    lua_pushfstring(L, "%s%s/", path, file_info.name);
+                    lua_call(L, 1, 1);
+                    lua_seti(L, -2, index++);
+                }
             }
         }
-        while(FIO_FindNextEx(dirent, &file) == 0);
+        while(FIO_FindNextEx(dirent, file) == 0);
         FIO_FindClose(dirent);
     }
     else
     {
+        free(file);
         return luaL_error(L, "error reading directory '%s'", path);
     }
     
+    free(file);
     return 1;
 }
 
 /***
- Get a table (of @{string}s) that are the file names of this directory's files.
+ Get a list of file names (with full path) in this directory, as table of @{string}s.
  @treturn {string,...}
  @function files
  */
@@ -408,28 +411,31 @@ static int luaCB_directory_files(lua_State * L)
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
     const char * path = lua_tostring(L, -1);
-    struct fio_file file;
-    struct fio_dirent * dirent = FIO_FindFirstEx(path, &file);
+    struct fio_file *file = alloc_fio_file();
+    struct fio_dirent * dirent = FIO_FindFirstEx(path, file);
     int index = 1;
     if(!IS_ERROR(dirent))
     {
         lua_newtable(L);
         do
         {
-            if (!(file.mode & ATTR_DIRECTORY))
+            struct file_info file_info = convert_fio_file_info(file);
+            if (!(file_info.mode & ATTR_DIRECTORY))
             {
-                lua_pushfstring(L, "%s%s", path, file.name);
+                lua_pushfstring(L, "%s%s", path, file_info.name);
                 lua_seti(L, -2, index++);
             }
         }
-        while(FIO_FindNextEx(dirent, &file) == 0);
+        while(FIO_FindNextEx(dirent, file) == 0);
         FIO_FindClose(dirent);
     }
     else
     {
+        free(file);
         return luaL_error(L, "error reading directory: '%s'", path);
     }
     
+    free(file);
     return 1;
 }
 
@@ -485,9 +491,80 @@ static int luaCB_directory_newindex(lua_State * L)
     return luaL_error(L, "'directory' type is readonly");
 }
 
+static int luaCB_directory_tostring(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    lua_getfield(L, 1, "path");
+    return 1;
+}
+
 /// Represents a card (storage media).
 // Inherits from @{directory}
 // @type card
+
+static int luaCB_card_image_path(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
+    {
+        struct card_info * card = lua_touserdata(L, -1);
+        LUA_PARAM_INT_OPTIONAL(file_offset, 2, 0);
+        LUA_PARAM_STRING_OPTIONAL(extension, 3, 0);
+
+        char image_path[32];    /* B:/DCIM/100CANON/IMG_1234.CR2 */
+
+        int folder_num = card->folder_number;
+        int file_num = card->file_number;
+        for (int i = 0; i != file_offset; i += SGN(file_offset))
+        {
+            file_num += SGN(file_offset);
+            if (file_num > 9999)
+            {
+                file_num = 1;
+                folder_num++;
+                if (folder_num > 999)
+                {
+                    folder_num = 100;
+                }
+            }
+            else if (file_num < 1)
+            {
+                file_num = 9999;
+                folder_num--;
+                if (folder_num < 100)
+                {
+                    folder_num = 999;
+                }
+            }
+        }
+
+        int raw = pic_quality & 0x60000;
+
+        snprintf(image_path, sizeof(image_path),
+            "%s:/DCIM/%03d%s/%s%04d%s",
+            card->drive_letter,     /* B */
+            folder_num,             /* 100 */
+            get_dcim_dir_suffix(),  /* CANON */
+            get_file_prefix(),      /* IMG_ */
+            file_num,               /* 1234 */
+            extension ? extension : raw ? ".CR2" : ".JPG"
+        );
+
+        lua_pushstring(L, image_path);
+        return 1;
+    }
+    else
+    {
+        return luaL_error(L, "could not get lightuserdata for card");
+    }
+}
+
+static const char * get_card_dcim_dir(struct card_info * card)
+{
+    static char dcim_dir[FIO_MAX_PATH_LENGTH];
+    snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", card->drive_letter, card->folder_number, get_dcim_dir_suffix());
+    return dcim_dir;
+}
 
 static int luaCB_card_index(lua_State * L)
 {
@@ -496,12 +573,17 @@ static int luaCB_card_index(lua_State * L)
     if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
     {
         struct card_info * card = lua_touserdata(L, -1);
-        /// Get the cluster size of the filesystem.
-        // @tfield int cluster_size
-        if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
         /// Get the drive letter (A or B).
         // @tfield string drive_letter
-        else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
+        if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
+        /// Get the DCIM directory for this card.
+        // @tfield directory dcim_dir
+        else if(!strcmp(key, "dcim_dir"))
+        {
+            lua_pushcfunction(L, luaCB_dryos_directory);
+            lua_pushstring(L, get_card_dcim_dir(card));
+            lua_call(L, 1, 1);
+        }
         /// Get the current Canon file number (e.g. IMG_1234.CR2 -> 1234).
         // @tfield int file_number
         else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
@@ -512,8 +594,20 @@ static int luaCB_card_index(lua_State * L)
         ///
         /// FIXME: does not update after writing files from ML code.
         // @tfield int free_space
-        else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
-        /// Get the type of card (SD or CF).
+        else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 32 / 1024);
+        /// Get current/previous/future still image path. Examples:
+        /// 
+        ///  - `B:/DCIM/100CANON/IMG1234.CR2` (with extension)
+        ///  - `B:/DCIM/100CANON/IMG1234` (without extension)
+        ///  
+        // @tparam[opt=0] int file_offset 0 = last saved image, positive = future images, negative = previous images.
+        // @tparam[opt=nil] ?string|nil extension Suffix to append to the file name: `".CR2"` or `".JPG"`
+        //
+        // or `nil` = autodetect from picture quality setting (CR2 for RAW+JPEG).
+        // @function image_path
+        // @treturn string
+        else if(!strcmp(key, "image_path")) lua_pushcfunction(L, luaCB_card_image_path);
+        /// Get the type of card (`"SD"` or `"CF"`).
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
         else return luaCB_directory_index(L);
@@ -534,10 +628,11 @@ static const char * lua_dryos_fields[] =
     "clock",
     "ms_clock",
     "image_prefix",
-    "dcim_dir",
     "config_dir",
     "ml_card",
     "shooting_card",
+    "cf_card",
+    "sd_card",
     "date",
     NULL
 };

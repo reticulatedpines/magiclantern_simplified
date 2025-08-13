@@ -16,8 +16,8 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
-#define FIRMWARE_ENTRY_LEN 0x3000
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
+#define FIRMWARE_ENTRY_LEN 0x1100
 
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START 0xFF0197D8
@@ -49,7 +49,7 @@
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
 //~ #define AF_BUTTON_PRESSED_LV 0
-#define CURRENT_GUI_MODE (*(int*)0x3964) // GUIMode_maybe in Indy's IDC
+#define CURRENT_GUI_MODE (*(int*)0x3960) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0xCBD0) != 0x17) // dec CancelUnaviFeedBackTimer
@@ -125,10 +125,10 @@
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC)) // not sure
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x16fc8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
-
-//~ #define ARROW_MODE_TOGGLE_KEY ""
+#define MALLOC_STRUCT_ADDR 0x16fc8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x14E8000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
@@ -138,6 +138,8 @@
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
 
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x4C64)) // how much do we have allocated?
+#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024 // is this really overwritten by other code? needs some investigation
 
 //Same as 600D
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308

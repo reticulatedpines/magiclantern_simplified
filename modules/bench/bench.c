@@ -73,6 +73,13 @@ static struct menu_entry bench_menu[] =
                 .help = "Memory or cache benchmarks",
                 .children =  (struct menu_entry[]) {
                     {
+                        .name = "Memcpy benchmark (20s)",
+                        .select = run_in_separate_task,
+                        .priv = mem_benchmark_simple_task,
+                        .help = "Check memcpy speed using different subsystems.",
+                        .help2 = "(memcpy, dma_memcpy, DMA unit, EDMAC unit)"
+                    },
+                    {
                         .name = "Memory benchmark (1 min)",
                         .select = run_in_separate_task,
                         .priv = mem_benchmark_task,

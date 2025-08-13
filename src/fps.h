@@ -3,6 +3,8 @@
 /* todo: get rid of old fps.c and rename fps-engio.c */
 
 /* current LiveView FPS, as read from the timers */
+// This can return 0, you must check the result before doing division with it.
+// This will crash at least Digic 6 cams (ARMv7-R).
 int fps_get_current_x1000();
 
 /* current shutter speed, maybe modified by FPS */
@@ -33,6 +35,8 @@ int can_set_frame_shutter_timer();
 int get_frame_shutter_timer();
 void set_frame_shutter_timer(int timer);
 void set_frame_shutter(int shutter_reciprocal);
+
+int get_frame_aperture();
 
 int fps_get_iso_correction_evx8();
 

@@ -122,14 +122,14 @@ static void alloc_cTable(font *f) {
     // If existing data has been allocated then we are re-using the font data
     // See if it the existing cTable data is large enough to hold the new font data
     // If not free it so new memory will be allocated
-    if ((f->cTable != 0) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
-        free(f->cTable);              // free the memory
-        f->cTable = 0;                // clear pointer so new memory is allocated
+    if ((f->cTable != NULL) && (f->cTableSizeMax < (f->charCount*f->hdr.charSize))) {
+        free(f->cTable);  // free the memory
+        f->cTable = NULL; // clear pointer so new memory is allocated
         f->cTableSizeMax = 0;
     }
 
     // Allocated memory if needed
-    if (f->cTable == 0) {
+    if (f->cTable == NULL) {
         // Allocate memory from cached pool
         int size = f->charCount*f->hdr.charSize;
         f->cTable = malloc(size);
@@ -289,7 +289,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     {
         if (bg != NO_BG_ERASE)
         {
-            bmp_fill(bg, x, y, width, height);
+            bmp_fill(bg, x, y, pixel_width, height);
         }
 
         for (yy=0; yy<height; ++yy)
@@ -302,7 +302,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
             {
                 if(cdata[yy*width/8+xx/8] & (1<<(xx%8)))
                 {
-                  bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
+                    bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
                 }
             }
         }

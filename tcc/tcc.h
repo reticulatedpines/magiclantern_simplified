@@ -1224,6 +1224,8 @@ ST_FUNC void put_stabd(int type, int other, int desc);
 ST_FUNC void relocate_common_syms(void);
 ST_FUNC void relocate_syms(TCCState *s1, int do_resolve);
 ST_FUNC void relocate_section(TCCState *s1, Section *s);
+ST_FUNC void relocate_section(TCCState *s1, Section *s);
+ST_FUNC int get_plt_got_size_for_relocate_section(TCCState *s1, Section *s);
 
 ST_FUNC void tcc_add_linker_symbols(TCCState *s1);
 ST_FUNC int tcc_load_object_file(TCCState *s1, int fd, unsigned long file_offset);
@@ -1381,6 +1383,11 @@ ST_FUNC void tcc_set_num_callers(int n);
 #define fprintf(stderr, ...) printf(# __VA_ARGS__)
 
 /* hacked I/O functions from tcc-glue.c */
+extern int _tcc_open(const char *pathname, int flags);
+extern int _tcc_close(int fd);
+extern int _tcc_read(int fd, void *buf, int size);
+extern int _tcc_lseek(int fd, int offset, int whence);
+extern void _tcc_exit(int code);
 #define open _tcc_open
 #define close _tcc_close
 #define read _tcc_read

@@ -22,7 +22,7 @@ Quick start
 * Start at ISO 100 in Canon menu
 * Expose to the right by changing shutter and aperture
 * If the image is still dark, enable dual ISO
-* Adjust recovery ISO: higher values = cleaner shadows, but more artifacts
+* Adjust alternate ISO: higher values = cleaner shadows, but more artifacts
 * Try not to go past ISO 1600; you will not see any major improvements, 
   but you will get more interpolation artifacts and hot pixels.
 

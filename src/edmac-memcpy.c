@@ -7,8 +7,8 @@
 
 #ifdef CONFIG_EDMAC_MEMCPY
 
-static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
-static struct semaphore * edmac_read_done_sem = 0; /* to know when memcpy is finished */
+static struct semaphore *edmac_memcpy_sem = NULL; /* to allow only one memcpy running at a time */
+static struct semaphore *edmac_read_done_sem = NULL; /* to know when memcpy is finished */
 
 /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -30,6 +30,11 @@ uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
 #elif defined(CONFIG_6D) || defined(CONFIG_5D3)
 uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
 uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
+#elif defined(CONFIG_70D)
+// 70D uses same read and write channels as 6D and 5D3
+// just keep it separate with the comments
+uint32_t edmac_read_chan = 0x19;  /* Read decimal: 8 25 29 42 43 - hex: 0x08 0x19 0x1D 0x2A 0x2B*/
+uint32_t edmac_write_chan = 0x11; /* Write decimal: 6 17 33 - hex: 0x06 0x11 0x21*/
 #elif defined(CONFIG_7D)
 uint32_t edmac_read_chan = 0x0A;  /*Read 0x19 0x0D 0x0B 0x0A(82MB/S)*/
 uint32_t edmac_write_chan = 0x06; /* Write 0x5 0x6 0x4 (LV) */
@@ -64,8 +69,8 @@ static struct LockEntry * resLock = 0;
 
 static void edmac_memcpy_init()
 {
-    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
-    edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", 0);
+    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", SEM_CREATE_UNLOCKED);
+    edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", SEM_CREATE_LOCKED);
     
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = edmac_channel_to_index(edmac_read_chan);
@@ -114,7 +119,11 @@ void edmac_memcpy_res_unlock()
     UnLockEngineResources(resLock);
 }
 
-void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
+void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
+                                     int src_width, int src_x, int src_y,
+                                     int dst_width, int dst_x, int dst_y,
+                                     int w, int h,
+                                     void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
     /* dmaFlags: 16 (DIGIC 5) or 4 (DIGIC 4) bytes per transfer
      * in order to successfully stop the EDMAC transfer,
@@ -213,14 +222,27 @@ void edmac_copy_rectangle_adv_finish()
     edmac_copy_rectangle_adv_cleanup();
 }
 
-void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void* edmac_copy_rectangle_adv_start(void* dst, void* src,
+                                     int src_width, int src_x, int src_y,
+                                     int dst_width, int dst_x, int dst_y,
+                                     int w, int h)
 {
-    return edmac_copy_rectangle_cbr_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h, &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
+    return edmac_copy_rectangle_cbr_start(dst, src,
+                                          src_width, src_x, src_y,
+                                          dst_width, dst_x, dst_y,
+                                          w, h,
+                                          &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
 }
 
-void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void* edmac_copy_rectangle_adv(void* dst, void* src,
+                               int src_width, int src_x, int src_y,
+                               int dst_width, int dst_x, int dst_y,
+                               int w, int h)
 {
-    void* ans = edmac_copy_rectangle_adv_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h);
+    void* ans = edmac_copy_rectangle_adv_start(dst, src,
+                                               src_width, src_x, src_y,
+                                               dst_width, dst_x, dst_y,
+                                               w, h);
     if (ans) edmac_copy_rectangle_adv_finish();
     return ans;
 }
@@ -259,7 +281,10 @@ void* edmac_memset(void* dst, int value, size_t length)
     memset(dst + leading, value, blocksize);
     
     /* now copy the first line over the next lines */
-    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading, 0, 0, 0, blocksize, 0, 0, blocksize, copies);
+    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading,
+                                   0, 0, 0,
+                                   blocksize, 0, 0,
+                                   blocksize, copies);
     
     /* leading or trailing bytes that edmac cannot handle? */
     if(leading)
@@ -319,7 +344,10 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
         return ret;
     }
     
-    return edmac_copy_rectangle_adv_start(dst, src, blocksize, 0, 0, blocksize, 0, 0, blocksize, length / blocksize);
+    return edmac_copy_rectangle_adv_start(dst, src,
+                                          blocksize, 0, 0,
+                                          blocksize, 0, 0,
+                                          blocksize, length / blocksize);
 }
 
 void edmac_memcpy_finish()
@@ -335,9 +363,15 @@ void* edmac_memcpy(void* dst, void* src, size_t length)
     return ans;
 }
 
-#endif
+#endif // CONFIG_EDMAC_MEMCPY
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
+#ifndef CONFIG_EDMAC_RAW_SLURP
+// mlv_lite requires the symbol to exist regardless of RAW_SLURP support,
+// this value makes edmac_start_spy() fail to start (good, since it requires RAW_SLURP to work)
+uint32_t raw_write_chan = 0xffffffff;
+#endif
+
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
 #if defined(CONFIG_5D3)

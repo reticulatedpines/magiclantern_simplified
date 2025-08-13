@@ -5,6 +5,7 @@
 #include "arm-mcr.h"
 #include "cache_hacks.h"
 #include "config-defines.h"
+#include "mem.h"
 
 #ifdef CONFIG_DIGIC_45
 /*

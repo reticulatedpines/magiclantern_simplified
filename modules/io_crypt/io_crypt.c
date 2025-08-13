@@ -70,7 +70,7 @@
 #include "hash_password.h"
 
 #include "../trace/trace.h"
-#include "../ime_base/ime_base.h"
+#include "../input/ime_base/ime_base.h"
 
 uint32_t iocrypt_trace_ctx = TRACE_ERROR;
 
@@ -993,7 +993,7 @@ static unsigned int iocrypt_init()
     for(int pos = 0; pos < COUNT(iocrypt_files); pos++)
     {
         iocrypt_files[pos].crypt_ctx.priv = NULL;
-        iocrypt_files[pos].semaphore = create_named_semaphore("iocrypt_pw", 0);
+        iocrypt_files[pos].semaphore = create_named_semaphore("iocrypt_pw", SEM_CREATE_LOCKED);
     }
     
     if(is_camera("600D", "1.0.2"))
@@ -1065,7 +1065,7 @@ static unsigned int iocrypt_init()
         return CBR_RET_ERROR;
     }
     
-    iocrypt_password_sem = create_named_semaphore("iocrypt_pw", 1);
+    iocrypt_password_sem = create_named_semaphore("iocrypt_pw", SEM_CREATE_UNLOCKED);
     
     /* ask for the initial password */
     if(iocrypt_ask_pass && iocrypt_enabled && (iocrypt_mode == CRYPT_MODE_SYMMETRIC || iocrypt_mode == CRYPT_MODE_BACKGROUND_SYM))

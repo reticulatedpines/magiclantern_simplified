@@ -23,7 +23,7 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C88
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
 #define FIRMWARE_ENTRY_LEN 0x3000
 
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
@@ -43,6 +43,9 @@
 #define YUV422_LV_BUFFER_1 0x4BDE7800
 #define YUV422_LV_BUFFER_2 0x4B9D7800
 #define YUV422_LV_BUFFER_3 0x4C1F7800
+
+#define DEFAULT_RAW_BUFFER MEM(0x6733C + 0x40)
+#define DEFAULT_RAW_BUFFER_SIZE (0x46CC0000 - 0x46798100)
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xC0F04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xC0F04108 // SDRAM address of HD buffer (aka YUV)
@@ -176,8 +179,10 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 94 : 2) // any from 88...98 ?!
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 91 to 103
+// 100 shows the same dialog as 97 on 700D/650D or 99 on EOSM
+// 94 shows the same dialog as 91 on 700D/650D
+#define GUIMODE_ML_MENU (RECORDING ? 100 : lv ? 94 : 2)
 #define NUM_PICSTYLES 10
 
 #define FLASH_MAX_EV 3
@@ -248,8 +253,10 @@
 // #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM)
 // #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
-#define MALLOC_STRUCT 0x883B8
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x883B8
+//#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
 #define UNAVI_BASE (0x7B8EC)
 #define UNAVI (MEM(UNAVI_BASE + 0x24))
