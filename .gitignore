@@ -6,7 +6,6 @@ syntax: glob
 *.elf
 !src/libs/*/*.a
 *.fir
-.*
 !.hgignore
 !.gitignore
 .*.swp
