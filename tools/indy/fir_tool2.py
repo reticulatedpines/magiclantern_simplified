@@ -19,12 +19,15 @@ Boston, MA  02110-1301, USA.
 import os
 import sys
 import array
-from struct import unpack
+from struct import unpack, Struct
 import ctypes
 from binascii import hexlify, unhexlify
 from optparse import OptionParser
 
-version_id = "0.5 (20Mar2010)"
+#version_id = "0.5 (20Mar2010)" #indy's legacy version
+version_id = "0.6 (Oct2025)" #python 3 compatibility and some code factorisation
+
+#tested with 7D000125.FIR, 80D00103.FIR, 7D200113.FIR, EOSR0180.FIR, EOSR6190.FIR
 
 # updater decoding tables. since 1d Mark III (2/2007) 
 # See 20 dec 2007 (soldeersmurfje), 40D firmware decryption, http://tech.groups.yahoo.com/group/canondigicamhacking/message/7883
@@ -88,26 +91,10 @@ t513 = [ 0xB8, 0xE4, 0x0F, 0xD5, 0xAC, 0x6B, 0x38, 0x5F, 0x4F, 0x75, 0x21, 0x0F,
   0x3C, 0xF1, 0x17, 0x8F, 0x50, 0xE4, 0xFD, 0x33, 0xBD, 0x46, 0x83, 0x41, 0x0E, 0xD5, 0x27, 0x0D, 0xB2, 0x87, 0x86, 0x16,
   0x82, 0x1D, 0xDD, 0xE7, 0xE1, 0xEF, 0x29, 0x5D, 0x48, 0xF4, 0xFC, 0xF2, 0x1D ]            
 
-VXWORKS = 0
-DRYOS = 1
-osName = [ 'VxWorks', 'DryOS' ]
-models = [ [ 0x80000169, VXWORKS, '1D Mark III'],           [ 0x80000176, VXWORKS, '450D / Rebel XSi'],
-           [ 0x80000190, VXWORKS, '40D'],                   [ 0x80000213, VXWORKS, '5D'],
-           [ 0x80000215, VXWORKS, '1Ds Mark III'],          [ 0x80000218, DRYOS,   '5D Mark II'],
-           [ 0x80000234, VXWORKS, '30D'],                   [ 0x80000236, VXWORKS, '400D / Rebel XTi'],
-           [ 0x80000250, DRYOS, '7D'],                      [ 0x80000252, DRYOS, '500D / T1i'],
-           [ 0x80000254, VXWORKS, '1000D / Rebel XS'],      [ 0x80000261, DRYOS, '50D'],
-           [ 0x80000270, DRYOS, '550D / T2i'],              [ 0x80000281, DRYOS, '1D Mark IV'],
-           [ 0x80000241, DRYOS, 'WFT-E2'],                  [ 0x80000246, DRYOS, 'WFT-E3'] ]
 
 def getLongLE(d, a):
    return unpack('<L',(d)[a:a+4])[0]
 
-def getModel(id):
-  for i in models:
-    if i[0]==id:
-      return i[1], i[2]
-  return None, '???'
 
 #from dissect_fw3_2.rar : http://chdk.setepontos.com/index.php?action=dlattach;topic=111.0;attach=2700    
 def xor_decode( seed, start, len ):
@@ -119,30 +106,68 @@ def xor_decode( seed, start, len ):
     out[i] =  out[i] ^ t512[o512] ^ t513[o513] ^ 0x37 
     o512 = (o512+1) % 512
     o513 = (o513+1) % 513
-  return out
+  return bytes(out)
 
-def check_xor_decoding( os, out):
-  if (os==VXWORKS and out[8:16].tostring() == 'Copyrigh') or (os==DRYOS and out[4:12].tostring() == 'gaonisoy'):
+def check_xor_decoding( out):
+  if out.find(b'Copyrigh')>0 or out.find(b'gaonisoy')>0:
     return True
   else:
     return False
 
 def decipher_updater( xorSeed, offset, len, filename):
   out = xor_decode( xorSeed, offset, len)
-  print ' xor_decoding [0x%x-0x%x]...' % ( offset, offset+len),
-  if check_xor_decoding( os, out):
-    print 'OK (%s)' % filename
+  print (' xor_decoding [0x%x-0x%x]...' % ( offset, offset+len),end='')
+  if check_xor_decoding( out):
+    print ('OK (%s)' % filename)
     f = open(filename, 'wb')
-    out.tofile(f)
+    f.write(out)
     f.close()
   else:
-    print 'KO'
+    print ('KO')
+
+def enc_header(header):
+  updater1len, l, z, seed = Struct('<LLLL').unpack_from(m, header)
+  print ('0x%03x: encrypted length = 0x%x' % (header, updater1len ))
+  print ('0x%03x: 0x%x' % ( header + 4, l))
+  print ('0x%03x: 0x%x' % ( header + 8,z))
+  print ('0x%03x: seed 0x%x' % ( header + 0xc, seed))
+  aes_header = getLongLE( m, header+0x10 )!=0
+  if aes_header: 
+    a, b, c, d = Struct('<16s32s16s32s').unpack_from(m, header+0x10)
+    print ('0x%03x: %s' % (header + 0x10, hexlify( a ) ) )
+    print ('0x%03x: %s' % (header + 0x20, hexlify( b ) ))
+    print ('0x%03x: %s' % (header + 0x40, hexlify( c ) ))
+    print ('0x%03x: %s' % (header + 0x50, hexlify( d ) ))  
+  return updater1len, seed
+
+def enc_header5(header):
+  _len, _, iv = Struct('<LL16s').unpack_from(m, header)
+  print ('0x%03x: encrypted length = 0x%x' % (header, _len ))
+  print ('0x%03x: 0x%x' % ( header + 4, _))
+  print ('0x%03x: IV %s' % ( header + 8,hexlify(iv)))
+
+def header(h, b=0):
+  model, _, version, _, fsum, updater1header, updater1, updater2header, firmware, updater3header, filesize, z, sign_seed = Struct('<L12s5s11sLLLLLLLLL').unpack_from(m, b)
+  print ('0x%03x: modelId = 0x%08x' % (b, model))
+  print ('0x010: version = %s' % (version))
+  print ('0x020: checksum = 0x%08x' %  (fsum ))
+  print ('0x024: updater1 header = 0x%x' % ( updater1header ))
+  print ('0x028: updater1 offset = 0x%x' % (updater1))
+  print ('0x02c: updater2 offset = 0x%x' % (updater2header))
+  print ('0x030: firmware offset = 0x%x' % (firmware))
+  print ('0x034: updater3 offset = 0x%x' % (updater3header))
+  print ('0x038: filesize = 0x%x' % (filesize))
+  print ('0x03c: 0x%x' % (z))
+  print ('0x040: sha1 seed = 0x%x' % (sign_seed))
+  print ('0x044: ',end='')
+  for i in range(9):
+    print ('0x%x ' % getLongLE( m, b+0x44+i*4 ),end='')
+  print()
+  return model, fsum, updater1header, updater1, updater2header, firmware, filesize, updater3header, sign_seed
 
 parser = OptionParser(usage="usage: %prog [options] filename")
-parser.add_option("-z", "--zeros", action="store_true", dest="zeros", help="print fields usually filled with zeros", default=False)
 parser.add_option("-c", "--checksum", action="store_true", dest="checksum", default=False, help="verify checksum(s)")
 parser.add_option("-x", "--extract", action="store_true", dest="extract", default=False, help="extract updater(s) code")
-parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="verbose mode")
 (options, args) = parser.parse_args()
   
 f = open(args[0], 'rb')
@@ -150,124 +175,61 @@ m = f.read()
 fileLen = f.tell()
 f.close()
 
-print 'Fir_tool %s\n' % version_id
-print 'fileLen = 0x%x' % fileLen
-print '---.fir header---'
-model = getLongLE( m, 0 )
-print '0x000: modelId = 0x%08x,' % model,
-os, modelName = getModel( model )
-if (os!=None):
-  print '(%s, %s)' % (modelName, osName[os] )
-if options.zeros:
-  print '0x004: %s' % hexlify( m[ 4:0x10 ] ) 
-print '0x010: version = %s' % ( m[0x10:0x10+5] )
-if model==0x80000213 or model==0x80000234 or model==0x80000236: # 5D, 400D and 30D
-  print 'not supported by python version of fir_tool'
-  sys.exit()
+print ('Fir_tool %s\n' % version_id)
+print ('fileLen = 0x%x' % fileLen)
+print ('---.fir header---')
 
-if options.zeros:
-  print '0x015: %s' % hexlify( m[ 0x15:0x20 ] ) 
-fsum = getLongLE( m, 0x20 )
-print '0x020: checksum = 0x%08x' %  fsum 
+model, fsum, updater1header, updater1, updater2header, firmware, filesize, updater3header, sign_seed = header(m)
+if model==0x80000213 or model==0x80000234 or model==0x80000236: # 5D, 400D and 30D
+  exit()
+
+fir5 = updater1header == 0x100 #0xb0 before
+xor_updater = m[0xc0:0x120] == b'\x00'*0x60 #non zero if AES
+prefix = '%04x_%s' % (model & 0xffff, m[0x10]+m[0x12]+m[0x14] )
+
+if not fir5:  #hmac-sha1
+  print ('0x068: updater1 hmac-sha1 = %s' % hexlify( m[ 0x68:0x68+20 ] ) )
+  print ('0x088: firmware hmac-sha1 = %s' % hexlify( m[ 0x88:0x88+20 ] ) )
+else: #secp256r1
+  for n in range(0x68, 0xf8, 32+4):
+    lval, sign_val = Struct('<L32s').unpack_from(m,n) #d810_verif.py is more accurate (250d)
+    print('0x%03x: %x %s' % (n, lval, hexlify(sign_val) ))   
+
 if options.checksum:
-  csum = sum( array.array('B', m[ 0:0x20 ]) ) + sum( array.array('B', m[ 0x24:fileLen ]) )
+  csum = sum( m[ 0:0x20 ] ) + sum( m[ 0x24:fileLen ]) 
   if fsum != ctypes.c_uint32(~csum).value:
-   print " checksum error (decryption2) csum=%x" % (csum)
+    print (" checksum error (decryption2) csum=%x" % (csum))
   else:
-    print " checksum computing [0x%x-0x%x] is OK!" % (0 , fileLen)
-updater1header = getLongLE( m, 0x24 )
-updater1 = getLongLE( m, 0x28 )
-print '0x024: updater1 header = 0x%x' % ( updater1header )
-print '0x028: updater1 offset = 0x%x' % updater1
-updater2header = getLongLE( m, 0x2c )
-print '0x02c: updater2 offset = 0x%x' % updater2header
-firmware = getLongLE( m, 0x30 )
-print '0x030: firmware offset = 0x%x' % firmware
-print '0x034: 0x%x' % getLongLE( m, 0x34 )
-efileLen = getLongLE( m, 0x38 )
-print '0x038: embedded file size = 0x%x' % efileLen
-if efileLen != fileLen:
-  print 'error file size != embedded file size'
-print '0x03c: 0x%x' % getLongLE( m, 0x3c )
-print '0x040: sha1 seed = 0x%x' % getLongLE( m, 0x40 )
-print '0x044:',
-for i in range(7):
-  print '0x%08x' % getLongLE( m, 0x44+i*4 ),
-print
-updater1total = getLongLE( m, 0x60 )
-print '0x060: 0x%x' % updater1total 
-firmwareLen = getLongLE( m, 0x64 )
-print '0x064: firmware length = 0x%x' % firmwareLen
-if (firmwareLen + firmware) != efileLen:
-  print 'error : (firmwareLen + firmware) != efileLen'
-print '0x068: updater1 hmac-sha1 = %s' % hexlify( m[ 0x68:0x68+20 ] ) 
-print '0x088: firmware hmac-sha1 = %s' % hexlify( m[ 0x88:0x88+20 ] ) 
-print '---updater1 header---'
-updater1len = getLongLE( m, updater1header )
-print '0x%03x: updater1 length = 0x%x. starts at 0x%x' % (updater1header, updater1len, updater1)
-print '0x%03x: 0x%x' % ( updater1header + 4, getLongLE( m, updater1header+4 ))
-print '0x%03x: 0x%x' % ( updater1header + 8, getLongLE( m, updater1header+8 ))
-xorSeed = getLongLE( m, updater1header + 0xc )
-print '0x%03x: xor seed value = 0x%x' % ( updater1header + 0xc, xorSeed)
-if getLongLE( m, 0xc0 )!=0 or options.zeros:
-  print '0x0c0: %s' % hexlify( m[ 0x0c0:0x0d0 ] ) 
-  print '0x0d0: %s' % hexlify( m[ 0x0d0:0x0f0 ] ) 
-  print '0x0f0: %s' % hexlify( m[ 0x0f0:0x100 ] ) 
-  print '0x100: %s' % hexlify( m[ 0x100:0x120 ] ) 
-print '0x%03x: --- updater1 (ciphered) ---' % updater1
-prefix = '{0:04x}'.format(model & 0xffff) + "_" + m[0x10]+m[0x12]+m[0x14] 
-if options.extract:
-  decipher_updater( xorSeed, updater1, updater1len, prefix+'_updater1_.bin')
+    print (" checksum computing [0x%x-0x%x] is OK!" % (0 , fileLen))
+
+print ('---updater1 header---')
+if not fir5:
+  updater1len, xorSeed = enc_header(updater1header)
+  if options.extract and xor_updater:
+    decipher_updater( xorSeed, updater1, updater1len, prefix+'_updater1_.bin')
+else:
+  enc_header5(updater1header)  
+print ('0x%03x: --- updater1 (ciphered) ---' % updater1)
 
 if ctypes.c_int32(updater2header).value!=-1:
-  print '---updater2 header---'
-  model2 = getLongLE( m, updater2header )
-  print '0x%03x: (+0x000), modelId = 0x%08x,' % (updater2header, model2),
-  os2, modelName2 = getModel( model2 )
-  if (os2 != None):
-    print '(%s, %s)' % (modelName2, osName[os2] )
-  print '0x%03x: (+0x010), version = %s' % ( updater2header+0x10, m[updater2header+0x10:updater2header+0x10+5] )
-  fsum2 = getLongLE( m, updater2header+0x20 )
-  print '0x%03x: (+0x020), checksum? = 0x%08x' %  ( updater2header+0x20, fsum2 )
-  print '0x%03x: (+0x024), 0x%x' %  ( updater2header+0x24, getLongLE( m, updater2header+0x24 ) )
-  print '0x%03x: (+0x028), 0x%x' %  ( updater2header+0x28, getLongLE( m, updater2header+0x28 ) )
-  print '0x%03x: (+0x02c),' % (updater2header+0x2c),
-  for i in range (3):
-    print '%x' %  ( getLongLE( m, updater2header+0x2c+i*4 ) ),
-  print
-  print '0x%03x: (+0x038), updater length (including header) = 0x%x. starts at 0x%x' \
-   %  ( updater2header+0x38, getLongLE( m, updater2header+0x38 ), updater2header )
-  if options.zeros:
-    print '0x%03x: (+0x03c), %s' % ( updater2header+0x3c, hexlify( m[ updater2header+0x3c:updater2header+0x3c+0x30 ] ) )
-    print '0x%03x: (+0x06c), %s' % ( updater2header+0x6c, hexlify( m[ updater2header+0x6c:updater2header+0x6c+0x30 ] ) )
-    print '0x%03x: (+0x09c), %s' % ( updater2header+0x9c, hexlify( m[ updater2header+0x9c:updater2header+0x9c+0x14 ] ) )
-  updater2len = getLongLE( m, updater2header+0xb0 )
-  updater2 = updater2header+0x120
-  print '0x%03x: (+0x0b0), updater length = 0x%x. starts at 0x%x' %  ( updater2header+0xb0, updater2len, updater2 )
-  print '0x%03x: (+0x0b4), 0x%x' %  ( updater2header+0xb4, getLongLE( m, updater2header+0xb4 ) )
-  print '0x%03x: (+0x0b8), 0x%x' %  ( updater2header+0xb8, getLongLE( m, updater2header+0xb8 ) )
-  xorSeed2 = getLongLE( m, updater2header+0xbc )
-  print '0x%03x: (+0x0bc), xor seed value = 0x%x' %  ( updater2+0xbc, xorSeed2 )
-  if options.zeros:
-    print '0x%03x: (+0x0c0), %s' % ( updater2header+0xc0, hexlify( m[ updater2header+0xc0:updater2header+0xe0 ] ) )
-    print '0x%03x: (+0x0e0), %s' % ( updater2header+0xe0, hexlify( m[ updater2header+0xe0:updater2header+0x100 ] ) )
-    print '0x%03x: (+0x100), %s' % ( updater2header+0x100, hexlify( m[ updater2header+0x100:updater2header+0x120 ] ) )
-  print '0x%03x: (+0x120), --- updater2 (ciphered) ---' % (updater2)
-  if options.extract:
-    decipher_updater( xorSeed2, updater2, updater2len, prefix+'_updater2_.bin')
+  print ('---updater2 header---')
+  model, fsum2, _header, updater, _, _, _, updater3header, xorSeed2 = header(m[:updater2header], updater2header)
+  print ('0x%03x: --- updater2 (ciphered) ---' % updater)
+  updater2len, xorSeed2 = enc_header(updater2header+_header)
+  
+  if options.extract and xor_updater:
+    decipher_updater( xorSeed2, updater2header+updater, updater2len, prefix+'_updater2_.bin')
 
-print '---firmware header---'
-print '0x%06x: (+0x000), offset to decryption data = 0x%x' % ( firmware,  getLongLE( m, firmware ))
-print '0x%06x: (+0x004), offset to encrypted data = 0x%x. starts at 0x%x' % ( firmware+4,  getLongLE( m, firmware+4 ), firmware)
-print '0x%06x: (+0x008), total firmware length (including header) = 0x%x. starts at 0x%x' % ( firmware+8,  getLongLE( m, firmware+8 ), firmware)
-print '-'
-print '0x%06x: (+0x00c), firmware length (encrypted part) = 0x%x. starts at 0x%x' % ( firmware+0xc,  getLongLE( m, firmware+0xc ), firmware+0x7c)
-print '0x%06x: (+0x010), 0x%08x' % ( firmware+0x10,  getLongLE( m, firmware+0x10 ))
-print '0x%06x: (+0x014), 0x%x' % ( firmware+0x14,  getLongLE( m, firmware+0x14 ))
-print '0x%06x: (+0x018), 0x%08x' % ( firmware+0x18,  getLongLE( m, firmware+0x18 ))
-print '0x%06x: (+0x01c), %s' % ( firmware+0x1c, hexlify( m[ firmware+0x1c:firmware+0x1c+0x10 ] ) )
-print '0x%06x: (+0x02c), %s' % ( firmware+0x2c, hexlify( m[ firmware+0x2c:firmware+0x2c+0x20 ] ) )
-print '0x%06x: (+0x04c), %s' % ( firmware+0x4c, hexlify( m[ firmware+0x4c:firmware+0x4c+0x10 ] ) )
-print '0x%06x: (+0x05c), %s' % ( firmware+0x5c, hexlify( m[ firmware+0x5c:firmware+0x5c+0x20 ] ) )
-print '---firmware (encrypted)---'
-print '0x%06x: (+0x07c)' % ( firmware+0x7c )
+print ('---firmware header---')
+dec, enc, total = Struct('<LLL').unpack_from(m, firmware)
+print ('0x%06x: offset to decryption data = 0x%x' % ( firmware,  dec))
+print ('0x%06x: offset to encrypted data = 0x%x' % ( firmware+4,  enc))
+print ('0x%06x: total firmware length (including header) = 0x%x. starts at 0x%x' % ( firmware+8,  total, firmware))
+print ('-')
+if not fir5:
+  firmware_len, _ = enc_header(firmware+dec)
+else:
+  enc_header5(firmware+dec)
+
+print ('0x%06x: ---firmware (encrypted)---' % ( firmware+enc ))
+print ('0x%06x: ---end of encrypted firmware---' % ( firmware+total ))
