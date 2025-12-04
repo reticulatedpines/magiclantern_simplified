@@ -29,6 +29,8 @@ static uint32_t sdr_192MHz[] = {0x8, 0x3, 0x4, 0x1D000301, 0x0, 0x201, 0x201, 0x
 static uint32_t sdr_240MHz[] = {0x8, 0x3, 0x3, 0x1D000301, 0x0, 0x201, 0x201, 0x100, 0x3};
 static uint32_t sdr_240MHz2[] = {0x3, 0x3, 0x1, 0x1D000001, 0x0, 0x100, 0x100, 0x100, 0x1}; /* Works better on 100D / EOS M, also SDR104 is stable with this preset (for Write operations) */
 
+static CONFIG_INT("sd.sd_overclock", sd_overclock, 0);
+
 #ifdef CONFIG_200D
 /* DIGIC 7 (200D) - Canon autotune table prefers 156/130/111 MHz, patch to expose higher steps */
 static struct patch sd_200d_156_patch[] = {
@@ -95,7 +97,6 @@ static void apply_200d_speed_profile(void)
 static uint32_t uhs_vals[COUNT(uhs_regs)]; /* current values */
 static int sd_setup_mode_enable = 0;
 static int turned_on = 0;
-static CONFIG_INT("sd.sd_overclock", sd_overclock, 0);
 static CONFIG_INT("sd.sd_access_mode", access_mode, 1);
 
 /* CID info hook, should work on all DIGIC 5 models */

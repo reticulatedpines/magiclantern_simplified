@@ -6,6 +6,17 @@ The Magic Lantern build system is a fairly standard GNU Make system, with some c
 
 People have succeeded in building ML on Windows (via WSL), OSX, and Linux.
 
+## Prerequisites
+
+You need an ARM bare-metal toolchain on your `$PATH`; builds expect `arm-none-eabi-gcc`, `arm-none-eabi-ld`, and friends. On Debian/Ubuntu (including GitHub Codespaces) install it with:
+
+```
+sudo apt-get update
+sudo apt-get install gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi make python3
+```
+
+On macOS, Homebrew provides it as `brew install arm-none-eabi-gcc`. If you see build failures like `/usr/bin/arm-none-eabi-gcc: No such file or directory`, install the toolchain and re-run `make`.
+
 The standard output is a zip file, that can be extracted to a memory card ready to run on a camera.  This contains a variety of assets, such as bitmap images, fonts, Lua scripts.  It also includes binary modules, optional components that can be selected to load by the user at runtime.  Finally, there is one primary binary, always named autoexec.bin.
 
 Autoexec.bin is a name checked for by DryOS, and as explained in section 3, can be used to load our code (given some other conditions being true).
