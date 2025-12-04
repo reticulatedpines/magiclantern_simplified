@@ -29,6 +29,69 @@ static uint32_t sdr_192MHz[] = {0x8, 0x3, 0x4, 0x1D000301, 0x0, 0x201, 0x201, 0x
 static uint32_t sdr_240MHz[] = {0x8, 0x3, 0x3, 0x1D000301, 0x0, 0x201, 0x201, 0x100, 0x3};
 static uint32_t sdr_240MHz2[] = {0x3, 0x3, 0x1, 0x1D000001, 0x0, 0x100, 0x100, 0x100, 0x1}; /* Works better on 100D / EOS M, also SDR104 is stable with this preset (for Write operations) */
 
+#ifdef CONFIG_200D
+/* DIGIC 7 (200D) - Canon autotune table prefers 156/130/111 MHz, patch to expose higher steps */
+static struct patch sd_200d_156_patch[] = {
+    {
+        .addr = (uint8_t *)0xe0ea7ebc,
+        .old_value = 0x8,
+        .new_value = 0x8, /* keep 156MHz as first candidate */
+        .size = 4,
+        .description = "200D SD: prefer 156MHz",
+    },
+    {
+        .addr = (uint8_t *)0xe0ea7ec0,
+        .old_value = 0x7,
+        .new_value = 0x7, /* keep 130MHz fallback */
+        .size = 4,
+        .description = "200D SD: fallback 130MHz",
+    },
+};
+
+static struct patch sd_200d_192_patch[] = {
+    {
+        .addr = (uint8_t *)0xe0ea7ebc,
+        .old_value = 0x8,
+        .new_value = 0x9, /* allow 192MHz as first candidate */
+        .size = 4,
+        .description = "200D SD: prefer 192MHz",
+    },
+    {
+        .addr = (uint8_t *)0xe0ea7ec0,
+        .old_value = 0x7,
+        .new_value = 0x8, /* 156MHz fallback */
+        .size = 4,
+        .description = "200D SD: fallback 156MHz",
+    },
+};
+
+/* Canon table does not expose >192MHz, reuse the 192MHz table for the "240" option */
+static struct patch *sd_200d_192_reuse_patch = sd_200d_192_patch;
+
+static void apply_200d_speed_profile(void)
+{
+    extern void autotune_SD(void);
+
+    if (sd_overclock == 1)
+    {
+        apply_patches(sd_200d_156_patch, COUNT(sd_200d_156_patch));
+    }
+
+    if (sd_overclock == 2)
+    {
+        apply_patches(sd_200d_192_patch, COUNT(sd_200d_192_patch));
+    }
+
+    if (sd_overclock == 3)
+    {
+        apply_patches(sd_200d_192_reuse_patch, COUNT(sd_200d_192_patch));
+    }
+
+    /* Run Canon's autotune after we modify the table */
+    autotune_SD();
+}
+#endif
+
 static uint32_t uhs_vals[COUNT(uhs_regs)]; /* current values */
 static int sd_setup_mode_enable = 0;
 static int turned_on = 0;
@@ -674,6 +737,19 @@ static unsigned int sd_uhs_init()
         sd_uhs_menu[0].help2 = sd_choices_help2_others;
     }
 
+#ifdef CONFIG_200D
+    if (is_camera("200D", "*"))
+    {
+        static const char *sd_choices_200d[] = {"OFF", "160MHz", "192MHz", "240MHz"};
+        static const char sd_choices_help2_200d[] = "\n"
+                                                   "DIGIC 7 uses Canon's autotune table.\n"
+                                                   "160MHz maps to Canon's 156MHz step.\n"
+                                                   "240MHz reuses the 192MHz table entry (highest available).\n";
+        sd_uhs_menu[0].choices = sd_choices_200d;
+        sd_uhs_menu[0].help2 = sd_choices_help2_200d;
+    }
+#endif
+
     menu_add("Prefs", sd_uhs_menu, COUNT(sd_uhs_menu));
 
     if (is_camera("5D3", "1.1.3"))
@@ -851,6 +927,18 @@ static unsigned int sd_uhs_init()
             turned_on = 1;
         }
     }
+
+#ifdef CONFIG_200D
+    if (is_camera("200D", "1.0.1"))
+    {
+        /* 200D uses Canon's autotune_SD() routine; patch its speed table */
+        if (sd_overclock)
+        {
+            apply_200d_speed_profile();
+            turned_on = 1;
+        }
+    }
+#endif
 
     return 0;
 }
