@@ -19,8 +19,8 @@ detection, focus assist tools, manual audio controls much more.
 
 For more details on Magic Lantern please see [http://www.magiclantern.fm/](http://www.magiclantern.fm/)
 
-There is a sibling repo for our patched version of Qemu that adds support
-for emulating camera ROMs. This allows testing without access to a physical
-camera, and automating tests across a suite of cameras.  
-https://github.com/reticulatedpines/qemu-eos  
-https://github.com/reticulatedpines/qemu-eos/tree/qemu-eos-v4.2.1 (current ML team supported branch)
+There is a sibling repo ([reticulatedpines/qemu-eos](https://github.com/reticulatedpines/qemu-eos)) for our patched version of
+Qemu that adds support for emulating camera ROMs. This allows testing without
+access to a physical camera, and automating tests across a suite of cameras.
+
+The current ML team supported branch is [qemu-eos-v4.2.1](https://github.com/reticulatedpines/qemu-eos/tree/qemu-eos-v4.2.1).
