@@ -65,7 +65,7 @@ If using qemu for testing, the unzip step is not required, qemu run script will 
 The build system is currently tested on Linux, but is expected to work on Windows (via WSL) and Mac. Try not to obviously break this.  If we have a volunteer to test on other systems we could make this guarantee stronger.
 
 # Source control / repo conventions
-We use git, currently hosted on Github, but we don't tie things strongly to Github.  Github specific features can be used if sensible, if the purpose also works locally (e.g., a test system could use Actions, but the same tests should be able to run locally too).
+We use git, currently hosted on GitHub, but we don't tie things strongly to GitHub.  GitHub specific features can be used if sensible, if the purpose also works locally (e.g., a test system could use Actions, but the same tests should be able to run locally too).
 
 ### Licensing
 Magic Lantern is GPLv2 licensed.  Any contributed code or code changes must be licensed in a compatible way.  If in doubt, ask the maintainers of ML.
