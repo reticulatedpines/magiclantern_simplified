@@ -13,7 +13,11 @@ ifndef TOP_DIR
     endif
 endif
 
-ARM_BINPATH = /usr/bin
+ifdef ARM_BINPATH
+  ARM_BINPATH := $(ARM_BINPATH)
+else
+  ARM_BINPATH := /usr/bin
+endif
 ARM_ABI = none-eabi
 CROSS_COMPILE = $(ARM_BINPATH)/arm-$(ARM_ABI)-
 HOST_CC = gcc

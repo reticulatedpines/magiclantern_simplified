@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+  "packages": [
+    "gnumake@latest",
+    "gcc-arm-embedded@latest",
+    "zip@latest",
+    "python313@latest",
+    "python313Packages.setuptools@latest",
+    "python313Packages.distutils@latest",
+    "python313Packages.docutils@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export ARM_BINPATH=$PWD/.devbox/nix/profile/default/bin"
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}
