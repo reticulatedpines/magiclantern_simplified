@@ -58,9 +58,9 @@ extern int SetHPTimerNextTick(int last_expiry, int offset, timerCbr_t timer_cbr,
  * current timer value
  * (similar to millis() on arduino)
  */
-int get_seconds_clock();
-int get_ms_clock();    /* millis() on arduino */
-uint64_t get_us_clock();
+int get_seconds_clock(void);
+int get_ms_clock(void);    /* millis() on arduino */
+uint64_t get_us_clock(void);
 
 /* misc timer helpers */
 int should_run_polling_action(int period_ms, int* last_updated_time);

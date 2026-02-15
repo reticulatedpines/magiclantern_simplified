@@ -277,7 +277,7 @@ static inline void seconds_clock_update();
 
 static volatile uint64_t microseconds_clock = 0;
 
-int get_seconds_clock()
+int get_seconds_clock(void)
 {
     seconds_clock_update();
 
@@ -286,7 +286,7 @@ int get_seconds_clock()
     return seconds_clock;
 }
 
-int get_ms_clock()
+int get_ms_clock(void)
 {
     seconds_clock_update();
 
@@ -296,7 +296,7 @@ int get_ms_clock()
     return milliseconds_clock;
 }
 
-uint64_t get_us_clock()
+uint64_t get_us_clock(void)
 {
     seconds_clock_update();
     return microseconds_clock;
