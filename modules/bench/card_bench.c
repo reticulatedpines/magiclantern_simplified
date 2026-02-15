@@ -18,36 +18,46 @@ static void card_benchmark_wr(uint32_t bufsize, int K, int N, int test_length)
     uint32_t filesize = 1024; // MB
     uint32_t max_loops = (filesize * 1024 * 1024) / bufsize; // full filesize only written if max_loops hit
     FILE *f = FIO_CreateFile(CARD_BENCHMARK_FILE);
-    if (f)
-    {
-        int t0 = get_ms_clock();
-        uint32_t n;
-        uint32_t times = 0;
-        for (n = 0; n < max_loops; n++)
-        {
-            uint32_t start = 0x50000000;
-            bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ",
-                       K, N, n * 100 / max_loops, bufsize/1024);
-            FIO_WriteFile(f, (const void *) start, bufsize);
 
-            // run until max_loops, or we go over requested time,
-            // whichever happens first
-            if (get_ms_clock() - t0 > test_length)
-            {
-                break;
-            }
+    if (f == NULL)
+        return;
+
+    uint32_t n;
+    uint32_t bytes_written = 0;
+    int t0 = get_ms_clock();
+    for (n = 1; n <= max_loops; n++)
+    {
+        uint32_t start = 0x50000000;
+        bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Writing: %d/100 (buf=%dK)... ",
+                   K, N, n * 100 / max_loops, bufsize/1024);
+        bytes_written += FIO_WriteFile(f, (const void *) start, bufsize);
+
+        // run until max_loops, or we go over requested time,
+        // whichever happens first
+        if (get_ms_clock() - t0 > test_length)
+        {
+            break;
         }
-        times = n + 1;
-        FIO_CloseFile(f);
-        int t1 = get_ms_clock();
-        uint32_t speed = 0;
-        if (t0 != t1)
-            speed = (((uint64_t)bufsize * times * 10) / 1000) / (t1 - t0);
-        bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n",
-                   bufsize/1024, speed/10, speed % 10);
-        DryosDebugMsg(0, 15, "Write speed (buffer=%dk):\t %d.%d MB/s",
-                      bufsize/1024, speed/10, speed % 10);
     }
+    FIO_CloseFile(f);
+    int write_time = get_ms_clock() - t0;
+
+    if (write_time == 0)
+    { // some impossible error occured
+        FIO_RemoveFile(CARD_BENCHMARK_FILE);
+        return;
+    }
+
+    uint32_t bytes_per_ms = bytes_written / write_time;
+    int buf_size_kb = bufsize / 1024;
+    // The following weird x10 stuff is because Canon printf is buggy regarding
+    // e.g. %02d formatting and will accumulate more than 9 into a single digit.
+    // So you get stuff like 10.f5 MB/s printed.
+    int MB_per_s_x10 = (bytes_per_ms * 1000 * 10) / (1024 * 1024);
+    bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n",
+               buf_size_kb, MB_per_s_x10 / 10, MB_per_s_x10 % 10);
+    DryosDebugMsg(0, 15, "Write speed (buffer=%dk):\t %d.%d MB/s",
+               buf_size_kb, MB_per_s_x10 / 10, MB_per_s_x10 % 10);
 
     msleep(2000);
 
@@ -58,15 +68,15 @@ static void card_benchmark_wr(uint32_t bufsize, int K, int N, int test_length)
         // The write run above may not finish the full size in the time limit.
         // Ensure we don't try to read more than exists.
         FIO_GetFileSize(CARD_BENCHMARK_FILE, &filesize);
-        max_loops = filesize / bufsize; // full filesize only written if max_loops hit
+        max_loops = filesize / bufsize; // full filesize only read if max_loops hit
         int t0 = get_ms_clock();
         uint32_t n;
-        uint32_t times = 0;
-        for (n = 0; n < max_loops; n++)
+        uint32_t bytes_read = 0;
+        for (n = 1; n <= max_loops; n++)
         {
             bmp_printf(FONT_LARGE, 0, 0, "[%d/%d] Reading: %d/100 (buf=%dK)... ",
                        K, N, n * 100 / max_loops, bufsize/1024);
-            FIO_ReadFile(f, UNCACHEABLE(buf), bufsize);
+            bytes_read += FIO_ReadFile(f, UNCACHEABLE(buf), bufsize);
 
             // run until max_loops, or we go over requested time,
             // whichever happens first
@@ -75,17 +85,21 @@ static void card_benchmark_wr(uint32_t bufsize, int K, int N, int test_length)
                 break;
             }
         }
-        times = n + 1;
+        int read_time = get_ms_clock() - t0;
+
         FIO_CloseFile(f);
         fio_free(buf);
-        int t1 = get_ms_clock();
-        uint32_t speed = 0;
-        if (t0 != t1)
-            speed = (((uint64_t)bufsize * times * 10) / 1000) / (t1 - t0);
-        bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n",
-                   bufsize/1024, speed/10, speed % 10);
-        DryosDebugMsg(0, 15, "Read speed (buffer=%dk):\t %d.%d MB/s",
-                      bufsize/1024, speed/10, speed % 10);
+        uint32_t bytes_per_ms = 0;
+        if (read_time > 0)
+        {
+            bytes_per_ms = bytes_read / read_time;
+            int buf_size_kb = bufsize / 1024;
+            int MB_per_s_x10 = (bytes_per_ms * 1000 * 10) / (1024 * 1024);
+            bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n",
+                       buf_size_kb, MB_per_s_x10 / 10, MB_per_s_x10 % 10);
+            DryosDebugMsg(0, 15, "Read speed (buffer=%dk):\t %d.%d MB/s",
+                       buf_size_kb, MB_per_s_x10 / 10, MB_per_s_x10 % 10);
+        }
     }
     else
     {
