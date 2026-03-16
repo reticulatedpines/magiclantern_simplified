@@ -245,6 +245,34 @@ static unsigned int init()
         }
         apply_patches(patches, COUNT(f_patches));
     }
+    else if (is_camera("M50", "1.1.0"))
+    {
+        buf_item_size = 32;
+
+        // install hooks
+        struct function_hook_patch f_patches[] = {
+            {
+                .patch_addr = 0xe0824d02, // CMOS_write
+                .orig_content = {0x2d, 0xe9, 0xf8, 0x4f, 0x04, 0x46, 0x90, 0x4d},
+                .target_function_addr = (uint32_t)hook_CMOS_write_M50,
+                .description = "Log ADTG CMOS writes"
+            },
+        };
+
+        struct patch patches[COUNT(f_patches)] = {};
+        uint8_t code_hooks[8 * COUNT(f_patches)] = {};
+
+        for (int i = 0; i < COUNT(f_patches); i++)
+        {
+            if (convert_f_patch_to_patch(&f_patches[i],
+                                         &patches[i],
+                                         &code_hooks[8 * i]))
+            {
+                return 1;
+            }
+        }
+        apply_patches(patches, COUNT(f_patches));
+    }
     else if (is_camera("70D", "1.1.2"))
     {
         buf_item_size = 16;

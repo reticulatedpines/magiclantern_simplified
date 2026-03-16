@@ -8,5 +8,6 @@
 // one instruction in Thumb, so it's harder to be as generic as the ARM hook code.
 void __attribute__((noreturn,noinline,naked,aligned(4)))hook_CMOS_write_200D(void);
 void __attribute__((noreturn,noinline,naked,aligned(4)))hook_CMOS_write_6D2(void);
+void __attribute__((noreturn,noinline,naked,aligned(4)))hook_CMOS_write_M50(void);
 
 #endif
