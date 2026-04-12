@@ -53,6 +53,26 @@ static uint32_t edmac_chanlist[] =
 static uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
 static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
 
+static uint32_t edmac_get_dir(uint32_t channel)
+{
+    if (!IS_USED(channel))
+    {
+        return EDMAC_DIR_UNUSED;
+    }
+
+    if (IS_WRITE(channel))
+    {
+        return EDMAC_DIR_WRITE;
+    }
+
+    if (IS_READ(channel))
+    {
+        return EDMAC_DIR_READ;
+    }
+
+    return EDMAC_DIR_UNUSED;
+}
+
 // Looks up supplied channel in read_edmacs[] or write_edmacs[],
 // returns the index within that array if found,
 // -1 if not.
@@ -107,26 +127,6 @@ uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
 }
 #endif
 
-uint32_t edmac_get_dir(uint32_t channel)
-{
-    if (!IS_USED(channel))
-    {
-        return EDMAC_DIR_UNUSED;
-    }
-    
-    if (IS_WRITE(channel))
-    {
-        return EDMAC_DIR_WRITE;
-    }
-    
-    if (IS_READ(channel))
-    {
-        return EDMAC_DIR_READ;
-    }
-    
-    return EDMAC_DIR_UNUSED;
-}
-
 uint32_t edmac_get_base(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -152,7 +152,8 @@ static uint32_t edmac_get_block(uint32_t mmio_addr)
     }
 }
 
-uint32_t edmac_get_channel(uint32_t mmio_addr)
+#if 0
+static uint32_t edmac_get_channel(uint32_t mmio_addr)
 {
     uint32_t block = edmac_get_block(mmio_addr);
     if (block == 0xFFFFFFFF)
@@ -166,7 +167,7 @@ uint32_t edmac_get_channel(uint32_t mmio_addr)
     return ch;
 }
 
-uint32_t edmac_get_state(uint32_t channel)
+static uint32_t edmac_get_state(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
     {
@@ -177,7 +178,7 @@ uint32_t edmac_get_state(uint32_t channel)
     return MEM(edmac_get_base(channel) + 0x00);
 }
 
-uint32_t edmac_get_flags(uint32_t channel)
+static uint32_t edmac_get_flags(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
     {
@@ -186,6 +187,7 @@ uint32_t edmac_get_flags(uint32_t channel)
 
     return shamem_read(edmac_get_base(channel) + 0x04);
 }
+#endif
 
 uint32_t edmac_get_address(uint32_t channel)
 {
@@ -197,6 +199,7 @@ uint32_t edmac_get_address(uint32_t channel)
     return shamem_read(edmac_get_base(channel) + 0x08);
 }
 
+#if 0
 uint32_t edmac_get_pointer(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -206,6 +209,7 @@ uint32_t edmac_get_pointer(uint32_t channel)
 
     return MEM(edmac_get_base(channel) + 0x08);
 }
+#endif
 
 uint32_t edmac_get_length(uint32_t channel)
 {
@@ -217,6 +221,7 @@ uint32_t edmac_get_length(uint32_t channel)
     return shamem_read(edmac_get_base(channel) + 0x10);
 }
 
+#if 0
 uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -287,6 +292,7 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
     }
     return shamem_read(addr);
 }
+#endif
 
 static int edmac_fix_off1(int32_t off)
 {
@@ -312,6 +318,7 @@ static int edmac_fix_off2(int32_t off)
     return off << (32-off2_bits) >> (32-off2_bits);
 }
 
+#if 0
 struct edmac_info edmac_get_info(uint32_t channel)
 {
     uint32_t base = edmac_get_base(channel);
@@ -357,6 +364,7 @@ uint32_t edmac_get_total_size(struct edmac_info *info, int include_offsets)
         ? transfer_data_skip_size
         : transfer_data_size;
 }
+#endif
 
 #ifdef CONFIG_DIGIC_V
 #define EDMAC_BYTES_PER_TRANSFER_MASK EDMAC_BYTES_PER_TRANSFER_MASK_D5

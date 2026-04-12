@@ -48,13 +48,14 @@ ML_MODULES = \
     img_name \
     lua \
     bench \
-    selftest \
     adv_int \
     crop_rec \
-    dev_tools/edmac \
     sd_clock \
     raw_video/raw_vidx \
     yolo
+
+#    dev_tools/edmac \
+#    selftest \
 
 .PHONY: clean $(BUILD_DIR)
 

@@ -6,7 +6,6 @@ bench
 crop_rec
 deflick
 dual_iso
-edmac
 ettr
 file_man
 img_name
@@ -16,5 +15,4 @@ mlv_play
 mlv_snd
 pic_view
 sd_clock
-selftest
 silent

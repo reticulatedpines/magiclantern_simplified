@@ -5,7 +5,6 @@ autoexpo
 bench
 deflick
 dual_iso
-edmac
 ettr
 file_man
 img_name
@@ -14,6 +13,5 @@ mlv_lite
 mlv_play
 mlv_snd
 pic_view
-selftest
 sd_clock
 silent

@@ -153,7 +153,6 @@ struct edmac_mmio
 #endif
 SIZE_CHECK_STRUCT(edmac_mmio, 0x100);
 
-void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags);
 void StartEDmac(unsigned int channel, int flags);
 void AbortEDmac(unsigned int channel);
@@ -162,17 +161,17 @@ void ConnectReadEDmac(unsigned int channel, unsigned int where);
 unsigned int GetEdmacAddress(unsigned int channel);
 
 uint32_t edmac_channel_to_index(uint32_t channel);
-uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction);
+//uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction);
 
-uint32_t edmac_get_flags(uint32_t channel);
-uint32_t edmac_get_state(uint32_t channel);     /* 0=idle, 1=running (from hardware) */
+//uint32_t edmac_get_flags(uint32_t channel);
+//uint32_t edmac_get_state(uint32_t channel);     /* 0=idle, 1=running (from hardware) */
 uint32_t edmac_get_base(uint32_t channel);      /* base register */
-uint32_t edmac_get_channel(uint32_t reg);       /* channel from register */
+//uint32_t edmac_get_channel(uint32_t reg);       /* channel from register */
 uint32_t edmac_get_address(uint32_t channel);   /* start address */
-uint32_t edmac_get_pointer(uint32_t channel);   /* current address (from hardware) */
+//uint32_t edmac_get_pointer(uint32_t channel);   /* current address (from hardware) */
 uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
-uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
-uint32_t edmac_get_dir(uint32_t channel);
+//uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
+//uint32_t edmac_get_dir(uint32_t channel);
 
 /* off1/off2 are signed on some odd number of bits;
  * use this to extend the sign bit to int32 */
