@@ -41,6 +41,12 @@
 #define EDMAC_DIR_WRITE   1
 #define EDMAC_DIR_UNUSED  2
 
+// This value is chosen so that it is higher than the known requirement
+// for buffer start alignment on any cam.
+// E.g. 5d3 1.2.3 overallocates by 0x80 in _alloc_dma_memory(), 0x17f9c,
+// and returns aligned to 0x40.
+#define EDMAC_ALIGNMENT 0x80
+
 #define EDMAC_BYTES_PER_TRANSFER_MASK_D4    0x60000000  /* digic 4: up to 4 bytes per transfer */
 #define EDMAC_BYTES_PER_TRANSFER_MASK_D5    0x60001000  /* digic 5: up to 16 bytes per transfer */
 #define EDMAC_16_BYTES_PER_TRANSFER         0x40001000
@@ -170,8 +176,8 @@ uint32_t edmac_get_dir(uint32_t channel);
 
 /* off1/off2 are signed on some odd number of bits;
  * use this to extend the sign bit to int32 */
-int edmac_fix_off1(int32_t off);
-int edmac_fix_off2(int32_t off);
+//int edmac_fix_off1(int32_t off);
+//int edmac_fix_off2(int32_t off);
 
 struct edmac_info edmac_get_info(uint32_t channel);
 uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
@@ -214,4 +220,32 @@ void UnregisterEDmacCompleteCBR(int channel);
 void UnregisterEDmacAbortCBR(int channel);
 void UnregisterEDmacPopCBR(int channel);
 
-#endif
+// memcpy stuff:
+void* edmac_memcpy(void* dst, void* src, size_t length);
+//void* edmac_memset(void* dst, int value, size_t length);
+uint32_t edmac_find_divider(size_t length, size_t transfer_size);
+
+/* crop a rectangle from an image buffer; all sizes in bytes */
+void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h);
+void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
+
+/* non-blocking versions */
+void* edmac_memcpy_start(void* dst, void* src, size_t length);
+void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h);
+void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
+void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
+void edmac_copy_rectangle_adv_cleanup();
+
+/* these are blocking tho */
+void edmac_memcpy_finish();
+void edmac_copy_rectangle_finish();
+
+/* Lock/unlock engine resources used by edmac_memcpy (only if ported for your camera) */
+void edmac_memcpy_res_lock();
+void edmac_memcpy_res_unlock();
+
+/* pulls the raw data from EDMAC without Canon's lv_save_raw (for raw backend) */
+void edmac_raw_slurp(void* dst, int w, int h);
+
+
+#endif // _edmac_c

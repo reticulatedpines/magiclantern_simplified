@@ -69,7 +69,6 @@
 #include <screenshot.h>
 #include <util.h>
 #include <edmac.h>
-#include <edmac-memcpy.h>
 #include <patch.h>
 #include <string.h>
 #include <shoot.h>

@@ -2,7 +2,7 @@
 #include "dryos.h"
 
 #include "raw.h"
-#include "edmac-memcpy.h"
+#include "edmac.h"
 #include "fps.h"
 
 #include "raw_vid.h"

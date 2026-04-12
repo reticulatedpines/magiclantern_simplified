@@ -74,7 +74,7 @@ static void (*TTL_Start)(void * TTL_Args) = NULL;
 static void (*TTL_Stop)(void * TTL_Args) = NULL;
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size) = NULL;
 
-/* edmac-memcpy.c */
+/* edmac.c */
 extern uint32_t edmac_write_chan;
 extern uint32_t edmac_read_chan;
 

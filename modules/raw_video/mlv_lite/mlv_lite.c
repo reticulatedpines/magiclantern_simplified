@@ -55,7 +55,6 @@
 #include <screenshot.h>
 #include "../../lv_rec/lv_rec.h"
 #include "edmac.h"
-#include "edmac-memcpy.h"
 #include "../../file_man/file_man.h"
 #include "patch.h"
 #include "lvinfo.h"
@@ -2609,7 +2608,7 @@ static const int LOG_INTERVAL = 500;
 
 static uint32_t edmac_start_clock = 0;
 
-/* from edmac-memcpy.c */
+/* from edmac.c */
 extern uint32_t edmac_read_chan;
 extern uint32_t raw_write_chan;
 

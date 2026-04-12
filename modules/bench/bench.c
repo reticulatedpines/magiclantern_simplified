@@ -9,7 +9,7 @@
 #include <version.h>
 #include <property.h>
 #include <zebra.h>
-#include <edmac-memcpy.h>
+#include <edmac.h>
 #include <powersave.h>
 #include <shoot.h>
 

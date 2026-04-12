@@ -11,7 +11,6 @@
 #include <console.h>
 #include <ml_rpc.h>
 #include <edmac.h>
-#include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
 #include <focus.h>

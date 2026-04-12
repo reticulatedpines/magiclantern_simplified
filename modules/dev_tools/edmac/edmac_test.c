@@ -2,7 +2,6 @@
 #include <console.h>
 #include <bmp.h>
 #include <edmac.h>
-#include <edmac-memcpy.h>
 #include "md5.h"
 
 static FILE * logfile = 0;

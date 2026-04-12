@@ -37,10 +37,6 @@
 void audio_reg_dump_once();
 #endif
 
-#if defined(CONFIG_EDMAC_MEMCPY)
-#include "edmac-memcpy.h"
-#endif
-
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
 

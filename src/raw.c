@@ -27,7 +27,6 @@
 #include "module.h"
 #include "menu.h"
 #include "edmac.h"
-#include "edmac-memcpy.h"
 #include "imgconv.h"
 #include "console.h"
 #include "fps.h"
