@@ -610,9 +610,8 @@ static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685,
 static int dynamic_ranges[] = {1105, 1086, 1065, 1038, 1000, 936, 846, 773, 676, 585, 499};
 #endif
 
-// TODO: DxO graph is corrupted, so leaving R values for now
 #ifdef CONFIG_R5
-static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
+static int dynamic_ranges[] = {1333, 1218, 1255, 1127, 1038, 939, 845, 747, 643, 552, 452};
 #endif
 
 /** M50 data missing from DxO.
