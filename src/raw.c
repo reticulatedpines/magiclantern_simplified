@@ -584,8 +584,7 @@ static int dynamic_ranges[] = {1196, 1170, 1139, 1087, 1019, 938, 848, 756, 664}
 #endif
 
 #if defined(CONFIG_80D)
-//same sensor
-static int dynamic_ranges[] = {1317, 1264, 1176, 1092, 1005, 921, 840, 731, 644};
+static int dynamic_ranges[] = {1233, 1180, 1093, 1008, 921, 837, 756, 648, 560};
 #endif
 
 #ifdef CONFIG_850D
