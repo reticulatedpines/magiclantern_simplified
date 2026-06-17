@@ -1121,6 +1121,21 @@ lens_take_picture(
     call("rssRelease");
     #elif defined(CONFIG_40D)
     call("FA_Release");
+    #elif defined(CONFIG_R)
+    /* On the R, call("Release") issues the capture but leaves the shooting job
+     * unfinalized -> "saving..." hang at power-off (the SRM-buffer facet).
+     * SetEventIrRemoteReleaseBtn drives the CameraConductor remote-release
+     * pipeline (the path a wireless remote / the physical shutter uses), which
+     * finalizes the job cleanly. Verified on hardware: captures + powers off
+     * clean. (1 = press / SW2-on, 0 = release.) */
+    SHOOT_BC("H: IR-remote release (clean CC path)");
+    {
+        void (*ir_remote_release)(int) = (void *)0xE0190215u; /* thumb: SetEventIrRemoteReleaseBtn */
+        ir_remote_release(1);
+        msleep(300);
+        ir_remote_release(0);
+    }
+    SHOOT_BC("I: after IR-remote release");
     #else
     SHOOT_BC("H: before call(Release)");
     call("Release");

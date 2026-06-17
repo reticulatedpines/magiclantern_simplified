@@ -427,6 +427,28 @@ static void eeprom_dump_task()
     if (g) { char b[64]; int n = snprintf(b, sizeof(b), "EEPROM dumped %d bytes, lastret=%d\n", total, lastret); FIO_WriteFile(g, b, n); FIO_CloseFile(g); }
 }
 
+/* Clean-capture probe (Debug -> "Take pic (IR remote)"). ML's call("Release")
+ * capture leaves the shooting job unfinalized -> "saving" hang at power-off;
+ * the PHYSICAL shutter is clean. SetEventIrRemoteReleaseBtn (FUN_e0190214)
+ * drives the same CameraConductor remote-release pipeline a wireless remote
+ * uses (1=press, 0=release) -> a full, properly-finalized capture. Test whether
+ * this avoids the saving hang. Breadcrumbs -> ML/LOGS/IRREL.TXT. */
+static void ir_release_task()
+{
+    void (*ir_rel)(int) = (void *)0xE0190215u;  /* thumb: SetEventIrRemoteReleaseBtn */
+    FILE * f;
+    gui_stop_menu();
+    msleep(500);
+    f = FIO_CreateFile("ML/LOGS/IRREL.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"1: IR remote press\n", 19); FIO_CloseFile(f); }
+    ir_rel(1);                 /* remote button press (SW2-equivalent) */
+    msleep(300);
+    ir_rel(0);                 /* remote button release */
+    msleep(2000);
+    f = FIO_CreateFile("ML/LOGS/IRREL2.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"2: IR remote released, capture issued\n", 38); FIO_CloseFile(f); }
+}
+
 static void srm_test_task()
 {
     void (*srm_alloc)(void *, void *) = (void *)0xE04E41BFu;  /* thumb */
@@ -467,6 +489,44 @@ static void eeprom_struct_dump_task()
     }
     FILE * f = FIO_CreateFile("ML/LOGS/EEPSTRUCT.TXT");
     if (f) { FIO_WriteFile(f, ib, n); FIO_CloseFile(f); }
+}
+
+/* Dump the secondary-ROM / FROM region (0xF0000000+) that holds the property
+ * tuning data the qemu boot reads as garbage (random ROM1 placeholder). The
+ * firmware loads property packages from 0xF09C0000 (TUNE/0x02), 0xF0A80000,
+ * 0xF0AC0000 (Main/StartupDataLoad.c). First write a readability check
+ * (ROM1CHK.TXT) -- if these are CPU-readable (non-zero), dump 16MB via plain
+ * MEM() reads (no SPI, so no sf_dump-style SIO deadlock) -> ML/LOGS/ROM1.BIN. */
+static void rom1_dump_task()
+{
+    static uint8_t buf[0x10000];
+    char cb[400]; int cn = 0;
+    const uint32_t probes[] = {0xF0000000, 0xF09C0000, 0xF0A80000, 0xF0AC0000};
+    gui_stop_menu(); msleep(400);
+    cn += snprintf(cb + cn, sizeof(cb) - cn, "ROM1 readability check:\n");
+    for (int i = 0; i < 4; i++) {
+        cn += snprintf(cb + cn, sizeof(cb) - cn, "%08X: %08X %08X %08X %08X\n",
+                       probes[i], MEM(probes[i]), MEM(probes[i] + 4),
+                       MEM(probes[i] + 8), MEM(probes[i] + 12));
+    }
+    FILE * c = FIO_CreateFile("ML/LOGS/ROM1CHK.TXT");
+    if (c) { FIO_WriteFile(c, cb, cn); FIO_CloseFile(c); }
+
+    /* gate on the ROM1 base (0xF0000000 = 0x80000424 header + "7.3.9"); the
+     * region is fully mapped & readable even where blank (returns 0xFF), so a
+     * 16MB read is safe. */
+    uint32_t w0 = MEM(0xF0000000);
+    if (w0 == 0 || w0 == 0xFFFFFFFF) return;   /* not memory-mapped here -> needs SPI path */
+
+    FILE * f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
+    if (!f) return;
+    for (uint32_t off = 0; off < 0x1000000; off += sizeof(buf)) {   /* 16MB */
+        volatile uint32_t * src = (volatile uint32_t *)(0xF0000000u + off);
+        uint32_t * dst = (uint32_t *)buf;
+        for (unsigned i = 0; i < sizeof(buf) / 4; i++) dst[i] = src[i];
+        FIO_WriteFile(f, buf, sizeof(buf));
+    }
+    FIO_CloseFile(f);
 }
 #endif
 
@@ -1149,6 +1209,13 @@ static struct menu_entry debug_menus[] = {
         .help2 = "Reports fired=1 (async alloc worked) + buffer addr/size.",
     },
     {
+        .name        = "Take pic (IR remote)",
+        .priv =         ir_release_task,
+        .select        = run_in_separate_task,
+        .help  = "Capture via SetEventIrRemoteReleaseBtn (clean CC remote path).",
+        .help2 = "Tests whether this avoids the call(Release) saving hang.",
+    },
+    {
         .name        = "Dump EEPROM struct",
         .priv =         eeprom_struct_dump_task,
         .select        = run_in_separate_task,
@@ -1161,6 +1228,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Dump SPI EEPROM via firmware ReadBlockEEPROM -> ML/LOGS/EEPROM.BIN.",
         .help2 = "Already done; re-run only if needed.",
+    },
+    {
+        .name        = "Dump ROM1 (FROM)",
+        .priv =         rom1_dump_task,
+        .select        = run_in_separate_task,
+        .help  = "Check + dump 0xF0000000 FROM region (property data) -> ML/LOGS/ROM1.BIN.",
+        .help2 = "Writes ROM1CHK.TXT first; dumps 16MB only if region is readable.",
     },
 #endif
 #ifdef FEATURE_BOOTFLAG_MENU
