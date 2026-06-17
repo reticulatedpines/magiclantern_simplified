@@ -310,6 +310,29 @@ static void run_test()
 
 }
 
+#ifdef CONFIG_R
+/* R image-capture probe (Debug -> "Take test pic (no AF)").
+ * Calls take_a_pic(AF_DONT_CHANGE) -- AF_DONT_CHANGE skips lens_setup_af, the
+ * suspected null-pointer crash path. Brackets the call with SHOOT0/SHOOT9 marker
+ * files; lens_take_picture writes the detailed step trail to ML/LOGS/SHOOT.TXT.
+ * After: SHOOT9.TXT present = completed; absent = crashed (see SHOOT.TXT). */
+static void shoot_test_task()
+{
+    extern int take_a_pic(int should_af);
+    gui_stop_menu();
+    msleep(500);
+
+    FILE * f = FIO_CreateFile("ML/LOGS/SHOOT0.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"0: shoot_test_task start\n", 25); FIO_CloseFile(f); }
+    msleep(50);
+
+    take_a_pic(AF_DONT_CHANGE);
+
+    f = FIO_CreateFile("ML/LOGS/SHOOT9.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"9: take_a_pic returned\n", 23); FIO_CloseFile(f); }
+}
+#endif
+
 #ifdef FEATURE_BOOTFLAG_MENU
 static void bootflag_disable(void* priv, int delta)
 {
@@ -957,6 +980,15 @@ static struct menu_entry debug_menus[] = {
         .priv =         run_test,
         .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
+    },
+#endif
+#ifdef CONFIG_R
+    {
+        .name        = "Take test pic (no AF)",
+        .priv =         shoot_test_task,
+        .select        = run_in_separate_task,
+        .help  = "R image-capture probe: take_a_pic(AF_DONT_CHANGE).",
+        .help2 = "Breadcrumbs -> ML/LOGS/SHOOT.TXT. Use photo mode, not LiveView.",
     },
 #endif
 #ifdef FEATURE_BOOTFLAG_MENU

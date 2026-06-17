@@ -1027,6 +1027,27 @@ void lens_cleanup_af()
     restore_af_button_assignment();
 }
 
+#ifdef CONFIG_R
+/* image-capture probe breadcrumbs: accumulate each step into ML/LOGS/SHOOT.TXT
+ * (rewritten after every step) so a crash leaves the full reached-sequence on
+ * the card. R image capture is gated off (CONFIG_IMAGE_CAPTURE_NOT_WORKING) due
+ * to a suspected null-pointer crash; this pinpoints where. */
+static char shoot_bc_log[512];
+static int  shoot_bc_len;
+static void shoot_bc(const char * s)
+{
+    if (shoot_bc_len > (int)sizeof(shoot_bc_log) - 64) return;
+    shoot_bc_len += snprintf(shoot_bc_log + shoot_bc_len,
+                             sizeof(shoot_bc_log) - shoot_bc_len, "%s\n", s);
+    FILE * f = FIO_CreateFile("ML/LOGS/SHOOT.TXT");
+    if (f) { FIO_WriteFile(f, shoot_bc_log, shoot_bc_len); FIO_CloseFile(f); }
+    msleep(30);
+}
+#define SHOOT_BC(s) shoot_bc(s)
+#else
+#define SHOOT_BC(s) do {} while (0)
+#endif
+
 /* please try to call take_a_pic() instead of this one */
 int
 lens_take_picture(
@@ -1040,6 +1061,10 @@ lens_take_picture(
     }
 
     ml_taking_pic = 1;
+#ifdef CONFIG_R
+    shoot_bc_len = 0;   /* start a fresh breadcrumb trail for this capture */
+#endif
+    SHOOT_BC("A: enter lens_take_picture");
 
     printf("[LENS] taking picture @ %s %s %s %s\n",
         lens_format_iso(lens_info.raw_iso),
@@ -1048,14 +1073,18 @@ lens_take_picture(
         should_af == AF_ENABLE ? "AF" : should_af == AF_DISABLE ? "no AF" : ""
     );
 
+    SHOOT_BC("B: before get_shooting_card()");
     int file_number_before = get_shooting_card()->file_number;
+    SHOOT_BC("C: got shooting card");
 
     if (should_af != AF_DONT_CHANGE)
     {
+        SHOOT_BC("D: lens_setup_af");
         lens_setup_af(should_af);
     }
-    
+
     //~ take_semaphore(lens_sem, 0);
+    SHOOT_BC("E: lens_wait_readytotakepic");
     lens_wait_readytotakepic(64);
     
     // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
@@ -1065,8 +1094,10 @@ lens_take_picture(
     call("Release"); //EOSM is mirrorless no need to check for MLU
     goto end;
 #else
+    SHOOT_BC("F: mlu_lock_mirror_if_needed");
     int took_pic = mlu_lock_mirror_if_needed();
-    if (took_pic) goto end;
+    SHOOT_BC("G: mlu done");
+    if (took_pic) { SHOOT_BC("G2: mlu took pic, goto end"); goto end; }
 #endif
     
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -1091,7 +1122,9 @@ lens_take_picture(
     #elif defined(CONFIG_40D)
     call("FA_Release");
     #else
+    SHOOT_BC("H: before call(Release)");
     call("Release");
+    SHOOT_BC("I: after call(Release)");
     #endif
     
     #if defined(CONFIG_7D)
@@ -1121,10 +1154,13 @@ end:;
     }
 
     /* wait until job_state becomes valid, i.e. exposure started (timeout 2 seconds) */
+    SHOOT_BC("J: waiting for job_state");
     for (int i = 0; i < 100 && lens_info.job_state == 0; i++)
     {
         msleep(20);
     }
+    SHOOT_BC(lens_info.job_state ? "K: job_state set (exposure started!)"
+                                 : "K: job_state timeout (no exposure)");
 
     int ret = 0;
     if( !wait_to_finish )
@@ -1155,6 +1191,7 @@ finish:
         lens_cleanup_af();
     }
     ml_taking_pic = 0;
+    SHOOT_BC("Z: lens_take_picture returned cleanly");
     return ret;
 }
 
