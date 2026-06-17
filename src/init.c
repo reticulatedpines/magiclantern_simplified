@@ -60,12 +60,6 @@ int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started
 struct task *first_task = 0; // first item in the array of task structs
 
-#ifdef CONFIG_R
-/* MPU boot-spell capture: install our recv hook once Canon's intercom is up
- * (defined further below; safe to call from the dispatch hook context) */
-static void mpu_try_install_hook(void);
-#endif
-
 /**
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
@@ -77,12 +71,6 @@ my_task_dispatch_hook(
         struct task *next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-#ifdef CONFIG_R
-    /* try to hook the MPU recv callback as soon as Canon publishes it;
-     * only safe pointer-compares until then (never touches ring buffers) */
-    mpu_try_install_hook();
-#endif
-
     struct task * next_task =
         #ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
         next_task_new;
@@ -731,13 +719,21 @@ static int mpu_recv_log(char * buf, int size)
     return mpu_recv_orig ? mpu_recv_orig(buf, size) : 0;
 }
 
-/* called from my_task_dispatch_hook on every task switch until installed.
- * Only safe pointer-compares run before intercom is up, so this can never
- * touch the uninitialised ring buffers / crash the boot. */
-static void mpu_try_install_hook(void)
+/* Opt-in runtime capture. The recv hook drains both ring buffers (snprintf) per
+ * MPU message in SIO3_ISR context; the boot spells are already captured, so we
+ * do NOT install it automatically (nothing is added to the boot path). Arm it
+ * via Debug -> "MPU capture: arm", then exercise the camera, then dump.
+ *
+ * IMPORTANT: at runtime Canon's recv callback is NOT necessarily &mpu_recv --
+ * it can be a different handler installed after boot. The old code required
+ * == &mpu_recv and so silently failed to install (capture only snapshotted the
+ * ring at dump time). Hook whatever valid ROM handler is currently in place. */
+void mpu_capture_arm(void)
 {
     if (mpu_hook_installed) return;
-    if ((uint32_t)mpu_recv_cbr != (uint32_t)&mpu_recv) return;   /* not up yet */
+    uint32_t cbr = (uint32_t) mpu_recv_cbr;
+    if (cbr < 0xE0000000 || cbr >= 0xF0000000) return;  /* not a ROM handler yet */
+    mpu_cap_len = 0;
     mpu_recv_orig = mpu_recv_cbr;
     mpu_recv_cbr  = &mpu_recv_log;
     mpu_hook_installed = 1;
