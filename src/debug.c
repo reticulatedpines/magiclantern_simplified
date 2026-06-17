@@ -390,15 +390,15 @@ static void mpu_capture_arm_menu()
  * breadcrumbs to learn whether it works or exactly where it dies.
  * Result files: SRM0 (entered) / SRMCBR (callback fired = WORKS, with buf+size)
  * / SRM9 (call returned). If SRM0 only -> crashed inside the SRM call. */
+/* v2: set globals only (FIO is unreliable in the resource-manager callback
+ * context); the task reports them afterward. */
+static volatile int      srm_cbr_fired = 0;
+static volatile uint32_t srm_cbr_buf = 0, srm_cbr_size = 0;
 static void srm_test_cbr(void ** dst_ptr, void * raw_buffer, uint32_t raw_size)
 {
-    FILE * f = FIO_CreateFile("ML/LOGS/SRMCBR.TXT");
-    if (f) {
-        char b[96];
-        int n = snprintf(b, sizeof(b), "SRM callback FIRED: buf=0x%x size=0x%x (%d MB)\n",
-                         (unsigned)raw_buffer, (unsigned)raw_size, (int)(raw_size >> 20));
-        FIO_WriteFile(f, b, n); FIO_CloseFile(f);
-    }
+    srm_cbr_fired = 1;
+    srm_cbr_buf  = (uint32_t) raw_buffer;
+    srm_cbr_size = raw_size;
     if (dst_ptr) *dst_ptr = raw_buffer;
 }
 /* EEPROM dump (Debug -> "Dump EEPROM"). Uses the firmware's own working
@@ -434,15 +434,39 @@ static void srm_test_task()
     FILE * f;
     gui_stop_menu();
     msleep(500);
+    srm_cbr_fired = 0; srm_cbr_buf = 0; srm_cbr_size = 0;
     f = FIO_CreateFile("ML/LOGS/SRM0.TXT");
     if (f) { FIO_WriteFile(f, (void *)"1: about to call SRM alloc @E04E41BE\n", 37); FIO_CloseFile(f); }
     msleep(50);
 
     srm_alloc((void *)srm_test_cbr, &dst);   /* async: callback fires when buffer ready */
 
-    msleep(3000);                            /* wait for the async resource callback */
-    f = FIO_CreateFile("ML/LOGS/SRM9.TXT");
-    if (f) { char b[48]; int n = snprintf(b, sizeof(b), "9: call returned, dst=0x%x\n", (unsigned)dst); FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    msleep(6000);                            /* wait longer for the async resource callback */
+    f = FIO_CreateFile("ML/LOGS/SRMRES.TXT");
+    if (f) {
+        char b[128];
+        int n = snprintf(b, sizeof(b), "fired=%d buf=0x%x size=0x%x (%d MB) dst=0x%x\n",
+                         srm_cbr_fired, (unsigned)srm_cbr_buf, (unsigned)srm_cbr_size,
+                         (int)(srm_cbr_size >> 20), (unsigned)dst);
+        FIO_WriteFile(f, b, n); FIO_CloseFile(f);
+    }
+}
+
+/* Dump the EEPROM driver struct (base 0x4CD4) to find the EEPROM's SIO channel
+ * + CS register for the qemu EEPROM emulation. */
+static void eeprom_struct_dump_task()
+{
+    char ib[1200]; int n = 0;
+    gui_stop_menu(); msleep(300);
+    n += snprintf(ib + n, sizeof(ib) - n, "EEPROM struct @0x4CD4:\n");
+    for (uint32_t a = 0x4CD4; a < 0x4DD4; a += 16) {
+        n += snprintf(ib + n, sizeof(ib) - n, "%08X:", a);
+        for (int i = 0; i < 16; i += 4)
+            n += snprintf(ib + n, sizeof(ib) - n, " %08X", MEM(a + i));
+        n += snprintf(ib + n, sizeof(ib) - n, "\n");
+    }
+    FILE * f = FIO_CreateFile("ML/LOGS/EEPSTRUCT.TXT");
+    if (f) { FIO_WriteFile(f, ib, n); FIO_CloseFile(f); }
 }
 #endif
 
@@ -1121,15 +1145,22 @@ static struct menu_entry debug_menus[] = {
         .name        = "Test SRM alloc",
         .priv =         srm_test_task,
         .select        = run_in_separate_task,
-        .help  = "Probe SRM_AllocateMemoryResourceFor1stJob (disabled - may crash).",
-        .help2 = "Result -> ML/LOGS/SRMCBR.TXT (works) or SRM0 only (crashed).",
+        .help  = "Probe SRM_AllocateMemoryResourceFor1stJob -> ML/LOGS/SRMRES.TXT.",
+        .help2 = "Reports fired=1 (async alloc worked) + buffer addr/size.",
+    },
+    {
+        .name        = "Dump EEPROM struct",
+        .priv =         eeprom_struct_dump_task,
+        .select        = run_in_separate_task,
+        .help  = "Dump EEPROM driver struct (0x4CD4) -> ML/LOGS/EEPSTRUCT.TXT.",
+        .help2 = "For qemu EEPROM emulation (SIO channel + CS register).",
     },
     {
         .name        = "Dump EEPROM",
         .priv =         eeprom_dump_task,
         .select        = run_in_separate_task,
         .help  = "Dump SPI EEPROM via firmware ReadBlockEEPROM -> ML/LOGS/EEPROM.BIN.",
-        .help2 = "For qemu-eos [EEP] config data. Safe (working read, no SIO conflict).",
+        .help2 = "Already done; re-run only if needed.",
     },
 #endif
 #ifdef FEATURE_BOOTFLAG_MENU
