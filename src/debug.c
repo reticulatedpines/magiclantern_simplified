@@ -401,6 +401,32 @@ static void srm_test_cbr(void ** dst_ptr, void * raw_buffer, uint32_t raw_size)
     }
     if (dst_ptr) *dst_ptr = raw_buffer;
 }
+/* EEPROM dump (Debug -> "Dump EEPROM"). Uses the firmware's own working
+ * ReadBlockEEPROM (FUN_e03d404e @0xE03D404E) -- the EEPROM is a small SPI
+ * device on SIO3 (0xC0820000), a different channel than the serial flash, so
+ * this read does NOT deadlock the way the sf_dump serial-flash read did.
+ * readEEP(addr, dest, size) returns 0 on success. Dumps up to 32KB (the size
+ * InstEEP implies, piVar1[3]=0x8000) in 0x100 chunks -> ML/LOGS/EEPROM.BIN.
+ * Gives qemu the EEPROM/[EEP] config data it currently reads as zeros. */
+static void eeprom_dump_task()
+{
+    int (*readEEP)(uint32_t, void *, uint32_t) = (void *)0xE03D404Fu;  /* thumb */
+    static uint8_t eepbuf[0x100];
+    int total = 0, lastret = 0;
+    gui_stop_menu();
+    msleep(500);
+    FILE * f = FIO_CreateFile("ML/LOGS/EEPROM.BIN");
+    for (uint32_t a = 0; a < 0x8000; a += 0x100) {
+        lastret = readEEP(a, eepbuf, sizeof(eepbuf));
+        if (lastret != 0) break;
+        if (f) FIO_WriteFile(f, eepbuf, sizeof(eepbuf));
+        total += sizeof(eepbuf);
+    }
+    if (f) FIO_CloseFile(f);
+    FILE * g = FIO_CreateFile("ML/LOGS/EEPSTEP.TXT");
+    if (g) { char b[64]; int n = snprintf(b, sizeof(b), "EEPROM dumped %d bytes, lastret=%d\n", total, lastret); FIO_WriteFile(g, b, n); FIO_CloseFile(g); }
+}
+
 static void srm_test_task()
 {
     void (*srm_alloc)(void *, void *) = (void *)0xE04E41BFu;  /* thumb */
@@ -1097,6 +1123,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Probe SRM_AllocateMemoryResourceFor1stJob (disabled - may crash).",
         .help2 = "Result -> ML/LOGS/SRMCBR.TXT (works) or SRM0 only (crashed).",
+    },
+    {
+        .name        = "Dump EEPROM",
+        .priv =         eeprom_dump_task,
+        .select        = run_in_separate_task,
+        .help  = "Dump SPI EEPROM via firmware ReadBlockEEPROM -> ML/LOGS/EEPROM.BIN.",
+        .help2 = "For qemu-eos [EEP] config data. Safe (working read, no SIO conflict).",
     },
 #endif
 #ifdef FEATURE_BOOTFLAG_MENU
