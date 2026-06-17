@@ -331,6 +331,93 @@ static void shoot_test_task()
     f = FIO_CreateFile("ML/LOGS/SHOOT9.TXT");
     if (f) { FIO_WriteFile(f, (void *)"9: take_a_pic returned\n", 23); FIO_CloseFile(f); }
 }
+
+/* R AF-capture probe (Debug -> "Take test pic (SW1/SW2 AF)").
+ * Drives a real half-press (SW1 -> meter + autofocus) then full-press
+ * (SW2 -> capture), which call("Release") alone does not do on the R.
+ * Breadcrumbs -> ML/LOGS/SHOOTAF.TXT. Needs PROP_REMOTE_SW1/SW2 whitelisted. */
+static char afbc[256];
+static int  afbc_len;
+static void af_bc(const char * s)
+{
+    if (afbc_len > (int)sizeof(afbc) - 48) return;
+    afbc_len += snprintf(afbc + afbc_len, sizeof(afbc) - afbc_len, "%s\n", s);
+    FILE * f = FIO_CreateFile("ML/LOGS/SHOOTAF.TXT");
+    if (f) { FIO_WriteFile(f, afbc, afbc_len); FIO_CloseFile(f); }
+    msleep(30);
+}
+static void shoot_test_af_task()
+{
+    extern void fake_simple_button(int bgmt_code);
+    extern int  get_focus_confirmation(void);
+    char b[80];
+    gui_stop_menu();
+    msleep(800);
+    afbc_len = 0;
+
+    /* inject the actual half-shutter button event (triggers metering + AF),
+     * the way the physical shutter does -- PROP_REMOTE_SW1 had no effect */
+    af_bc("1: fake half-shutter (AF)");
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER);   /* 0x7D */
+    msleep(2000);                                 /* let AF run/lock */
+    snprintf(b, sizeof(b), "2: focusconf=%d", get_focus_confirmation());
+    af_bc(b);
+
+    /* capture (call("Release") is proven to capture on the R) */
+    af_bc("3: call(Release) -> capture");
+    call("Release");
+    msleep(1200);
+
+    /* release the half-shutter -- otherwise Canon stays in the shooting/
+     * metering state and won't finish ("saving..." hang at power-off) */
+    af_bc("4: release half-shutter");
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);   /* 0x7E = unpress half-shutter */
+    msleep(300);
+    af_bc("5: done");
+}
+
+static void mpu_capture_arm_menu()
+{
+    extern void mpu_capture_arm(void);
+    gui_stop_menu();
+    mpu_capture_arm();
+    NotifyBox(2000, "MPU capture armed");
+}
+
+/* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
+ * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
+ * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
+ * breadcrumbs to learn whether it works or exactly where it dies.
+ * Result files: SRM0 (entered) / SRMCBR (callback fired = WORKS, with buf+size)
+ * / SRM9 (call returned). If SRM0 only -> crashed inside the SRM call. */
+static void srm_test_cbr(void ** dst_ptr, void * raw_buffer, uint32_t raw_size)
+{
+    FILE * f = FIO_CreateFile("ML/LOGS/SRMCBR.TXT");
+    if (f) {
+        char b[96];
+        int n = snprintf(b, sizeof(b), "SRM callback FIRED: buf=0x%x size=0x%x (%d MB)\n",
+                         (unsigned)raw_buffer, (unsigned)raw_size, (int)(raw_size >> 20));
+        FIO_WriteFile(f, b, n); FIO_CloseFile(f);
+    }
+    if (dst_ptr) *dst_ptr = raw_buffer;
+}
+static void srm_test_task()
+{
+    void (*srm_alloc)(void *, void *) = (void *)0xE04E41BFu;  /* thumb */
+    void * dst = 0;
+    FILE * f;
+    gui_stop_menu();
+    msleep(500);
+    f = FIO_CreateFile("ML/LOGS/SRM0.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"1: about to call SRM alloc @E04E41BE\n", 37); FIO_CloseFile(f); }
+    msleep(50);
+
+    srm_alloc((void *)srm_test_cbr, &dst);   /* async: callback fires when buffer ready */
+
+    msleep(3000);                            /* wait for the async resource callback */
+    f = FIO_CreateFile("ML/LOGS/SRM9.TXT");
+    if (f) { char b[48]; int n = snprintf(b, sizeof(b), "9: call returned, dst=0x%x\n", (unsigned)dst); FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+}
 #endif
 
 #ifdef FEATURE_BOOTFLAG_MENU
@@ -989,6 +1076,27 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "R image-capture probe: take_a_pic(AF_DONT_CHANGE).",
         .help2 = "Breadcrumbs -> ML/LOGS/SHOOT.TXT. Use photo mode, not LiveView.",
+    },
+    {
+        .name        = "Take test pic (SW1/SW2 AF)",
+        .priv =         shoot_test_af_task,
+        .select        = run_in_separate_task,
+        .help  = "R AF-capture probe: half-press (AF) then full-press (capture).",
+        .help2 = "Breadcrumbs -> ML/LOGS/SHOOTAF.TXT. Photo mode, lens in AF.",
+    },
+    {
+        .name        = "MPU capture: arm",
+        .priv =         mpu_capture_arm_menu,
+        .select        = run_in_separate_task,
+        .help  = "Arm MPU recv capture (off by default). Then act, then dump.",
+        .help2 = "Use before an action whose MPU traffic you want in MPULOG.TXT.",
+    },
+    {
+        .name        = "Test SRM alloc",
+        .priv =         srm_test_task,
+        .select        = run_in_separate_task,
+        .help  = "Probe SRM_AllocateMemoryResourceFor1stJob (disabled - may crash).",
+        .help2 = "Result -> ML/LOGS/SRMCBR.TXT (works) or SRM0 only (crashed).",
     },
 #endif
 #ifdef FEATURE_BOOTFLAG_MENU
