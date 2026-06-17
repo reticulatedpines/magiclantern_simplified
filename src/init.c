@@ -673,6 +673,14 @@ static void mpu_cap_emit(const char * tag, const char * msg)
     if (size < 1 || size > 0xFF) return;
     if (mpu_cap_len > MPU_CAP_BUFSIZE - 1024) return;   /* out of room */
 
+    /* Drop the continuous live-metering stream (10 0e 08 ..): it dominates the
+     * traffic and is useless for spell/property work, and formatting all of it
+     * in SIO3_ISR context under heavy use can back up the MPU interrupt and
+     * hang the camera. Skip it so capture stays light no matter how much the
+     * camera is exercised. */
+    if (size == 0x10 && (unsigned char)msg[1] == 0x0e &&
+        (unsigned char)msg[2] == 0x08) return;
+
     int len = mpu_cap_len;
     len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len,
                     "%05x> %s(", (unsigned)MPU_DIGIC_TIMER(), tag);
