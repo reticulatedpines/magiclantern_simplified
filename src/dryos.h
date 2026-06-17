@@ -362,6 +362,12 @@ void Gui_SetSoundRecord( int );
 void GUI_SetLvMode( int );
 #endif
 
+#ifdef CONFIG_R
+/* CameraConductor remote-release event (wireless-remote / shutter path);
+ * used by lens_take_picture for a cleanly-finalized capture. 1=press, 0=release. */
+void SetEventIrRemoteReleaseBtn(int swst);
+#endif
+
 int SoundDevActiveIn( uint32_t );
 
 #endif
