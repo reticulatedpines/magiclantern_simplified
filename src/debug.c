@@ -294,6 +294,13 @@ static void run_test()
     // since dm_store is more permissive than dm_print.
     call("dumpf");
 
+#ifdef CONFIG_R
+    /* dump captured MPU boot-spell log to ML/LOGS/MPULOG.TXT
+     * (capture task started in boot_pre_init_task) */
+    extern void mpu_capture_dump(void);
+    mpu_capture_dump();
+#endif
+
 #if 0 && defined(CONFIG_200D)
     // Want to run a quick test?  You can hack it in here,
     // after modifying the above guards.  The guards allow

@@ -57,8 +57,14 @@ extern void platform_post_init();
 
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+int ml_gui_initialized = 0; // 1 after gui_main_task is started
 struct task *first_task = 0; // first item in the array of task structs
+
+#ifdef CONFIG_R
+/* MPU boot-spell capture: install our recv hook once Canon's intercom is up
+ * (defined further below; safe to call from the dispatch hook context) */
+static void mpu_try_install_hook(void);
+#endif
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -71,7 +77,13 @@ my_task_dispatch_hook(
         struct task *next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-    struct task * next_task = 
+#ifdef CONFIG_R
+    /* try to hook the MPU recv callback as soon as Canon publishes it;
+     * only safe pointer-compares until then (never touches ring buffers) */
+    mpu_try_install_hook();
+#endif
+
+    struct task * next_task =
         #ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
         next_task_new;
         #else
@@ -615,6 +627,171 @@ static void cpu1_ready(void)
     is_cpu1_ready = 1;
 }
 #endif
+
+#ifdef CONFIG_R
+/* === R MPU boot-spell capture (for qemu-eos) ===========================
+ * Canon's MPU (secondary micro) exchanges a "subsystem ready / property"
+ * handshake with the main CPU during boot. qemu-eos replays these per-camera
+ * "spells"; the R has none (falls back to a generic set), so it can't boot in
+ * the emulator. We poll Canon's MPU send/recv ring buffers and record every
+ * message with a microsecond timestamp, in the dm-spy log format that
+ * extract_init_spells.py parses:
+ *     HHHHH> mpu_send(xx xx ..)   /   HHHHH> mpu_recv(xx xx ..)
+ *
+ * We must NOT touch the ring buffers until Canon has set them up -- doing so
+ * reads uninitialised RAM and aborts the boot (solid red LED, no UI). Also,
+ * task_create() before Canon's init_task is unsafe (no ML platform does it) --
+ * that was the boot hang. So instead of a task, we piggy-back on
+ * my_task_dispatch_hook (installed in boot_pre, runs safely on every task
+ * switch from early boot). Each dispatch we do only a safe pointer-compare:
+ * Canon's InitializeIntercom publishes the genuine recv callback at 0x9E88
+ * (mpu_recv_cbr := &mpu_recv, a ROM addr) at the END of init, right before the
+ * handshake begins; once we see that, we swap in our own logger in front of it.
+ * Our logger runs per received message (SIO3_ISR, core 0) and drains BOTH ring
+ * buffers (known format: slot ptr, message at +4, byte[0] = length), so we
+ * capture send+recv interleaved from the first message -- no wrap, no task,
+ * single writer (no locking). Dump via mpu_capture_dump() (Debug -> "Don't
+ * click me!"). Uses only stubs the R already has. */
+#define MPU_CAP_BUFSIZE (128 * 1024)
+static char mpu_cap_buf[MPU_CAP_BUFSIZE];
+static volatile int mpu_cap_len = 0;
+
+/* mpu_recv_cbr @ 0x9E88 (Canon sets it to &mpu_recv at the end of
+ * InitializeIntercom); mpu_recv @ 0xE022D3F4 -- from platform/R.180/stubs.S */
+extern int (*mpu_recv_cbr)(char * buf, int size);
+extern int mpu_recv(char * buf);
+static int (*mpu_recv_orig)(char * buf, int size) = 0;
+static volatile int mpu_hook_installed = 0;
+
+/* ring buffers + tails from platform/R.180/stubs.S */
+extern const char * const mpu_send_ring_buffer[50];
+extern const int mpu_send_ring_buffer_tail;
+extern const char * const mpu_recv_ring_buffer[80];
+extern const int mpu_recv_ring_buffer_tail;
+
+/* 20-bit free-running microsecond timer (MMIO, no stub needed) */
+#define MPU_DIGIC_TIMER() ((*(volatile uint32_t *)0xC0242014) & 0xFFFFF)
+
+/* defensive: a real message-slot pointer is word-aligned Canon DRAM */
+static int mpu_ptr_ok(const char * p)
+{
+    uint32_t a = (uint32_t) p;
+    return (a >= 0x1000 && a < 0x40000000 && (a & 3) == 0);
+}
+
+static void mpu_cap_emit(const char * tag, const char * msg)
+{
+    int size = (unsigned char) msg[0];
+    if (size < 1 || size > 0xFF) return;
+    if (mpu_cap_len > MPU_CAP_BUFSIZE - 1024) return;   /* out of room */
+
+    int len = mpu_cap_len;
+    len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len,
+                    "%05x> %s(", (unsigned)MPU_DIGIC_TIMER(), tag);
+    for (int i = 0; i < size; i++)
+        len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len,
+                        "%02x ", (unsigned char) msg[i]);
+    if (len > 0 && mpu_cap_buf[len - 1] == ' ') len--;  /* trim trailing space */
+    len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len, ")\n");
+    mpu_cap_len = len;
+}
+
+/* drain newly-buffered send + recv messages (interleaved); tails are
+ * range-checked so a glitch can never spin us off into garbage. Called only
+ * from the recv hook (single context: SIO3_ISR, core 0) and -- after the hook
+ * is uninstalled -- from the dump fn, so the static indices need no locking. */
+static void mpu_drain(void)
+{
+    static int ls = 0, lr = 0;
+
+    int st = mpu_send_ring_buffer_tail;
+    if (st >= 0 && st < 50) {
+        while (ls != st) {
+            const char * p = mpu_send_ring_buffer[ls];
+            if (mpu_ptr_ok(p)) mpu_cap_emit("mpu_send", p + 4);
+            ls = (ls + 1) % 50;
+        }
+    }
+    int rt = mpu_recv_ring_buffer_tail;
+    if (rt >= 0 && rt < 80) {
+        while (lr != rt) {
+            const char * p = mpu_recv_ring_buffer[lr];
+            if (mpu_ptr_ok(p)) mpu_cap_emit("mpu_recv", p + 4);
+            lr = (lr + 1) % 80;
+        }
+    }
+}
+
+/* our hook in front of Canon's recv callback; runs per received MPU message
+ * (SIO3_ISR context, core 0). Drain both ring buffers, then chain to the
+ * original so Canon still processes the message normally. */
+static int mpu_recv_log(char * buf, int size)
+{
+    mpu_drain();
+    return mpu_recv_orig ? mpu_recv_orig(buf, size) : 0;
+}
+
+/* called from my_task_dispatch_hook on every task switch until installed.
+ * Only safe pointer-compares run before intercom is up, so this can never
+ * touch the uninitialised ring buffers / crash the boot. */
+static void mpu_try_install_hook(void)
+{
+    if (mpu_hook_installed) return;
+    if ((uint32_t)mpu_recv_cbr != (uint32_t)&mpu_recv) return;   /* not up yet */
+    mpu_recv_orig = mpu_recv_cbr;
+    mpu_recv_cbr  = &mpu_recv_log;
+    mpu_hook_installed = 1;
+}
+
+/* called from debug.c run_test() (Debug -> "Don't click me!") */
+void mpu_capture_dump(void)
+{
+    /* uninstall so the final drain is single-context */
+    if (mpu_hook_installed) {
+        mpu_recv_cbr = mpu_recv_orig;
+        mpu_hook_installed = 0;
+        msleep(20);
+    }
+    mpu_drain();
+
+    FILE * f = FIO_CreateFile("ML/LOGS/MPULOG.TXT");
+    if (!f) { DryosDebugMsg(0, 15, "MPULOG: create failed"); return; }
+    FIO_WriteFile(f, mpu_cap_buf, mpu_cap_len);
+    FIO_CloseFile(f);
+    DryosDebugMsg(0, 15, "MPULOG: wrote %d bytes", mpu_cap_len);
+
+    /* Also dump the intercom struct (base 0x9E60). InitializeIntercom stores
+     * the live MPU MMIO register addresses there, which qemu-eos needs for the
+     * R model but can't be resolved statically:
+     *   [0x9E8C] = mpu_request_register   (written in mpu_send, value 0x4C0003)
+     *   [0x9E90] = mpu_status_register     (read & 1 in SIO3_ISR)
+     *   [0x9E94] = ptr to mpu_control_register (MREQ_ISR writes here)
+     * Dump a window of the struct as hex so all fields are visible. */
+    {
+        char ib[2048];
+        int n = 0;
+        uint32_t req  = MEM(0x9E8C);
+        uint32_t stat = MEM(0x9E90);
+        uint32_t ctlp = MEM(0x9E94);
+        n += snprintf(ib + n, sizeof(ib) - n, "intercom struct @ 0x9E60\n");
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_request_register  [9E8C] = 0x%08X\n", req);
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_status_register   [9E90] = 0x%08X\n", stat);
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_control_reg_ptr   [9E94] = 0x%08X", ctlp);
+        if (ctlp >= 0xC0000000 && ctlp < 0xE0000000)
+            n += snprintf(ib + n, sizeof(ib) - n, "  -> *ptr = 0x%08X", MEM(ctlp));
+        n += snprintf(ib + n, sizeof(ib) - n, "\n\nraw 0x9E40..0x9EB0:\n");
+        for (uint32_t a = 0x9E40; a < 0x9EB0; a += 16) {
+            n += snprintf(ib + n, sizeof(ib) - n, "%08X:", a);
+            for (int i = 0; i < 16; i += 4)
+                n += snprintf(ib + n, sizeof(ib) - n, " %08X", MEM(a + i));
+            n += snprintf(ib + n, sizeof(ib) - n, "\n");
+        }
+        FILE * g = FIO_CreateFile("ML/LOGS/INTERCOM.TXT");
+        if (g) { FIO_WriteFile(g, ib, n); FIO_CloseFile(g); }
+        DryosDebugMsg(0, 15, "INTERCOM: req=%X stat=%X ctl=%X", req, stat, ctlp);
+    }
+}
+#endif /* CONFIG_R */
 
 /* called before Canon's init_task */
 void boot_pre_init_task()
