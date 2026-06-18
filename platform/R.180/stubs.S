@@ -364,6 +364,10 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
 // THUMB_FN(0x,  SetEDmac)
 // THUMB_FN(0x,  StartEDmac)
 
+/* CameraConductor remote-release event (1=press/SW2-on, 0=release); used for a
+ * cleanly-finalized programmatic capture (see lens_take_picture). */
+THUMB_FN(0xE0190214,  SetEventIrRemoteReleaseBtn)
+
 /*
  * Stubs needed only for experiments in test_features.c
  * Do not port to other models unless you want to.

@@ -1102,10 +1102,10 @@ lens_take_picture(
      * the bracket wrapper (AF-disabled context / rapid re-fire + file polling).
      * Deferred -- reliability first; see eosr_port/PATH1_CAPTURE_STATE.md.] */
     {
-        void (*ir_remote_release)(int) = (void *)0xE0190215u; /* SetEventIrRemoteReleaseBtn */
-        ir_remote_release(1);
+        extern void SetEventIrRemoteReleaseBtn(int on);
+        SetEventIrRemoteReleaseBtn(1);
         msleep(300);
-        ir_remote_release(0);
+        SetEventIrRemoteReleaseBtn(0);
     }
     msleep(2000);   /* settle: covers the develop + the first-frame job_state lag */
     for (int i = 0; i < 75 && lens_info.job_state != 0; i++)
@@ -1529,7 +1529,7 @@ static void lensinfo_set_iso(int raw)
     update_stuff();
 }
 
-#ifdef CONFIG_R
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
 /* R PROP_SHUTTER hi-byte-Tv <-> ML APEX raw conversions (defined near prop_set_rawshutter). */
 static int ml_raw_to_r_shutter16(int ml_raw);
 static int r_shutter16_to_ml_raw(int rval);
@@ -1643,7 +1643,7 @@ PROP_HANDLER( PROP_SHUTTER )
     if (!CONTROL_BV) 
     {
         if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_P)
-#ifdef CONFIG_R
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
             lensinfo_set_shutter(r_shutter16_to_ml_raw(buf[0]));  /* R: decode hi-byte-Tv format */
 #else
             lensinfo_set_shutter(buf[0]);
@@ -2400,7 +2400,7 @@ static int prop_set_rawaperture_approx(unsigned new_av)
     return 0;
 }
 
-#ifdef CONFIG_R
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
 /* The EOS R's PROP_SHUTTER is a 2-byte value whose HIGH byte is the shutter as a SIGNED Tv in
  * 1/3-stop units (3 units per stop), 0 = 1" (verified on-camera: hi-byte +3 -> 0.5", -3 -> 2",
  * +9 -> 1/8). ML's internal raw_shutter is APEX in 1/8-stop, raw 56 = 1" (Tv = (raw-56)/8).
@@ -2432,7 +2432,7 @@ static int r_set_rawshutter(unsigned ml_raw)
 
 static int prop_set_rawshutter(unsigned shutter)
 {
-#ifdef CONFIG_R
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
     /* R: convert ML APEX -> R hi-byte-Tv format and write directly. The generic readback/retry
      * below assumes the camera echoes the same value it was given (ML format); the R echoes its
      * own format, so we bypass that path. */
@@ -2452,14 +2452,14 @@ static int prop_set_rawshutter(unsigned shutter)
     lens_wait_readytotakepic(64);
 
     int s0 = shutter;
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
-    
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+
     if (lens_info.raw_shutter != s0 && !(CONTROL_BV && lv))
     {
         /* no confirmation? try set shutter 2 stops away from final value, and back */
         int sx = shutter > 128 ? shutter - 16 : shutter + 16;
-        prop_request_change_wait( PROP_SHUTTER, &sx, 0, 100); /* len=0: auto-detect (R = 2 bytes) */
-        prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
+        prop_request_change_wait( PROP_SHUTTER, &sx, 4, 100);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
     }
     
     return lens_info.raw_shutter == s0;
@@ -2468,7 +2468,7 @@ static int prop_set_rawshutter(unsigned shutter)
 
 static int prop_set_rawshutter_approx(unsigned shutter)
 {
-#ifdef CONFIG_R
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
     return r_set_rawshutter(shutter);
 #else
     lens_wait_readytotakepic(64);
@@ -2480,15 +2480,15 @@ static int prop_set_rawshutter_approx(unsigned shutter)
      * 
      * Let's first see what Canon firmware gives us.
      */
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
     int delta = (int)lens_info.raw_shutter - (int)shutter;
-    
+
     if (ABS(delta) == 2)
     {
         /* if we get a rounding error of 2, try altering the shutter speed by one;
          * it will most likely get it right this time */
         shutter -= SGN(delta);
-        prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
         delta = (int)lens_info.raw_shutter - (int)shutter;
     }
 

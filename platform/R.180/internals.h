@@ -32,3 +32,6 @@
 
 #define CONFIG_TASK_STRUCT_V2_SMP
 #define CONFIG_TASK_ATTR_STRUCT_V5
+
+#define CONFIG_PROP_SHUTTER_HI_BYTE     /* PROP_SHUTTER is a 2-byte value, shutter in the HIGH byte as signed Tv/3 (R encoding) */
+#define CONFIG_HDR_BRACKET_VIA_FILENUMBER  /* job_state unreliable: drive HDR bracketing off the card file_number + related R adaptations */
