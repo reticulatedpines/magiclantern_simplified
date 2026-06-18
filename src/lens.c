@@ -1054,7 +1054,7 @@ lens_take_picture(
     {
         lens_setup_af(should_af);
     }
-    
+
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -1066,7 +1066,7 @@ lens_take_picture(
     goto end;
 #else
     int took_pic = mlu_lock_mirror_if_needed();
-    if (took_pic) goto end;
+    if (took_pic) { goto end; }
 #endif
     
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -1090,6 +1090,40 @@ lens_take_picture(
     call("rssRelease");
     #elif defined(CONFIG_40D)
     call("FA_Release");
+    #elif defined(CONFIG_R)
+    /* On the R, call("Release") leaves the shooting job unfinalized -> "saving..."
+     * hang at power-off. SetEventIrRemoteReleaseBtn drives the CameraConductor
+     * remote-release path, which finalizes cleanly. (1 = press, 0 = release.)
+     *
+     * Bracket pacing: the camera DROPS a release issued while still busy with the
+     * previous frame; job_state's "busy" notification also lags ~2s on the first
+     * frame of a sequence -- so a ~2s settle is the reliable spacing (4/4 brackets).
+     * [A faster retry-until-accepted gate gave 5/5 for SINGLE shots but HUNG inside
+     * the bracket wrapper (AF-disabled context / rapid re-fire + file polling).
+     * Deferred -- reliability first; see eosr_port/PATH1_CAPTURE_STATE.md.] */
+    {
+        void (*ir_remote_release)(int) = (void *)0xE0190215u; /* SetEventIrRemoteReleaseBtn */
+        ir_remote_release(1);
+        msleep(300);
+        ir_remote_release(0);
+    }
+    msleep(2000);   /* settle: covers the develop + the first-frame job_state lag */
+    for (int i = 0; i < 75 && lens_info.job_state != 0; i++)
+        msleep(20);
+    /* DO NOT do any FIO (card file I/O) here. Writing a log file to the card right after
+     * the release races the camera's OWN JPG write to the same card and INTERMITTENTLY
+     * DEADLOCKS -- frame 1's take_a_pic never returns, so a bracket/intervalometer stops at
+     * one shot (single shots survived because the photo was already saved). This was the
+     * regression behind "1 shot fired, then nothing." Verify bracket exposure from the
+     * photos (dark->bright on a high-contrast scene); PROP_SHUTTER variation is already
+     * proven by ML/LOGS/SHUTWR.TXT. See eosr_port/PATH1_CAPTURE_STATE.md. */
+    /* Return here, skipping the generic post-capture waits below. On the R those waits
+     * (esp. lens_wait_readytotakepic) STALL inside a bracket -- frame 1's take_a_pic never
+     * returns, so the bracket stops at one frame. The settle above is enough sequencing. */
+    if (should_af != AF_DONT_CHANGE)
+        lens_cleanup_af();
+    ml_taking_pic = 0;
+    return 1;
     #else
     call("Release");
     #endif
@@ -1495,6 +1529,12 @@ static void lensinfo_set_iso(int raw)
     update_stuff();
 }
 
+#ifdef CONFIG_R
+/* R PROP_SHUTTER hi-byte-Tv <-> ML APEX raw conversions (defined near prop_set_rawshutter). */
+static int ml_raw_to_r_shutter16(int ml_raw);
+static int r_shutter16_to_ml_raw(int rval);
+#endif
+
 static void lensinfo_set_shutter(int raw)
 {
     //~ bmp_printf(FONT_MED, 600, 100, "liss %d %d ", raw, caller);
@@ -1603,7 +1643,11 @@ PROP_HANDLER( PROP_SHUTTER )
     if (!CONTROL_BV) 
     {
         if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_P)
+#ifdef CONFIG_R
+            lensinfo_set_shutter(r_shutter16_to_ml_raw(buf[0]));  /* R: decode hi-byte-Tv format */
+#else
             lensinfo_set_shutter(buf[0]);
+#endif
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0]  // sync expo override to Canon values
@@ -2356,8 +2400,44 @@ static int prop_set_rawaperture_approx(unsigned new_av)
     return 0;
 }
 
+#ifdef CONFIG_R
+/* The EOS R's PROP_SHUTTER is a 2-byte value whose HIGH byte is the shutter as a SIGNED Tv in
+ * 1/3-stop units (3 units per stop), 0 = 1" (verified on-camera: hi-byte +3 -> 0.5", -3 -> 2",
+ * +9 -> 1/8). ML's internal raw_shutter is APEX in 1/8-stop, raw 56 = 1" (Tv = (raw-56)/8).
+ * Convert between the two so ML keeps its own scale internally. (ML had been writing the value
+ * in the LOW byte -> the R always saw hi-byte 0 -> every shot came out 1".) */
+static int ml_raw_to_r_shutter16(int ml_raw)
+{
+    int tv3 = (int) roundf((ml_raw - 56) * 3.0f / 8.0f);   /* signed Tv in thirds of a stop */
+    tv3 = COERCE(tv3, -120, 120);
+    return (tv3 & 0xFF) << 8;                              /* code goes in the HIGH byte */
+}
+static int r_shutter16_to_ml_raw(int rval)
+{
+    int tv3 = (signed char)((rval >> 8) & 0xFF);           /* signed high byte */
+    return 56 + (int) roundf(tv3 * 8.0f / 3.0f);
+}
+static int r_set_rawshutter(unsigned ml_raw)
+{
+    /* Coerce into the valid range rather than failing: a bracket frame past the limit then
+     * captures AT the limit (e.g. 1/8000) instead of falling back to the base shutter, which
+     * would waste it as a duplicate of the center frame (seen when bracketing from a fast base). */
+    int raw = COERCE((int) ml_raw, 16, FASTEST_SHUTTER_SPEED_RAW);
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_shutter16(raw);
+    prop_request_change_wait(PROP_SHUTTER, &rval, 2, 100);
+    return 1;
+}
+#endif
+
 static int prop_set_rawshutter(unsigned shutter)
 {
+#ifdef CONFIG_R
+    /* R: convert ML APEX -> R hi-byte-Tv format and write directly. The generic readback/retry
+     * below assumes the camera echoes the same value it was given (ML format); the R echoes its
+     * own format, so we bypass that path. */
+    return r_set_rawshutter(shutter);
+#else
     // Canon likes numbers in 1/3 or 1/2-stop increments
     if (is_movie_mode())
     {
@@ -2365,28 +2445,32 @@ static int prop_set_rawshutter(unsigned shutter)
         if (r != 0 && r != 4 && r != 3 && r != 5)
             return 0;
     }
-    
+
     if (shutter < 16) return 0;
     if (shutter > FASTEST_SHUTTER_SPEED_RAW) return 0;
     
     lens_wait_readytotakepic(64);
 
     int s0 = shutter;
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
     
     if (lens_info.raw_shutter != s0 && !(CONTROL_BV && lv))
     {
         /* no confirmation? try set shutter 2 stops away from final value, and back */
         int sx = shutter > 128 ? shutter - 16 : shutter + 16;
-        prop_request_change_wait( PROP_SHUTTER, &sx, 4, 100);
-        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+        prop_request_change_wait( PROP_SHUTTER, &sx, 0, 100); /* len=0: auto-detect (R = 2 bytes) */
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
     }
     
     return lens_info.raw_shutter == s0;
+#endif
 }
 
 static int prop_set_rawshutter_approx(unsigned shutter)
 {
+#ifdef CONFIG_R
+    return r_set_rawshutter(shutter);
+#else
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     
@@ -2396,7 +2480,7 @@ static int prop_set_rawshutter_approx(unsigned shutter)
      * 
      * Let's first see what Canon firmware gives us.
      */
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
     int delta = (int)lens_info.raw_shutter - (int)shutter;
     
     if (ABS(delta) == 2)
@@ -2404,11 +2488,12 @@ static int prop_set_rawshutter_approx(unsigned shutter)
         /* if we get a rounding error of 2, try altering the shutter speed by one;
          * it will most likely get it right this time */
         shutter -= SGN(delta);
-        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 0, 100); /* len=0: auto-detect property length (R delivers PROP_SHUTTER as 2 bytes, not 4) */
         delta = (int)lens_info.raw_shutter - (int)shutter;
     }
-    
+
     return ABS(delta) <= 1;
+#endif
 }
 
 static int prop_set_rawiso(unsigned iso)

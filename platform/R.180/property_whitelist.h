@@ -36,6 +36,13 @@ const uint32_t prop_handler_deny[] =
 // allow writes / allow prop_request_change() for these:
 const uint32_t prop_write_allow[] =
 {
+    // remote shutter (half/full press) for ML-triggered AF capture
+    PROP_REMOTE_SW1,
+    PROP_REMOTE_SW2,
+    // shutter speed: enables expo bracketing / expo override (shutter axis).
+    // R delivers PROP_SHUTTER as 2 bytes; value range coerced by prop_set_rawshutter.
+    // (PROP_ISO stays denied/unwritten — it's in prop_handler_deny, caused bad behaviour.)
+    PROP_SHUTTER,
     PROP_PICTURE_STYLE,
     PROP_PICSTYLE_SETTINGS_STANDARD,
     PROP_PICSTYLE_SETTINGS_PORTRAIT,
