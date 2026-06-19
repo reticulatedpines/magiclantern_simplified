@@ -552,6 +552,126 @@ static void shutter_fmt_task(void)
     NotifyBox(2500, "format test done");
 }
 
+/* ---- PATH 1 ISO probe infrastructure. PROP_ISO is in prop_handler_deny[] (a DEFENSIVE carry-over
+ * -- sister D8 cams tag it "FIXME not a confirmed problem" / "possible crash?"), so ML never gets
+ * ISO via the boot handler and lens_info.raw_iso is stale. prop_get_value() isn't stubbed on the R,
+ * but prop_register_slave()/_prop_cleanup() ARE -- so we register our OWN PROP_ISO slave at RUNTIME
+ * from the menu task. That's safe: the camera is already up, so it can't trigger the early-boot
+ * crash the deny list guards against, and an event-driven slave catches EVERY broadcast (which also
+ * answers whether the R reports ISO dial changes at all -- the open question that bit the shutter
+ * dial). The callback only stashes the latest value (NO FIO in prop-callback context); the tasks
+ * read the stash. ---- */
+static void *          iso_probe_token = NULL;
+static volatile uint32_t iso_probe_word0 = 0;   /* first up-to-4 bytes of PROP_ISO */
+static volatile int      iso_probe_len   = -1;  /* delivered length in bytes */
+static volatile uint32_t iso_probe_seq   = 0;   /* bumps on every delivery (broadcast counter) */
+static volatile int      iso_probe_active = 0;
+
+static void iso_probe_token_handler(void * token) { iso_probe_token = token; }
+
+static void * iso_probe_cb(unsigned property, void * priv, void * addr, unsigned len)
+{
+    extern void* _prop_cleanup(void* token, int property);
+    if (property == PROP_ISO && addr)
+    {
+        uint32_t w = 0;
+        unsigned c = len < 4 ? len : 4;
+        for (unsigned i = 0; i < c; i++) ((uint8_t *)&w)[i] = ((uint8_t *)addr)[i];
+        iso_probe_word0 = w;
+        iso_probe_len   = (int)len;
+        iso_probe_seq++;
+    }
+    return (void *)_prop_cleanup(iso_probe_token, (int)property);
+}
+
+static void iso_probe_start(void)
+{
+    static unsigned plist[1] = { PROP_ISO };
+    if (iso_probe_active) return;
+    iso_probe_active = 1;
+    prop_register_slave(plist, 1, iso_probe_cb, NULL, iso_probe_token_handler);
+}
+
+/* PATH 1 ISO READ MAP (Debug -> "ISO read map"). Registers the runtime PROP_ISO slave, then logs
+ * the value + length whenever it changes while you dial ISO. DIAL SLOWLY through Auto,100,200,400,
+ * 800,1600,3200,6400,12800,25600 and note which DIAL ISO produced which raw. Maps the R's true
+ * PROP_ISO encoding; the delivery counter at the end tells us if the R broadcasts dial changes.
+ * ~80s. -> ML/LOGS/ISOMAP.TXT */
+static void iso_readmap_task(void)
+{
+    static char b[920]; int n = 0;
+    uint32_t lastw = 0xffffffff; int lastlen = -2;
+    gui_stop_menu();
+    msleep(500);
+    iso_probe_start();
+    msleep(400);   /* let Canon deliver the current value on registration */
+    n += snprintf(b + n, sizeof(b) - n,
+                  "Dial ISO SLOWLY; each PROP_ISO change logged. ML std: raw72=ISO100, +8/stop:\n");
+    for (int i = 0; i < 460 && n < (int)sizeof(b) - 80; i++)  /* ~83s @ 180ms */
+    {
+        uint32_t w = iso_probe_word0; int ln = iso_probe_len;
+        if (w != lastw || ln != lastlen)
+        {
+            lastw = w; lastlen = ln;
+            int b0 = w & 0xff;
+            n += snprintf(b + n, sizeof(b) - n,
+                          "raw0=%d (0x%02x) len=%d word0=0x%08x seq=%d -> ML_iso~%d\n",
+                          b0, b0, ln, (unsigned)w, (int)iso_probe_seq, raw2iso(b0));
+            FILE * f = FIO_CreateFile("ML/LOGS/ISOMAP.TXT");
+            if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        }
+        msleep(180);
+    }
+    n += snprintf(b + n, sizeof(b) - n, "total deliveries (seq)=%d\n", (int)iso_probe_seq);
+    { FILE * f = FIO_CreateFile("ML/LOGS/ISOMAP.TXT");
+      if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); } }
+    NotifyBox(2500, "ISO read map done (seq=%d)", (int)iso_probe_seq);
+}
+
+/* PATH 1 ISO WRITE SWEEP (Debug -> "ISO write sweep"). The analog of the shutter write sweep: does
+ * writing PROP_ISO drive the R's real ISO, and at what length? PROP_ISO isn't in prop_write_allow[],
+ * so instead of un-gating it (and the boot handler) we bypass ML's wrapper and call the Canon stub
+ * _prop_request_change() directly, using the LIVE length learned from the runtime slave so the write
+ * is correctly-formed (no PROP_LEN red box). Writes standard raw codes 72/80/88/96/104/112/120 (ISO
+ * 100..6400), ~5s each with a NotifyBox; WATCH THE ISO DISPLAY and note the ISO per step. Restores
+ * the original ISO at the end. Use M mode. -> if the display steps 100..6400, writes work + the
+ * codes are standard; if it lands elsewhere we learn the real encoding/length. ISO is a benign
+ * exposure setting (what the dial writes constantly) so a correctly-sized in-range write is low risk.
+ * -> ML/LOGS/ISOSWEEP.TXT */
+static void iso_sweep_task(void)
+{
+    extern void _prop_request_change(unsigned property, const void* addr, size_t len);
+    static const int raws[] = {72, 80, 88, 96, 104, 112, 120}; /* ISO 100,200,400,800,1600,3200,6400 */
+    static char b[680]; int n = 0;
+    gui_stop_menu();
+    msleep(700);
+    iso_probe_start();
+    msleep(500);   /* let the slave deliver the current value + length */
+    int len = iso_probe_len;
+    if (len < 1 || len > 8)
+    {
+        NotifyBox(5000, "ISO len unknown (%d) - aborted; run read map first", len);
+        return;
+    }
+    uint32_t orig = iso_probe_word0;
+    n += snprintf(b + n, sizeof(b) - n, "PROP_ISO live len=%d orig=0x%08x. WATCH ISO display/step:\n",
+                  len, (unsigned)orig);
+    for (int i = 0; i < (int)(sizeof(raws)/sizeof(raws[0])); i++)
+    {
+        uint32_t val = (uint32_t)raws[i];        /* low byte = raw code, upper bytes 0 */
+        _prop_request_change(PROP_ISO, &val, len);
+        msleep(800);                             /* let the slave catch the echo */
+        n += snprintf(b + n, sizeof(b) - n, "wrote raw=%d (ISO~%d) len=%d -> readback=0x%08x\n",
+                      raws[i], raw2iso(raws[i]), len, (unsigned)iso_probe_word0);
+        FILE * f = FIO_CreateFile("ML/LOGS/ISOSWEEP.TXT");
+        if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        NotifyBox(5000, "ISO raw=%d (~%d)  <- read display", raws[i], raw2iso(raws[i]));
+        msleep(4500);
+    }
+    _prop_request_change(PROP_ISO, &orig, len);  /* restore */
+    NotifyBox(2500, "ISO sweep done");
+}
+
 /* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
  * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
  * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
@@ -1945,6 +2065,20 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Sweeps signed high byte -5..+13 (~12 steps, 5s each). Read TOP LCD/step.",
         .help2 = "Confirms hi-byte=Tv whole-stops + charts it. -> ML/LOGS/SHHIMAP.TXT.",
+    },
+    {
+        .name        = "ISO read map",
+        .priv =         iso_readmap_task,
+        .select        = run_in_separate_task,
+        .help  = "Dial ISO slowly (~80s): reads PROP_ISO directly (boot-safe), logs encoding.",
+        .help2 = "Maps the R's ISO encoding + if it broadcasts the dial. -> ML/LOGS/ISOMAP.TXT.",
+    },
+    {
+        .name        = "ISO write sweep",
+        .priv =         iso_sweep_task,
+        .select        = run_in_separate_task,
+        .help  = "Writes ISO 100..6400 (~5s each). Watch ISO display: does it step?",
+        .help2 = "Tests if writing PROP_ISO drives the real ISO. -> ML/LOGS/ISOSWEEP.TXT.",
     },
     {
         .name        = "Dump EEPROM struct",
