@@ -714,6 +714,115 @@ static void iso_set_test_task(void)
     NotifyBox(2500, "ISO set test done");
 }
 
+/* ---- PATH 1 APERTURE probe: runtime PROP_APERTURE slave. PROP_APERTURE isn't deny-listed (its
+ * handler registers, so READ partly works), but the R's encoding is unverified -- shutter used the
+ * hi-byte and ISO byte 1, so aperture may not be plain byte 0 either. Same runtime-slave approach as
+ * ISO (boot-safe, read-only). ---- */
+static void *          ap_probe_token = NULL;
+static volatile uint32_t ap_probe_word0 = 0;
+static volatile int      ap_probe_len = -1;
+static volatile uint32_t ap_probe_seq = 0;
+static volatile int      ap_probe_active = 0;
+
+static void ap_probe_token_handler(void * token) { ap_probe_token = token; }
+
+static void * ap_probe_cb(unsigned property, void * priv, void * addr, unsigned len)
+{
+    extern void* _prop_cleanup(void* token, int property);
+    if (property == PROP_APERTURE && addr)
+    {
+        uint32_t w = 0;
+        unsigned c = len < 4 ? len : 4;
+        for (unsigned i = 0; i < c; i++) ((uint8_t *)&w)[i] = ((uint8_t *)addr)[i];
+        ap_probe_word0 = w;
+        ap_probe_len   = (int)len;
+        ap_probe_seq++;
+    }
+    return (void *)_prop_cleanup(ap_probe_token, (int)property);
+}
+
+static void ap_probe_start(void)
+{
+    static unsigned plist[1] = { PROP_APERTURE };
+    if (ap_probe_active) return;
+    ap_probe_active = 1;
+    prop_register_slave(plist, 1, ap_probe_cb, NULL, ap_probe_token_handler);
+}
+
+/* APERTURE READ MAP (Debug -> "Aperture read map"). Dial aperture (Av or M mode) through f-stops;
+ * logs PROP_APERTURE value+len per change + the lens raw_aperture min/max range. Maps the R's
+ * aperture encoding (byte 0? byte 1 like ISO?) and whether it broadcasts the dial. ~80s.
+ * -> ML/LOGS/APMAP.TXT */
+static void ap_readmap_task(void)
+{
+    static char b[940]; int n = 0;
+    uint32_t lastw = 0xffffffff; int lastlen = -2;
+    gui_stop_menu();
+    msleep(500);
+    ap_probe_start();
+    msleep(400);
+    n += snprintf(b + n, sizeof(b) - n,
+                  "Dial APERTURE slowly (Av/M). lens raw_av min=%d max=%d. ML std: f5.6=raw48, +8/stop:\n",
+                  lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+    for (int i = 0; i < 460 && n < (int)sizeof(b) - 88; i++)  /* ~83s @ 180ms */
+    {
+        uint32_t w = ap_probe_word0; int ln = ap_probe_len;
+        if (w != lastw || ln != lastlen)
+        {
+            lastw = w; lastlen = ln;
+            n += snprintf(b + n, sizeof(b) - n,
+                          "word0=0x%08x len=%d byte0=%d byte1=%d seq=%d li.raw_av=%d\n",
+                          (unsigned)w, ln, (int)(w & 0xff), (int)((w >> 8) & 0xff),
+                          (int)ap_probe_seq, lens_info.raw_aperture);
+            FILE * f = FIO_CreateFile("ML/LOGS/APMAP.TXT");
+            if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        }
+        msleep(180);
+    }
+    n += snprintf(b + n, sizeof(b) - n, "total deliveries (seq)=%d\n", (int)ap_probe_seq);
+    { FILE * f = FIO_CreateFile("ML/LOGS/APMAP.TXT");
+      if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); } }
+    NotifyBox(2500, "Aperture read map done (seq=%d)", (int)ap_probe_seq);
+}
+
+/* APERTURE WRITE FORMAT test (Debug -> "Aperture write test"). PROP_APERTURE isn't in
+ * prop_write_allow[], so we bypass the gate via _prop_request_change and write a mid aperture (f/8-ish,
+ * clamped into the lens range) in 4 byte-layout/length variants, ~5s each; WATCH THE APERTURE DISPLAY
+ * and note which step moves it. The slave reads back the R's value each step. Av or M mode. Restores
+ * orig. -> whichever layout moves the f-number reveals the write encoding. -> ML/LOGS/APFMT.TXT */
+static void ap_write_task(void)
+{
+    extern void _prop_request_change(unsigned property, const void* addr, size_t len);
+    static char b[760]; int n = 0;
+    gui_stop_menu();
+    msleep(700);
+    ap_probe_start();
+    msleep(500);
+    int mn = lens_info.raw_aperture_min, mx = lens_info.raw_aperture_max;
+    uint32_t orig = ap_probe_word0;
+    int origlen = (ap_probe_len > 0 && ap_probe_len <= 8) ? ap_probe_len : 4;
+    int tgt = 56;                                /* f/8 in ML raw (8/stop, f5.6=48) */
+    if (mn && mx) tgt = COERCE(tgt, mn, mx);
+    n += snprintf(b + n, sizeof(b) - n,
+                  "lens raw_av min=%d max=%d target=%d orig=0x%08x len=%d. WATCH f-number/step:\n",
+                  mn, mx, tgt, (unsigned)orig, origlen);
+    #define APFMT(lbl, val, len) do {                                                          \
+        uint32_t v = (uint32_t)(val); _prop_request_change(PROP_APERTURE, &v, (len)); msleep(800); \
+        n += snprintf(b + n, sizeof(b) - n, "%s wrote=0x%08x len=%d -> readback=0x%08x li.raw_av=%d\n", \
+                      (lbl), (unsigned)v, (len), (unsigned)ap_probe_word0, lens_info.raw_aperture);     \
+        { FILE * f = FIO_CreateFile("ML/LOGS/APFMT.TXT");                                       \
+          if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); } }                                \
+        NotifyBox(5000, "%s  (read f-number)", (lbl)); msleep(4500);                            \
+    } while (0)
+    APFMT("1 byte0 len4", tgt,        4);   /* current/standard */
+    APFMT("2 byte1 len4", tgt << 8,   4);   /* ISO-style */
+    APFMT("3 byte0 len2", tgt,        2);
+    APFMT("4 byte1 len2", tgt << 8,   2);   /* shutter-style hi-byte of 2 */
+    #undef APFMT
+    if (orig) _prop_request_change(PROP_APERTURE, &orig, origlen);  /* restore */
+    NotifyBox(2500, "Aperture write test done");
+}
+
 /* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
  * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
  * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
@@ -2128,6 +2237,20 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Sets ISO 100/400/800/3200 via the production path; checks read-back.",
         .help2 = "Validates the integrated ISO read+write end to end. -> ML/LOGS/ISOSET.TXT.",
+    },
+    {
+        .name        = "Aperture read map",
+        .priv =         ap_readmap_task,
+        .select        = run_in_separate_task,
+        .help  = "Dial aperture slowly (~80s): logs PROP_APERTURE encoding + lens range.",
+        .help2 = "Maps the R's aperture encoding + if it broadcasts. -> ML/LOGS/APMAP.TXT.",
+    },
+    {
+        .name        = "Aperture write test",
+        .priv =         ap_write_task,
+        .select        = run_in_separate_task,
+        .help  = "Writes f/8 in 4 byte-layouts (~5s each). Watch f-number: which moves it?",
+        .help2 = "Tests if/how writing PROP_APERTURE drives the real aperture. -> APFMT.TXT.",
     },
     {
         .name        = "Dump EEPROM struct",
