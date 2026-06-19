@@ -1485,6 +1485,67 @@ static void ambient_display(
 }
 #endif
 
+#ifdef CONFIG_R
+/* ---- BRIGHTNESS PROBE (Debug -> "Brightness probe"). Find a scene-brightness signal on the R for
+ * the adaptive-exposure timelapse. Logs three candidate signals every ~2.5s for ~3.5 min while you
+ * change the light (point a dimmable lamp at the lens, or run at dusk/dawn):
+ *   ls = ambient-light sensor under the LCD (raw + EV) -- overall ambient, NOT through-the-lens.
+ *   bv = PROP_BV, the camera's through-the-lens brightness value (via a runtime slave).
+ *   ae = lens_info.ae, the metered deviation.
+ * Each line also logs the current manual exposure (Tv Sv Av) for reference. A brief half-press each
+ * iteration forces metering (set the lens to MF first so it doesn't hunt). Whichever signal TRACKS
+ * the light is the one to drive adaptive exposure. -> ML/LOGS/BRIGHT.TXT */
+static void *          bv_probe_token = NULL;
+static volatile uint32_t bv_probe_word0 = 0;
+static volatile int      bv_probe_len = -1;
+static volatile uint32_t bv_probe_seq = 0;
+static volatile int      bv_probe_active = 0;
+static void bv_probe_token_handler(void * token) { bv_probe_token = token; }
+static void * bv_probe_cb(unsigned property, void * priv, void * addr, unsigned len)
+{
+    extern void* _prop_cleanup(void* token, int property);
+    if (property == PROP_BV && addr)
+    {
+        uint32_t w = 0;
+        unsigned c = len < 4 ? len : 4;
+        for (unsigned i = 0; i < c; i++) ((uint8_t *)&w)[i] = ((uint8_t *)addr)[i];
+        bv_probe_word0 = w; bv_probe_len = (int)len; bv_probe_seq++;
+    }
+    return (void *)_prop_cleanup(bv_probe_token, (int)property);
+}
+static void bv_probe_start(void)
+{
+    static unsigned plist[1] = { PROP_BV };
+    if (bv_probe_active) return;
+    bv_probe_active = 1;
+    prop_register_slave(plist, 1, bv_probe_cb, NULL, bv_probe_token_handler);
+}
+static void brightness_probe_task(void)
+{
+    extern void fake_simple_button(int bgmt_code);
+    static char b[3000]; int n = 0;
+    gui_stop_menu();
+    msleep(500);
+    bv_probe_start();
+    n += snprintf(b + n, sizeof(b) - n,
+                  "i  PROP_BV(word/len/seq)  ae  Tv Sv Av   (M mode, lens=MF; meters each line)\n");
+    for (int i = 0; i < 84 && n < (int)sizeof(b) - 96; i++)  /* ~3.5 min @ ~2.5s */
+    {
+        fake_simple_button(BGMT_PRESS_HALFSHUTTER);   /* 0x7D: meter */
+        msleep(450);
+        n += snprintf(b + n, sizeof(b) - n,
+                      "%d  bv=0x%x/%d/%d  ae=%d  Tv=%d Sv=%d Av=%d\n",
+                      i, (unsigned)bv_probe_word0, bv_probe_len, (int)bv_probe_seq,
+                      lens_info.ae, lens_info.raw_shutter, lens_info.raw_iso, lens_info.raw_aperture);
+        fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);  /* release */
+        FILE * f = FIO_CreateFile("ML/LOGS/BRIGHT.TXT");
+        if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        msleep(2050);
+    }
+    NotifyBox(3000, "Brightness probe done -> BRIGHT.TXT");
+}
+#endif
+
 #ifdef FEATURE_DEBUG_PROP_DISPLAY
 static CONFIG_INT("prop.i", prop_i, 0);
 static CONFIG_INT("prop.j", prop_j, 0);
@@ -1793,6 +1854,15 @@ static struct menu_entry debug_menus[] = {
         .select = run_in_separate_task,
         .priv = guimode_test,
         .help = "Cycle through all GUI modes and take screenshots.",
+    },
+#endif
+#ifdef CONFIG_R
+    {
+        .name        = "Brightness probe",
+        .priv        = brightness_probe_task,
+        .select      = run_in_separate_task,
+        .help  = "Logs ambient-sensor / PROP_BV / ae vs changing light (~3.5min, lens=MF).",
+        .help2 = "Finds a scene-brightness signal for adaptive-exposure timelapse. -> BRIGHT.TXT.",
     },
 #endif
     MENU_PLACEHOLDER("Free Memory"),
