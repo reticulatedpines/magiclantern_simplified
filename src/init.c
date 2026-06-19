@@ -846,6 +846,7 @@ void mpu_capture_dump(void)
 #define SF_TUNE_BUFSZ 0x4000
 static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ];
 static volatile uint32_t sfread_tune_captured = 0;  /* high-water mark of captured bytes */
+volatile int sfread_diag_mmu_ret = -99;             /* mmu_init() return, set in boot_pre_init_task */
 static char    sfread_log[8192];
 static int     sfread_log_len = 0;
 
@@ -923,7 +924,32 @@ void sfread_capture_dump(void)
     FILE * g = FIO_CreateFile("ML/LOGS/SFREAD.TXT");
     if (g) { FIO_WriteFile(g, sfread_log, sfread_log_len); FIO_CloseFile(g); }
 
-    NotifyBox(4000, "SF reads dumped: %d log bytes", sfread_log_len);
+    /* HW DIAGNOSTIC: report cpu0's post-boot view of the RBSF patch site + mmu_init status.
+     * This menu task runs on cpu0, so reading 0xE03C10C4 shows whether cpu0's MMU remap actually
+     * redirected to our detour. patch = "df f8 00 f0" (word 0xf000f8df); orig = "2d e9 f0 47"
+     * (word 0x47f0e92d). If orig -> the cpu0 redirect didn't take (HW cache/coherency). */
+    FILE * d = FIO_CreateFile("ML/LOGS/SFDIAG.TXT");
+    if (d)
+    {
+        const volatile uint32_t * rbsf = (const volatile uint32_t *)0xE03C10C4;
+        char buf[300];
+        int n = snprintf(buf, sizeof(buf),
+            "RBSF @0xE03C10C4 cpu0-view = %08x %08x\n"
+            "  patch word0 should be 0xf000f8df (ldr.w pc); orig is 0x47f0e92d\n"
+            "  => detour %s on cpu0\n"
+            "mmu_init() returned = %d  (0=ok, <0=fail; -3=SGI not registered)\n"
+            "sfread_wrapper calls (log bytes) = %d\n"
+            "sfread_tune_captured (high-water) = %u\n"
+            "&sfread_wrapper = %08x\n",
+            (unsigned)rbsf[0], (unsigned)rbsf[1],
+            (rbsf[0] == 0xf000f8df) ? "ACTIVE" : "NOT active (saw orig/other)",
+            sfread_diag_mmu_ret, sfread_log_len, sfread_tune_captured,
+            (unsigned)(uintptr_t)&sfread_wrapper);
+        FIO_WriteFile(d, buf, n);
+        FIO_CloseFile(d);
+    }
+
+    NotifyBox(4000, "SF reads: %d log bytes (see SFDIAG.TXT)", sfread_log_len);
 }
 #endif /* CONFIG_R */
 
@@ -940,7 +966,9 @@ void boot_pre_init_task()
     RPC_sem = create_named_semaphore("RPC", SEM_CREATE_UNLOCKED);
     #endif
     #if defined(CONFIG_MMU_REMAP)
-    if (mmu_init() < 0)
+    extern volatile int sfread_diag_mmu_ret;
+    sfread_diag_mmu_ret = mmu_init();   /* captured for SFDIAG.TXT */
+    if (sfread_diag_mmu_ret < 0)
         DryosDebugMsg(0, 15, "ERROR doing mmu_init()");
     #endif
     // Install our task creation hooks
