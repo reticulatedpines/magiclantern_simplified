@@ -28,7 +28,9 @@
 // deny reads / do not register property handlers for these
 const uint32_t prop_handler_deny[] =
 {
-    PROP_ISO,
+    // PROP_ISO was a defensive carry-over (sister D8 cams tag it "FIXME not a confirmed problem").
+    // On the R a runtime PROP_ISO slave delivered fine + the handler decodes the byte-1 code
+    // (CONFIG_PROP_ISO_BYTE1), so it is allowed for read and write -- see prop_write_allow[] below.
     PROP_MVR_REC_START, // probably related to MVR stubs being all wrong
     PROP_LV_AFFRAME // so far crash only confirmed on Digic 8
 };
@@ -41,8 +43,10 @@ const uint32_t prop_write_allow[] =
     PROP_REMOTE_SW2,
     // shutter speed: enables expo bracketing / expo override (shutter axis).
     // R delivers PROP_SHUTTER as 2 bytes; value range coerced by prop_set_rawshutter.
-    // (PROP_ISO stays denied/unwritten — it's in prop_handler_deny, caused bad behaviour.)
     PROP_SHUTTER,
+    // ISO: R delivers PROP_ISO as 4 bytes with the code in byte 1 (15=ISO100, +3/stop).
+    // prop_set_rawiso converts ML APEX raw -> that code; the handler decodes it back.
+    PROP_ISO,
     PROP_PICTURE_STYLE,
     PROP_PICSTYLE_SETTINGS_STANDARD,
     PROP_PICSTYLE_SETTINGS_PORTRAIT,

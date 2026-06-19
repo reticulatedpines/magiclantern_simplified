@@ -34,4 +34,5 @@
 #define CONFIG_TASK_ATTR_STRUCT_V5
 
 #define CONFIG_PROP_SHUTTER_HI_BYTE     /* PROP_SHUTTER is a 2-byte value, shutter in the HIGH byte as signed Tv/3 (R encoding) */
+#define CONFIG_PROP_ISO_BYTE1           /* PROP_ISO is a 4-byte value, ISO code in BYTE 1: code 15=ISO100, +3/stop (R encoding) */
 #define CONFIG_HDR_BRACKET_VIA_FILENUMBER  /* job_state unreliable: drive HDR bracketing off the card file_number + related R adaptations */
