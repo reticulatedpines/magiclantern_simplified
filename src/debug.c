@@ -394,6 +394,16 @@ static void sfread_capture_dump_menu()
     sfread_capture_dump();
 }
 
+/* ACTIVE serial-flash read (defined in init.c). Calls the real RBSF on cpu0 ourselves rather than
+ * waiting to observe Canon's boot-time reads (which finish before ML loads). -> TUNE.BIN+SFACTIVE.TXT. */
+static void sfread_active_read_menu()
+{
+    extern void sfread_active_read(void);
+    gui_stop_menu();
+    msleep(300);
+    sfread_active_read();
+}
+
 /* PATH 1 shutter SCALE MAP (Debug -> "Shutter scale map"). CAPEXP showed ML writes raw=140,
  * lens_info reads back 140, but the captured image was ~1" (slow/overexposed) -- NOT the ~1/1500
  * that ML's old-Canon shutter table claims raw 140 is. So ML's raw<->time table likely does NOT
@@ -2160,6 +2170,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Flush the passive serial-flash read capture -> ML/LOGS/TUNE.BIN + SFREAD.TXT.",
         .help2 = "Boot-time reads of the TUNE region (0xF09C0000), captured read-only.",
+    },
+    {
+        .name        = "SF active read TUNE",
+        .priv =         sfread_active_read_menu,
+        .select        = run_in_separate_task,
+        .help  = "ACTIVELY read TUNE (0xF09C0000) via RBSF on cpu0 -> ML/LOGS/TUNE.BIN.",
+        .help2 = "Camera-free RE: reads SF on demand vs the too-late passive detour. -> SFACTIVE.TXT.",
     },
     {
         .name        = "Capture-signal probe",

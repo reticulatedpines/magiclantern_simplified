@@ -932,7 +932,7 @@ void sfread_capture_dump(void)
     if (d)
     {
         const volatile uint32_t * rbsf = (const volatile uint32_t *)0xE03C10C4;
-        char buf[300];
+        char buf[420];   /* was 300 -> truncated the last 2 lines (= u / = 00) */
         int n = snprintf(buf, sizeof(buf),
             "RBSF @0xE03C10C4 cpu0-view = %08x %08x\n"
             "  patch word0 should be 0xf000f8df (ldr.w pc); orig is 0x47f0e92d\n"
@@ -950,6 +950,53 @@ void sfread_capture_dump(void)
     }
 
     NotifyBox(4000, "SF reads: %d log bytes (see SFDIAG.TXT)", sfread_log_len);
+}
+
+/* ACTIVE serial-flash read (Debug -> "SF active read TUNE"). SFDIAG proved the passive detour is
+ * live on cpu0 but fires 0 times on a normal boot -- Canon reads the property-DB serial flash during
+ * its OWN pre-ML init, before mmu_init installs the detour, so there is nothing left to observe by
+ * the time ML runs. Instead of waiting to OBSERVE a read, we PERFORM one: call sfread_tramp (the
+ * clean original RBSF, validated to run on cpu0) directly for the TUNE region. Read-only flash I/O,
+ * no brick risk. Fills sfread_tune_buf, dumps TUNE.BIN + SFACTIVE.TXT (return code + a non-blank byte
+ * count so we can tell real flash data from an all-0xff/all-0 miss). This is the camera-free-RE
+ * enabler: if it returns real TUNE bytes, we can dump every region qemu needs without the detour. */
+void sfread_active_read(void);
+void sfread_active_read(void)
+{
+    uint32_t n = SF_TUNE_BUFSZ;
+    for (uint32_t i = 0; i < n; i++) sfread_tune_buf[i] = 0xAA;   /* poison so we can see what changed */
+
+    int r = sfread_tramp(SF_TUNE_BASE, sfread_tune_buf, n);
+    sfread_tune_captured = n;
+
+    uint32_t nonblank = 0, stillpoison = 0;
+    for (uint32_t i = 0; i < n; i++)
+    {
+        uint8_t v = sfread_tune_buf[i];
+        if (v == 0xAA) stillpoison++;
+        else if (v != 0xff && v != 0x00) nonblank++;
+    }
+
+    FILE * f = FIO_CreateFile("ML/LOGS/TUNE.BIN");
+    if (f) { FIO_WriteFile(f, sfread_tune_buf, n); FIO_CloseFile(f); }
+
+    FILE * d = FIO_CreateFile("ML/LOGS/SFACTIVE.TXT");
+    if (d)
+    {
+        const uint32_t * w = (const uint32_t *)sfread_tune_buf;
+        char buf[320];
+        int m = snprintf(buf, sizeof(buf),
+            "active sfread_tramp(0x%08x, buf, 0x%x) returned %d\n"
+            "captured=0x%x  nonblank(!=00,!=ff)=%u  still-poison(0xAA, untouched)=%u\n"
+            "first words: %08x %08x %08x %08x %08x %08x\n",
+            (unsigned)SF_TUNE_BASE, (unsigned)n, r,
+            (unsigned)n, (unsigned)nonblank, (unsigned)stillpoison,
+            (unsigned)w[0], (unsigned)w[1], (unsigned)w[2],
+            (unsigned)w[3], (unsigned)w[4], (unsigned)w[5]);
+        FIO_WriteFile(d, buf, m);
+        FIO_CloseFile(d);
+    }
+    NotifyBox(5000, "SF active: ret=%d nonblank=%u poison=%u", r, nonblank, stillpoison);
 }
 #endif /* CONFIG_R */
 
