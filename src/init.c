@@ -847,7 +847,8 @@ void mpu_capture_dump(void)
 static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ];
 static volatile uint32_t sfread_tune_captured = 0;  /* high-water mark of captured bytes */
 volatile int sfread_diag_mmu_ret = -99;             /* mmu_init() return, set in boot_pre_init_task */
-static char    sfread_log[8192];
+static char    sfread_log[2048];   /* was 8192; shrunk to reclaim ML user_mem budget (passive SF
+                                    * capture fires 0 times on the R, so this is effectively unused) */
 static int     sfread_log_len = 0;
 
 /* Trampoline: replays RBSF's overwritten first 8 bytes (relocated -- the orig
