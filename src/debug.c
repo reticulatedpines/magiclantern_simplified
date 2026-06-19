@@ -384,6 +384,16 @@ static void mpu_capture_arm_menu()
     NotifyBox(2000, "MPU capture armed");
 }
 
+/* flush + write the passive serial-flash read capture (defined in init.c,
+ * installed in boot_pre_init_task). Writes ML/LOGS/TUNE.BIN + SFREAD.TXT. */
+static void sfread_capture_dump_menu()
+{
+    extern void sfread_capture_dump(void);
+    gui_stop_menu();
+    msleep(300);
+    sfread_capture_dump();
+}
+
 /* PATH 1 shutter SCALE MAP (Debug -> "Shutter scale map"). CAPEXP showed ML writes raw=140,
  * lens_info reads back 140, but the captured image was ~1" (slow/overexposed) -- NOT the ~1/1500
  * that ML's old-Canon shutter table claims raw 140 is. So ML's raw<->time table likely does NOT
@@ -1970,6 +1980,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Dump the F0xxxxxx property source regions -> ML/LOGS/SFDATA.BIN.",
         .help2 = "Checks readability (FROMCHK.TXT); the qemu boot's missing data.",
+    },
+    {
+        .name        = "Dump SF reads",
+        .priv =         sfread_capture_dump_menu,
+        .select        = run_in_separate_task,
+        .help  = "Flush the passive serial-flash read capture -> ML/LOGS/TUNE.BIN + SFREAD.TXT.",
+        .help2 = "Boot-time reads of the TUNE region (0xF09C0000), captured read-only.",
     },
     {
         .name        = "Capture-signal probe",

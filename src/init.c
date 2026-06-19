@@ -795,6 +795,161 @@ void mpu_capture_dump(void)
         DryosDebugMsg(0, 15, "INTERCOM: req=%X stat=%X ctl=%X", req, stat, ctlp);
     }
 }
+
+/* === R serial-flash read-capture probe (passive, READ-ONLY) ===============
+ * Goal: capture the bytes the firmware reads out of the serial-flash-backed
+ * TUNE region (0xF09C0000..0xF0A00000) during boot, so we can hand them to
+ * qemu-eos (where that region reads back blank -- see from_region_dump_task()
+ * in debug.c). We must NOT issue our own serial-flash read: the active read
+ * path (sf_dump module / SF_readSerialFlash) deadlocks the camera. So instead
+ * we PASSIVELY hook the firmware's own ReadBlockSerialFlash and copy the data
+ * the firmware has already read into its destination buffer. We never call any
+ * SF write/erase/program/init function, never re-power the flash, never drive
+ * the SPI/SIO hardware, and never issue a read of our own.
+ *
+ * ReadBlockSerialFlash(uint32_t addr /r0/, void *dst /r1/, uint32_t len /r2/)
+ *   @ 0xE03C10C4, entry instruction stmdb sp!,{...} = word 0x47F0E92D.
+ *
+ * The hook fires at function ENTRY, BEFORE the read fills dst. So we capture
+ * the PREVIOUS call's data on the CURRENT call (by which time the previous
+ * read has completed): we remember (pend_addr,pend_dst,pend_len) each call and
+ * copy out the previous one. The very last read is flushed from the dump task.
+ *
+ * IMPORTANT BUILD NOTE: patch_hook_function() (the GDB-style register-capturing
+ * hook in patch.h) is only implemented for CONFIG_DIGIC_45 (patch_cache.c) and
+ * CONFIG_MMU_REMAP (patch_mmu.c). R.180 is CONFIG_DIGIC_VIII WITHOUT
+ * CONFIG_MMU_REMAP, so neither the patch.c body nor patch_hook_function is
+ * compiled for this camera. We therefore guard the install with the same
+ * condition; on R.180 it compiles to a clear "unavailable" log instead of
+ * silently doing nothing. See the report for the implication. */
+
+#define SF_TUNE_BASE 0xF09C0000u
+#define SF_TUNE_END  0xF0A00000u            /* exclusive; 0x40000 window */
+#define SF_TUNE_SIZE (SF_TUNE_END - SF_TUNE_BASE)
+
+static uint8_t sfread_tune_buf[SF_TUNE_SIZE]; /* 256 KB capture buffer */
+static char    sfread_log[8192];
+static int     sfread_log_len = 0;
+
+/* pending (previous) call, captured on the next call once its read completed */
+static volatile uint32_t sfread_pend_addr = 0;
+static volatile uint32_t sfread_pend_dst  = 0;
+static volatile uint32_t sfread_pend_len  = 0;
+static volatile int      sfread_have_pend  = 0;
+static volatile int      sfread_hook_installed = 0;
+
+/* same defensive check used by the MPU capture (mpu_ptr_ok): a real dst is a
+ * word-aligned DRAM pointer, well below the MMIO/ROM range. */
+static int sfread_dst_ok(uint32_t p)
+{
+    return (p >= 0x1000 && p < 0x40000000 && (p & 3) == 0);
+}
+
+/* Copy the data from the PREVIOUS (now-completed) ReadBlockSerialFlash call
+ * into our TUNE capture buffer, if that call targeted the TUNE region.
+ * Pure memory read of the firmware's own destination buffer -- no flash I/O. */
+static void sfread_flush_pending(void)
+{
+    if (!sfread_have_pend) return;
+    sfread_have_pend = 0;
+
+    uint32_t addr = sfread_pend_addr;
+    uint32_t dst  = sfread_pend_dst;
+    uint32_t len  = sfread_pend_len;
+
+    if (!sfread_dst_ok(dst)) return;
+    if (len == 0 || len > SF_TUNE_SIZE) return;
+    if (addr < SF_TUNE_BASE || addr >= SF_TUNE_END) return;
+
+    uint32_t off = addr - SF_TUNE_BASE;
+    uint32_t remaining = SF_TUNE_SIZE - off;
+    uint32_t n = (len < remaining) ? len : remaining;
+
+    /* byte copy out of the firmware's filled buffer; bounds already checked */
+    const uint8_t * src = (const uint8_t *)dst;
+    for (uint32_t i = 0; i < n; i++)
+        sfread_tune_buf[off + i] = src[i];
+}
+
+/* patch_hook_function callback. Signature is fixed by patch.h:
+ *     typedef void (*patch_hook_function_cbr)(uint32_t *regs,
+ *                                             uint32_t *stack, uint32_t pc);
+ * Per patch.h: regs[] holds R0..R12 then LR, and the first 4 args of the
+ * hooked function are in regs[0]..regs[3]. So for
+ * ReadBlockSerialFlash(addr,dst,len): addr=regs[0], dst=regs[1], len=regs[2]. */
+static void sfread_hook(uint32_t * regs, uint32_t * stack, uint32_t pc)
+{
+    (void)stack; (void)pc;
+
+    uint32_t addr = regs[0];
+    uint32_t dst  = regs[1];
+    uint32_t len  = regs[2];
+
+    /* 1. previous read has completed by now -> capture it */
+    sfread_flush_pending();
+
+    /* 2. log EVERY SF read so we can confirm the hook fires and see regions */
+    if (sfread_log_len < (int)sizeof(sfread_log) - 40)
+        sfread_log_len += snprintf(sfread_log + sfread_log_len,
+                                   sizeof(sfread_log) - sfread_log_len,
+                                   "addr=%08x len=%x\n", addr, len);
+
+    /* 3. remember this call; it will be flushed on the next call (or at dump) */
+    sfread_pend_addr = addr;
+    sfread_pend_dst  = dst;
+    sfread_pend_len  = len;
+    sfread_have_pend = 1;
+}
+
+/* Install the passive hook. Called from boot_pre_init_task (as early as the
+ * MPU capture installs). Returns 0 on success, negative on unavailable/fail.
+ * Guarded to the configs where patch_hook_function actually exists. */
+int sfread_capture_install(void)
+{
+    if (sfread_hook_installed) return 0;
+
+#if defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_VI)
+    /* NOTE: patch_hook_function only exists for cache-patch (DIGIC 4/5) bodies; CONFIG_MMU_REMAP
+     * bodies (e.g. R) install code hooks via the mmu_patches.h normal_code_patches[] arrays instead.
+     * TODO(R): rework this ReadBlockSerialFlash capture as an mmu_patches.h entry once remap is live. */
+    /* ReadBlockSerialFlash @ 0xE03C10C4, entry stmdb sp!,{...} = 0x47F0E92D.
+     * orig_instr is only used by patch_hook_function as a sanity check that
+     * the bytes at addr are what we expect before redirecting. */
+    int err = patch_hook_function(0xE03C10C4u, 0x47F0E92Du,
+                                  &sfread_hook,
+                                  "SFread: passive TUNE serial-flash read capture");
+    if (err)
+    {
+        DryosDebugMsg(0, 15, "SFread: patch_hook_function failed err=%x", err);
+        return -1;
+    }
+    sfread_hook_installed = 1;
+    DryosDebugMsg(0, 15, "SFread: hook installed @ 0xE03C10C4");
+    return 0;
+#else
+    /* R.180 path: the patch system (and patch_hook_function) is not compiled
+     * for this camera (no CONFIG_MMU_REMAP / DIGIC_45 / DIGIC_VI). There is no
+     * passive ROM-function hook facility available, so we cannot install. */
+    DryosDebugMsg(0, 15, "SFread: patch_hook_function unavailable on this cam");
+    return -2;
+#endif
+}
+
+/* called from debug.c run_test() (Debug -> "Dump SF reads") */
+void sfread_capture_dump(void)
+{
+    /* flush the final pending capture (its read has completed by now) */
+    sfread_flush_pending();
+
+    FILE * f = FIO_CreateFile("ML/LOGS/TUNE.BIN");
+    if (f) { FIO_WriteFile(f, sfread_tune_buf, SF_TUNE_SIZE); FIO_CloseFile(f); }
+
+    FILE * g = FIO_CreateFile("ML/LOGS/SFREAD.TXT");
+    if (g) { FIO_WriteFile(g, sfread_log, sfread_log_len); FIO_CloseFile(g); }
+
+    NotifyBox(4000, "SF reads dumped: %d log bytes, hook=%s",
+              sfread_log_len, sfread_hook_installed ? "on" : "OFF");
+}
 #endif /* CONFIG_R */
 
 /* called before Canon's init_task */
@@ -817,6 +972,13 @@ void boot_pre_init_task()
     qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     DryosDebugMsg(0, 15, "replacing task_dispatch_hook");
     task_dispatch_hook = my_task_dispatch_hook;
+    #ifdef CONFIG_R
+    /* passive serial-flash read-capture probe (see sfread_capture_install).
+     * Installed here, the same spot the MPU capture arms from, so it is as
+     * early as ML safely runs -- before Canon's init_task and the boot
+     * property-load reads. READ-ONLY: never writes/erases/inits the flash. */
+    sfread_capture_install();
+    #endif
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif
