@@ -47,6 +47,9 @@ const uint32_t prop_write_allow[] =
     // ISO: R delivers PROP_ISO as 4 bytes with the code in byte 1 (15=ISO100, +3/stop).
     // prop_set_rawiso converts ML APEX raw -> that code; the handler decodes it back.
     PROP_ISO,
+    // aperture: R delivers PROP_APERTURE as 2 bytes with the Av code in byte 1 (9=f/2.8, +3/stop).
+    // prop_set_rawaperture converts ML APEX raw -> that code; the handler decodes it back.
+    PROP_APERTURE,
     PROP_PICTURE_STYLE,
     PROP_PICSTYLE_SETTINGS_STANDARD,
     PROP_PICSTYLE_SETTINGS_PORTRAIT,
