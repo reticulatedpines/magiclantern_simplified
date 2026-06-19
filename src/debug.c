@@ -628,48 +628,48 @@ static void iso_readmap_task(void)
     NotifyBox(2500, "ISO read map done (seq=%d)", (int)iso_probe_seq);
 }
 
-/* PATH 1 ISO WRITE SWEEP (Debug -> "ISO write sweep"). The analog of the shutter write sweep: does
- * writing PROP_ISO drive the R's real ISO, and at what length? PROP_ISO isn't in prop_write_allow[],
- * so instead of un-gating it (and the boot handler) we bypass ML's wrapper and call the Canon stub
- * _prop_request_change() directly, using the LIVE length learned from the runtime slave so the write
- * is correctly-formed (no PROP_LEN red box). Writes standard raw codes 72/80/88/96/104/112/120 (ISO
- * 100..6400), ~5s each with a NotifyBox; WATCH THE ISO DISPLAY and note the ISO per step. Restores
- * the original ISO at the end. Use M mode. -> if the display steps 100..6400, writes work + the
- * codes are standard; if it lands elsewhere we learn the real encoding/length. ISO is a benign
- * exposure setting (what the dial writes constantly) so a correctly-sized in-range write is low risk.
- * -> ML/LOGS/ISOSWEEP.TXT */
+/* PATH 1 ISO WRITE SWEEP (Debug -> "ISO write sweep"). v2: now writes the REAL R encoding learned
+ * from ISOMAP.TXT -- the ISO code lives in BYTE 1 (val = code<<8), code 15 = ISO100, +3 per stop
+ * (1/3-stop units), len=4. (v1 wrongly wrote the code in byte 0, which the R ignores -> stayed at
+ * ISO 100.) PROP_ISO isn't in prop_write_allow[], so we bypass ML's wrapper and call the Canon stub
+ * _prop_request_change() directly (the same call the gated path ends in). Sweeps ISO 100..6400, ~5s
+ * each with a NotifyBox; WATCH THE ISO DISPLAY. The runtime slave reads back the R's value each step.
+ * Use M mode. -> if the display + readback step 100..6400, writing PROP_ISO drives the real ISO and
+ * the integration (deny->write_allow + lens.c conversion) is mechanical. -> ML/LOGS/ISOSWEEP.TXT */
 static void iso_sweep_task(void)
 {
     extern void _prop_request_change(unsigned property, const void* addr, size_t len);
-    static const int raws[] = {72, 80, 88, 96, 104, 112, 120}; /* ISO 100,200,400,800,1600,3200,6400 */
-    static char b[680]; int n = 0;
+    /* R PROP_ISO: value in byte 1, code15=ISO100 +3/stop. val = code<<8, len 4. */
+    static const struct { int code; int iso; } steps[] = {
+        {15, 100}, {18, 200}, {21, 400}, {24, 800}, {27, 1600}, {30, 3200}, {33, 6400}
+    };
+    static char b[760]; int n = 0;
     gui_stop_menu();
     msleep(700);
     iso_probe_start();
     msleep(500);   /* let the slave deliver the current value + length */
     int len = iso_probe_len;
-    if (len < 1 || len > 8)
-    {
-        NotifyBox(5000, "ISO len unknown (%d) - aborted; run read map first", len);
-        return;
-    }
+    if (len < 1 || len > 8) len = 4;            /* ISOMAP showed len=4 */
     uint32_t orig = iso_probe_word0;
-    n += snprintf(b + n, sizeof(b) - n, "PROP_ISO live len=%d orig=0x%08x. WATCH ISO display/step:\n",
+    n += snprintf(b + n, sizeof(b) - n,
+                  "R fmt val=(code<<8) code15=ISO100 +3/stop len=%d orig=0x%08x. WATCH ISO:\n",
                   len, (unsigned)orig);
-    for (int i = 0; i < (int)(sizeof(raws)/sizeof(raws[0])); i++)
+    for (int i = 0; i < (int)(sizeof(steps)/sizeof(steps[0])); i++)
     {
-        uint32_t val = (uint32_t)raws[i];        /* low byte = raw code, upper bytes 0 */
+        uint32_t val = ((uint32_t)steps[i].code) << 8;   /* code in byte 1 */
         _prop_request_change(PROP_ISO, &val, len);
-        msleep(800);                             /* let the slave catch the echo */
-        n += snprintf(b + n, sizeof(b) - n, "wrote raw=%d (ISO~%d) len=%d -> readback=0x%08x\n",
-                      raws[i], raw2iso(raws[i]), len, (unsigned)iso_probe_word0);
+        msleep(800);                                     /* let the slave catch the echo */
+        uint32_t rb = iso_probe_word0;
+        n += snprintf(b + n, sizeof(b) - n,
+                      "wrote code=%d (ISO%d) val=0x%08x -> readback=0x%08x (code=%d)\n",
+                      steps[i].code, steps[i].iso, (unsigned)val, (unsigned)rb, (rb >> 8) & 0xff);
         FILE * f = FIO_CreateFile("ML/LOGS/ISOSWEEP.TXT");
         if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
-        NotifyBox(5000, "ISO raw=%d (~%d)  <- read display", raws[i], raw2iso(raws[i]));
+        NotifyBox(5000, "ISO %d (code %d)  <- read display", steps[i].iso, steps[i].code);
         msleep(4500);
     }
-    _prop_request_change(PROP_ISO, &orig, len);  /* restore */
-    NotifyBox(2500, "ISO sweep done");
+    if (orig) _prop_request_change(PROP_ISO, &orig, len);  /* restore if we had a real value */
+    NotifyBox(2500, "ISO sweep v2 done");
 }
 
 /* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
