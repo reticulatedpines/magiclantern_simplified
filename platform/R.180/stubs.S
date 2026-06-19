@@ -42,7 +42,10 @@ THUMB_FN(0xE004022C,  init_task)                            /* USER_MEM size che
 /** MMU remap (CONFIG_MMU_REMAP) -- RE'd 2026-06-18, see eosr_port/MMU_REMAP_PORT.md **/
 THUMB_FN(0xE0554466,  change_mmu_tables)        /* DACR/TTBR0/TTBR1/CONTEXTIDR(r2=cpu)/TTBCR/TLBIALL/SCTLR.M=1 -- verified */
 THUMB_FN(0xE0563064,  memcpy_dryos)             /* thumb veneer -> ARM aeabi memcpy @0xE0563068 -- verified */
-THUMB_FN(0xE008E23E,  dcache_clean_multicore)   /* LOW conf: wraps dcache_clean + 0xc1100730 inter-core write */
+/* dcache_clean_multicore: Canon fn @0xE008E23E (inter-core cpu1 cache broadcast, writes 0xc1100730).
+ * HW-verified to crash the R when called this early in mmu_init, and unnecessary for the cpu0-only
+ * remap -- overridden with a no-op in function_overrides.c. Stub commented to avoid a duplicate symbol. */
+/* THUMB_FN(0xE008E23E,  dcache_clean_multicore) */
 THUMB_FN(0xDF002BAA,  _request_RPC)             /* (func,arg) int-disable wrapper -> 0xdf002a32; 0xDF AMP region */
 THUMB_FN(0xDF002BCA,  clear_RPC_request)        /* void->0 int-disable wrapper -> 0xdf002b56 */
 THUMB_FN(0xE05172FA,  task_create_ex)           /* TODO proper cpu1 task; currently = task_create, cpu_id ignored */

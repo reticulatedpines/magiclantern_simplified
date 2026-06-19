@@ -29,8 +29,7 @@ struct patch normal_data_patches[] =
 struct function_hook_patch early_code_patches[] =
 {
     {
-        // ReadBlockSerialFlash(addr, dst, len) @ 0xE03C10C4 -- passive read-only TUNE-capture
-        // detour (sfread_wrapper). Re-enabled now the MMU remap is fixed + qemu-validated.
+        // ReadBlockSerialFlash(addr, dst, len) @ 0xE03C10C4 -- passive read-only TUNE-capture detour.
         .patch_addr = 0xE03C10C4u,
         .orig_content = {0x2d, 0xe9, 0xf0, 0x47, 0x82, 0x46, 0xfa, 0x4c},
         .target_function_addr = (uint32_t)&sfread_wrapper, // carries thumb bit
