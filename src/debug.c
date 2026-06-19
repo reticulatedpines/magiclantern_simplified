@@ -672,6 +672,38 @@ static void iso_sweep_task(void)
     NotifyBox(2500, "ISO sweep v2 done");
 }
 
+/* PATH 1 ISO SET TEST (Debug -> "ISO set test (real)"). Exercises the PRODUCTION ISO path end to end:
+ * lens_set_rawiso() -> prop_set_rawiso -> r_set_rawiso (ML APEX raw -> R byte-1 code) through the
+ * prop_write_allow gate, then reads lens_info.raw_iso back (which the now-un-denied PROP_ISO handler
+ * decodes from byte 1). Unlike the write sweep (raw stub), this validates the REAL integrated code.
+ * Sets ISO 100/400/800/3200, ~5s each; WATCH THE ISO DISPLAY and check the readback matches. M mode.
+ * -> if the display steps AND raw_iso reads back the set value, ISO read+write work via the real
+ * path. -> ML/LOGS/ISOSET.TXT */
+static void iso_set_test_task(void)
+{
+    static const int isos[] = {72, 88, 96, 112};   /* ML raw: ISO 100, 400, 800, 3200 */
+    static char b[600]; int n = 0;
+    int orig = lens_info.raw_iso;
+    gui_stop_menu();
+    msleep(700);
+    n += snprintf(b + n, sizeof(b) - n,
+                  "production lens_set_rawiso; orig raw_iso=%d. WATCH ISO + check readback:\n", orig);
+    for (int i = 0; i < (int)(sizeof(isos)/sizeof(isos[0])); i++)
+    {
+        int ok = lens_set_rawiso(isos[i]);
+        msleep(800);
+        n += snprintf(b + n, sizeof(b) - n,
+                      "set raw=%d (ISO%d) ok=%d -> readback raw_iso=%d iso=%d\n",
+                      isos[i], raw2iso(isos[i]), ok, lens_info.raw_iso, lens_info.iso);
+        FILE * f = FIO_CreateFile("ML/LOGS/ISOSET.TXT");
+        if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        NotifyBox(5000, "set ISO%d -> read raw_iso=%d", raw2iso(isos[i]), lens_info.raw_iso);
+        msleep(4500);
+    }
+    if (orig) lens_set_rawiso(orig);              /* restore */
+    NotifyBox(2500, "ISO set test done");
+}
+
 /* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
  * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
  * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
@@ -2079,6 +2111,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Writes ISO 100..6400 (~5s each). Watch ISO display: does it step?",
         .help2 = "Tests if writing PROP_ISO drives the real ISO. -> ML/LOGS/ISOSWEEP.TXT.",
+    },
+    {
+        .name        = "ISO set test (real)",
+        .priv =         iso_set_test_task,
+        .select        = run_in_separate_task,
+        .help  = "Sets ISO 100/400/800/3200 via the production path; checks read-back.",
+        .help2 = "Validates the integrated ISO read+write end to end. -> ML/LOGS/ISOSET.TXT.",
     },
     {
         .name        = "Dump EEPROM struct",

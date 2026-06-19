@@ -1573,6 +1573,9 @@ static void lensinfo_set_iso(int raw)
 /* R PROP_SHUTTER hi-byte-Tv <-> ML APEX raw conversions (defined near prop_set_rawshutter). */
 static int ml_raw_to_r_shutter16(int ml_raw);
 static int r_shutter16_to_ml_raw(int rval);
+/* R PROP_ISO byte-1-code <-> ML APEX raw conversions (defined near prop_set_rawiso). */
+static int ml_raw_to_r_iso(int ml_raw);
+static int r_iso_to_ml_raw(int rval);
 #endif
 
 static void lensinfo_set_shutter(int raw)
@@ -1621,7 +1624,11 @@ extern int bv_auto;
 static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
+#ifdef CONFIG_R
+    if (!CONTROL_BV) lensinfo_set_iso(r_iso_to_ml_raw(buf[0]));  /* R: ISO code is in byte 1 */
+#else
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
+#endif
     #ifdef FEATURE_EXPO_OVERRIDE
     else if 
         (
@@ -2468,6 +2475,32 @@ static int r_set_rawshutter(unsigned ml_raw)
     prop_request_change_wait(PROP_SHUTTER, &rval, 2, 100);
     return 1;
 }
+/* The EOS R's PROP_ISO is a 4-byte value whose ISO code lives in BYTE 1 (val = code << 8). The code
+ * is 15 = ISO 100, +3 per stop (1/3-stop units); code 0 = ISO Auto/unset. Verified on-camera: dialing
+ * stepped byte 1 through 0x0f..0x1b (15..27), one unit per 1/3 stop -- 15->100, 18->200, 27->1600.
+ * ML's internal raw_iso is APEX (raw 72 = ISO 100, 8 units/stop), so convert at the property boundary,
+ * same pattern as the PROP_SHUTTER hi-byte fix. (ML had been writing the code in byte 0, which the R
+ * ignores -> every write left the ISO at 100.) */
+static int ml_raw_to_r_iso(int ml_raw)
+{
+    if (ml_raw <= 0) return 0;                              /* ISO Auto / unset */
+    int code = 15 + (int) roundf((ml_raw - 72) * 3.0f / 8.0f);
+    code = COERCE(code, 1, 0xFE);                           /* keep in byte 1, never 0 (=Auto) */
+    return (code & 0xFF) << 8;
+}
+static int r_iso_to_ml_raw(int rval)
+{
+    int code = (rval >> 8) & 0xFF;
+    if (code == 0) return 0;                                /* ISO Auto / unset */
+    return 72 + (int) roundf((code - 15) * 8.0f / 3.0f);
+}
+static int r_set_rawiso(unsigned ml_raw)
+{
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_iso((int) ml_raw);
+    prop_request_change_wait(PROP_ISO, &rval, 4, 100);      /* R PROP_ISO is 4 bytes (ISOMAP.TXT) */
+    return 1;
+}
 #endif
 
 static int prop_set_rawshutter(unsigned shutter)
@@ -2538,10 +2571,17 @@ static int prop_set_rawshutter_approx(unsigned shutter)
 
 static int prop_set_rawiso(unsigned iso)
 {
+#ifdef CONFIG_R
+    /* R: convert ML APEX raw -> R byte-1 code and write. The camera echoes its own format, so the
+     * generic readback==iso check below doesn't apply; r_set_rawiso writes and returns 1. */
+    if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO);
+    return r_set_rawiso(iso);
+#else
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
     prop_request_change_wait( PROP_ISO, &iso, 4, 100);
     return lens_info.raw_iso == iso;
+#endif
 }
 
 static int prop_set_rawiso_approx(unsigned iso)
