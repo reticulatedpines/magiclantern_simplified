@@ -3,6 +3,12 @@
 
 #include "patch.h"
 
+// Passive, READ-ONLY serial-flash read-capture detour (see src/init.c).
+// Replaces ReadBlockSerialFlash @ 0xE03C10C4; sfread_wrapper calls the real
+// read via a trampoline, then copies the just-read TUNE bytes out. Never
+// writes/erases/programs/installs the flash.
+extern int sfread_wrapper(unsigned int addr, void *dst, unsigned int len);
+
 #if CONFIG_FW_VERSION == 180 // ensure our hard-coded patch addresses are not broken
                              // by a FW upgrade
 
@@ -22,7 +28,17 @@ struct patch normal_data_patches[] =
 
 struct function_hook_patch early_code_patches[] =
 {
-
+    {
+        // ReadBlockSerialFlash(addr, dst, len) @ 0xE03C10C4.
+        // orig_content = first 8 bytes (checked before patching):
+        //   2d e9 f0 47  stmdb sp!, {r4-r9, sl, lr}
+        //   82 46        mov   sl, r0
+        //   fa 4c        ldr   r4, [pc, #1000]
+        .patch_addr = 0xE03C10C4u,
+        .orig_content = {0x2d, 0xe9, 0xf0, 0x47, 0x82, 0x46, 0xfa, 0x4c},
+        .target_function_addr = (uint32_t)&sfread_wrapper, // carries thumb bit
+        .description = "SFread: TUNE capture"
+    },
 };
 
 struct function_hook_patch normal_code_patches[] =
