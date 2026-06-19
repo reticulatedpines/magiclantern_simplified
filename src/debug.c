@@ -1495,7 +1495,7 @@ static void ambient_display(
  * the light. *** Whichever value TRACKS the light is our signal -- SA should: brighter scene -> faster
  * picked shutter. -> ML/LOGS/BRIGHT.TXT */
 static const unsigned meter_props[] = {
-    PROP_SHUTTER_AUTO, PROP_ISO_AUTO, PROP_APERTURE_AUTO, PROP_LV_BV, PROP_BV
+    PROP_SHUTTER, PROP_SHUTTER_AUTO, PROP_ISO_AUTO, PROP_AE, PROP_LV_BV, PROP_BV
 };
 #define METER_NPROP ((int)(sizeof(meter_props)/sizeof(meter_props[0])))
 static void *          meter_token = NULL;
@@ -1532,20 +1532,20 @@ static void brightness_probe_task(void)
     msleep(500);
     meter_start();
     n += snprintf(b + n, sizeof(b) - n,
-        "RUN IN Av MODE + vary light. val/seq each. SA=SHUTTER_AUTO IA=ISO_AUTO AA=AP_AUTO LV=LV_BV BV=BV\n");
-    for (int i = 0; i < 60 && n < (int)sizeof(b) - 140; i++)  /* ~2 min @ ~2s */
+        "Av MODE + vary light. word0/seq. SH=PROP_SHUTTER(byte1=Tv) SA=SHUTTER_AUTO IA=ISO_AUTO AE=AE LV=LV_BV BV=BV\n");
+    for (int i = 0; i < 60 && n < (int)sizeof(b) - 150; i++)  /* ~2 min @ ~2s */
     {
         fake_simple_button(BGMT_PRESS_HALFSHUTTER);   /* 0x7D: meter */
         msleep(500);
         n += snprintf(b + n, sizeof(b) - n,
-            "%d SA=%d/%d IA=%d/%d AA=%d/%d LV=%d/%d BV=0x%x/%d | Tv=%d Av=%d ae=%d\n",
+            "%d SH=0x%x/%d SA=0x%x/%d IA=0x%x/%d AE=0x%x/%d LV=0x%x/%d BV=0x%x/%d\n",
             i,
-            (int)meter_val[0], (int)meter_seq[0],
-            (int)meter_val[1], (int)meter_seq[1],
-            (int)meter_val[2], (int)meter_seq[2],
-            (int)meter_val[3], (int)meter_seq[3],
+            (unsigned)meter_val[0], (int)meter_seq[0],
+            (unsigned)meter_val[1], (int)meter_seq[1],
+            (unsigned)meter_val[2], (int)meter_seq[2],
+            (unsigned)meter_val[3], (int)meter_seq[3],
             (unsigned)meter_val[4], (int)meter_seq[4],
-            lens_info.raw_shutter, lens_info.raw_aperture, lens_info.ae);
+            (unsigned)meter_val[5], (int)meter_seq[5]);
         fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);  /* release */
         FILE * f = FIO_CreateFile("ML/LOGS/BRIGHT.TXT");
         if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
