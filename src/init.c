@@ -640,7 +640,9 @@ static void cpu1_ready(void)
  * capture send+recv interleaved from the first message -- no wrap, no task,
  * single writer (no locking). Dump via mpu_capture_dump() (Debug -> "Don't
  * click me!"). Uses only stubs the R already has. */
-#define MPU_CAP_BUFSIZE (128 * 1024)
+#define MPU_CAP_BUFSIZE (4 * 1024)  /* DIAG 2026-06-18: 128K->4K. The on-camera MPU spell capture
+   is DONE (1107 spells committed); this 128KB BSS buffer bloated _bss_end past the R's user_mem
+   budget -> my_create_init_task reservation fail -> red LED. Freeing it for the MMU-remap build. */
 static char mpu_cap_buf[MPU_CAP_BUFSIZE];
 static volatile int mpu_cap_len = 0;
 
@@ -833,7 +835,12 @@ void mpu_capture_dump(void)
 #define SF_RBSF_LDR_PTR  0xE03C14B4u        /* literal the orig ldr r4 loads   */
 #define SF_RBSF_CONT     0xE03C10CDu        /* RBSF+8, thumb bit set, for bx    */
 
-static uint8_t sfread_tune_buf[SF_TUNE_SIZE]; /* 256 KB capture buffer */
+/* DIAGNOSTIC (2026-06-18): buffer shrunk 256KB -> 8KB to cut BSS while we isolate the
+ * solid-red-LED no-boot (730KB BSS is a suspect). The detour is disabled in mmu_patches.h
+ * for this build, so sfread_wrapper never runs and never indexes past this small buffer.
+ * Restore to SF_TUNE_SIZE when re-enabling capture. */
+#define SF_TUNE_BUFSZ 0x2000
+static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ]; /* DIAG: shrunk from SF_TUNE_SIZE */
 static char    sfread_log[8192];
 static int     sfread_log_len = 0;
 
@@ -899,7 +906,7 @@ int sfread_wrapper(uint32_t addr, void *dst, uint32_t len)
 void sfread_capture_dump(void)
 {
     FILE * f = FIO_CreateFile("ML/LOGS/TUNE.BIN");
-    if (f) { FIO_WriteFile(f, sfread_tune_buf, SF_TUNE_SIZE); FIO_CloseFile(f); }
+    if (f) { FIO_WriteFile(f, sfread_tune_buf, SF_TUNE_BUFSZ); FIO_CloseFile(f); } /* DIAG size */
 
     FILE * g = FIO_CreateFile("ML/LOGS/SFREAD.TXT");
     if (g) { FIO_WriteFile(g, sfread_log, sfread_log_len); FIO_CloseFile(g); }
