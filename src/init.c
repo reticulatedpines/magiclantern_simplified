@@ -961,13 +961,27 @@ void sfread_capture_dump(void)
  * no brick risk. Fills sfread_tune_buf, dumps TUNE.BIN + SFACTIVE.TXT (return code + a non-blank byte
  * count so we can tell real flash data from an all-0xff/all-0 miss). This is the camera-free-RE
  * enabler: if it returns real TUNE bytes, we can dump every region qemu needs without the detour. */
+/* SF driver struct ptr lives in a ROM literal; the "installed" handle is struct+16. RE of RBSF
+ * (returns 17 when handle==0) + InstallSerialFlash (sets handle=1) + UninstallSerialFlash (sets
+ * handle=0, and NOTHING else) showed Canon's teardown only clears that flag -- the SIO controller
+ * config from boot stays intact. So re-poking handle=1 should let RBSF read again. */
+#define SF_STRUCT_PTR_LIT   0xE03C14B4u   /* *(this) = SF driver struct (0x62bc) */
+#define SF_HANDLE_OFFSET    16
+
 void sfread_active_read(void);
 void sfread_active_read(void)
 {
     uint32_t n = SF_TUNE_BUFSZ;
     for (uint32_t i = 0; i < n; i++) sfread_tune_buf[i] = 0xAA;   /* poison so we can see what changed */
 
+    /* re-enable the serial flash: set the "installed" handle (struct+16) back to 1 */
+    uint32_t   sf_struct  = *(volatile uint32_t *)SF_STRUCT_PTR_LIT;
+    volatile uint32_t * handle = (volatile uint32_t *)(sf_struct + SF_HANDLE_OFFSET);
+    uint32_t   handle_before = *handle;
+    *handle = 1;
+
     int r = sfread_tramp(SF_TUNE_BASE, sfread_tune_buf, n);
+    uint32_t handle_after = *handle;
     sfread_tune_captured = n;
 
     uint32_t nonblank = 0, stillpoison = 0;
@@ -985,19 +999,21 @@ void sfread_active_read(void)
     if (d)
     {
         const uint32_t * w = (const uint32_t *)sfread_tune_buf;
-        char buf[320];
+        char buf[400];
         int m = snprintf(buf, sizeof(buf),
-            "active sfread_tramp(0x%08x, buf, 0x%x) returned %d\n"
-            "captured=0x%x  nonblank(!=00,!=ff)=%u  still-poison(0xAA, untouched)=%u\n"
+            "SF struct=0x%x  handle(struct+16) before=0x%x after=0x%x (poked to 1)\n"
+            "active sfread_tramp(0x%x, buf, 0x%x) returned %d\n"
+            "captured=0x%x  nonblank(!=00,!=ff)=%d  still-poison(0xAA, untouched)=%d\n"
             "first words: %08x %08x %08x %08x %08x %08x\n",
+            (unsigned)sf_struct, (unsigned)handle_before, (unsigned)handle_after,
             (unsigned)SF_TUNE_BASE, (unsigned)n, r,
-            (unsigned)n, (unsigned)nonblank, (unsigned)stillpoison,
+            (unsigned)n, (int)nonblank, (int)stillpoison,
             (unsigned)w[0], (unsigned)w[1], (unsigned)w[2],
             (unsigned)w[3], (unsigned)w[4], (unsigned)w[5]);
         FIO_WriteFile(d, buf, m);
         FIO_CloseFile(d);
     }
-    NotifyBox(5000, "SF active: ret=%d nonblank=%u poison=%u", r, nonblank, stillpoison);
+    NotifyBox(5000, "SF active: ret=%d nonblank=%d hbefore=%d", r, (int)nonblank, (int)handle_before);
 }
 #endif /* CONFIG_R */
 
