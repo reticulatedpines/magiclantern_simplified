@@ -28,16 +28,14 @@ struct patch normal_data_patches[] =
 
 struct function_hook_patch early_code_patches[] =
 {
-    // DIAGNOSTIC (2026-06-18): SF-capture detour TEMPORARILY DISABLED to isolate the
-    // solid-red-LED no-boot. We are testing whether CONFIG_MMU_REMAP boots on the R AT
-    // ALL (the prior "Camera Test 1 pass" was a stale build -- MMU remap was never really
-    // validated). Re-enable this entry once the bare MMU port is confirmed to boot:
-    // {
-    //     .patch_addr = 0xE03C10C4u,
-    //     .orig_content = {0x2d, 0xe9, 0xf0, 0x47, 0x82, 0x46, 0xfa, 0x4c},
-    //     .target_function_addr = (uint32_t)&sfread_wrapper, // carries thumb bit
-    //     .description = "SFread: TUNE capture"
-    // },
+    {
+        // ReadBlockSerialFlash(addr, dst, len) @ 0xE03C10C4 -- passive read-only TUNE-capture
+        // detour (sfread_wrapper). Re-enabled now the MMU remap is fixed + qemu-validated.
+        .patch_addr = 0xE03C10C4u,
+        .orig_content = {0x2d, 0xe9, 0xf0, 0x47, 0x82, 0x46, 0xfa, 0x4c},
+        .target_function_addr = (uint32_t)&sfread_wrapper, // carries thumb bit
+        .description = "SFread: TUNE capture"
+    },
 };
 
 struct function_hook_patch normal_code_patches[] =

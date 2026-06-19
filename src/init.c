@@ -839,8 +839,13 @@ void mpu_capture_dump(void)
  * solid-red-LED no-boot (730KB BSS is a suspect). The detour is disabled in mmu_patches.h
  * for this build, so sfread_wrapper never runs and never indexes past this small buffer.
  * Restore to SF_TUNE_SIZE when re-enabling capture. */
-#define SF_TUNE_BUFSZ 0x2000
-static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ]; /* DIAG: shrunk from SF_TUNE_SIZE */
+/* SF_TUNE_BUFSZ: capture window for TUNE. The full 0x40000 (256KB) can't be a static BSS buffer --
+ * it overruns the R's user_mem budget (see MMU_REMAP_PORT.md). 0x4000 (16KB) fits and captures the
+ * start of TUNE (firmware reads from offset 0). If SFREAD.TXT shows reads past 16KB, switch to a
+ * Canon-AllocateMemory dynamic buffer (stub _AllocateMemory @0xE0552814). */
+#define SF_TUNE_BUFSZ 0x4000
+static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ];
+static volatile uint32_t sfread_tune_captured = 0;  /* high-water mark of captured bytes */
 static char    sfread_log[8192];
 static int     sfread_log_len = 0;
 
@@ -892,11 +897,18 @@ int sfread_wrapper(uint32_t addr, void *dst, uint32_t len)
         sfread_dst_ok((uint32_t)dst) && len != 0)
     {
         uint32_t off = addr - SF_TUNE_BASE;
-        uint32_t remaining = SF_TUNE_SIZE - off;
-        uint32_t n = (len < remaining) ? len : remaining;
-        const uint8_t * src = (const uint8_t *)dst;
-        for (uint32_t i = 0; i < n; i++)
-            sfread_tune_buf[off + i] = src[i];
+        /* clamp to the actual buffer size (SF_TUNE_BUFSZ < SF_TUNE_SIZE on the R: the full
+         * 256KB can't be a static BSS buffer w/o overrunning the R's user_mem budget -- capture
+         * the first SF_TUNE_BUFSZ window). off>=BUFSZ reads are skipped (no OOB write). */
+        if (off < SF_TUNE_BUFSZ)
+        {
+            uint32_t remaining = SF_TUNE_BUFSZ - off;
+            uint32_t n = (len < remaining) ? len : remaining;
+            const uint8_t * src = (const uint8_t *)dst;
+            for (uint32_t i = 0; i < n; i++)
+                sfread_tune_buf[off + i] = src[i];
+            if (off + n > sfread_tune_captured) sfread_tune_captured = off + n;
+        }
     }
 
     return r;
