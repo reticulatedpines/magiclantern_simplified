@@ -1531,24 +1531,36 @@ static void brightness_probe_task(void)
     msleep(500);
     meter_start();
     n += snprintf(b + n, sizeof(b) - n,
-        "RUN IN LIVEVIEW + vary light (passive, no half-press). word0/seq. "
-        "SH=PROP_SHUTTER SA=SHUTTER_AUTO IA=ISO_AUTO AE=AE LV=PROP_LV_BV BV=PROP_BV\n");
-    for (int i = 0; i < 90 && n < (int)sizeof(b) - 150; i++)  /* ~2.5 min; LiveView meters continuously */
+        "RUN IN LIVEVIEW + vary light. avgY = average luma of the LIVE IMAGE (0-255) = the real scene "
+        "brightness, straight off the sensor feed. lv=buffer w x h. LV_BV=PROP_LV_BV (backup).\n");
+    for (int i = 0; i < 90 && n < (int)sizeof(b) - 90; i++)  /* ~2.5 min */
     {
         msleep(1600);
+        /* average the luma of the LiveView YUV422 image -- this is the scene brightness itself,
+         * independent of the (uncooperative) meter. UYVY: Y in bytes 1 and 3 of each 32-bit word. */
+        int avg_y = -1, w = 0, h = 0;
+        struct vram_info * lv = get_yuv422_vram();
+        if (lv) { w = lv->width; h = lv->height; }
+        if (lv && lv->vram && lv->pitch > 0 && lv->height > 0)
+        {
+            const uint32_t * buf = (const uint32_t *)lv->vram;
+            int n32 = (lv->pitch * lv->height) / 4;
+            long sum = 0; int s = 0;
+            for (int p = 0; p < n32; p += 97)   /* sparse prime-ish stride */
+            {
+                uint32_t px = buf[p];
+                sum += ((((px >> 24) & 0xFF) + ((px >> 8) & 0xFF)) >> 1);   /* avg of the 2 Y's */
+                s++;
+            }
+            if (s) avg_y = (int)(sum / s);
+        }
         n += snprintf(b + n, sizeof(b) - n,
-            "%d SH=0x%x/%d SA=0x%x/%d IA=0x%x/%d AE=0x%x/%d LV=0x%x/%d BV=0x%x/%d\n",
-            i,
-            (unsigned)meter_val[0], (int)meter_seq[0],
-            (unsigned)meter_val[1], (int)meter_seq[1],
-            (unsigned)meter_val[2], (int)meter_seq[2],
-            (unsigned)meter_val[3], (int)meter_seq[3],
-            (unsigned)meter_val[4], (int)meter_seq[4],
-            (unsigned)meter_val[5], (int)meter_seq[5]);
+            "%d avgY=%d  (lv %dx%d)  LV_BV=0x%x/%d\n",
+            i, avg_y, w, h, (unsigned)meter_val[4], (int)meter_seq[4]);
         FILE * f = FIO_CreateFile("ML/LOGS/BRIGHT.TXT");
         if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
     }
-    NotifyBox(3000, "LiveView meter probe done -> BRIGHT.TXT");
+    NotifyBox(3000, "LiveView luma probe done -> BRIGHT.TXT");
 }
 #endif
 
