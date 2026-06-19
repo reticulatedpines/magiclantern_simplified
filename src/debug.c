@@ -1526,17 +1526,16 @@ static void meter_start(void)
 }
 static void brightness_probe_task(void)
 {
-    extern void fake_simple_button(int bgmt_code);
-    static char b[7200]; int n = 0;
+    static char b[10000]; int n = 0;
     gui_stop_menu();
     msleep(500);
     meter_start();
     n += snprintf(b + n, sizeof(b) - n,
-        "Av MODE + vary light. word0/seq. SH=PROP_SHUTTER(byte1=Tv) SA=SHUTTER_AUTO IA=ISO_AUTO AE=AE LV=LV_BV BV=BV\n");
-    for (int i = 0; i < 60 && n < (int)sizeof(b) - 150; i++)  /* ~2 min @ ~2s */
+        "RUN IN LIVEVIEW + vary light (passive, no half-press). word0/seq. "
+        "SH=PROP_SHUTTER SA=SHUTTER_AUTO IA=ISO_AUTO AE=AE LV=PROP_LV_BV BV=PROP_BV\n");
+    for (int i = 0; i < 90 && n < (int)sizeof(b) - 150; i++)  /* ~2.5 min; LiveView meters continuously */
     {
-        fake_simple_button(BGMT_PRESS_HALFSHUTTER);   /* 0x7D: meter */
-        msleep(500);
+        msleep(1600);
         n += snprintf(b + n, sizeof(b) - n,
             "%d SH=0x%x/%d SA=0x%x/%d IA=0x%x/%d AE=0x%x/%d LV=0x%x/%d BV=0x%x/%d\n",
             i,
@@ -1546,12 +1545,10 @@ static void brightness_probe_task(void)
             (unsigned)meter_val[3], (int)meter_seq[3],
             (unsigned)meter_val[4], (int)meter_seq[4],
             (unsigned)meter_val[5], (int)meter_seq[5]);
-        fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);  /* release */
         FILE * f = FIO_CreateFile("ML/LOGS/BRIGHT.TXT");
         if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
-        msleep(1900);
     }
-    NotifyBox(3000, "Metering probe done -> BRIGHT.TXT");
+    NotifyBox(3000, "LiveView meter probe done -> BRIGHT.TXT");
 }
 #endif
 
@@ -1870,7 +1867,7 @@ static struct menu_entry debug_menus[] = {
         .name        = "Brightness probe",
         .priv        = brightness_probe_task,
         .select      = run_in_separate_task,
-        .help  = "Av MODE + vary light (~2min): logs SHUTTER_AUTO/ISO_AUTO/LV_BV vs the scene.",
+        .help  = "LIVEVIEW + vary light (~2.5min, passive): logs PROP_LV_BV vs the scene.",
         .help2 = "Finds a metering signal for adaptive-exposure timelapse. -> BRIGHT.TXT.",
     },
 #endif
