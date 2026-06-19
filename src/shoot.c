@@ -6119,30 +6119,6 @@ shoot_task( void* unused )
         
         intervalometer_check_trigger();
 
-        #ifdef CONFIG_R
-        /* DIAG (R): why isn't the intervalometer firing? Accumulate one state line per second
-         * to ML/LOGS/INTRV.TXT. SAFE: shoot_task context, between captures (no FIO mid-shot).
-         * Shows whether it ever started (run=1), and what blocks it (menu=1 / hs=1). */
-        if (interval_enabled)
-        {
-            static char ibuf[1000];
-            static int  ibn;
-            static int  last_log_sec = -1;
-            int sec = get_seconds_clock();
-            if (sec != last_log_sec && ibn < (int)sizeof(ibuf) - 90)
-            {
-                last_log_sec = sec;
-                ibn += snprintf(ibuf + ibn, sizeof(ibuf) - ibn,
-                    "t=%d run=%d trig=%d hs=%d menu=%d remain=%d\n",
-                    sec, intervalometer_running, interval_trigger,
-                    get_halfshutter_pressed(), gui_menu_shown(),
-                    (int)SECONDS_REMAINING);
-                FILE * f = FIO_CreateFile("ML/LOGS/INTRV.TXT");
-                if (f) { FIO_WriteFile(f, ibuf, ibn); FIO_CloseFile(f); }
-            }
-        }
-        #endif
-
         if (intervalometer_running)
         {
             int seconds_clock_0 = get_seconds_clock();
