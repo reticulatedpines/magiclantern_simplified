@@ -1806,11 +1806,11 @@ static struct menu_entry debug_menus[] = {
         .help2 = "Boot-time reads of the TUNE region (0xF09C0000), captured read-only.",
     },
     {
-        .name        = "SF active read TUNE",
+        .name        = "SF state dump (safe)",
         .priv =         sfread_active_read_menu,
         .select        = run_in_separate_task,
-        .help  = "ACTIVELY read TUNE (0xF09C0000) via RBSF on cpu0 -> ML/LOGS/TUNE.BIN.",
-        .help2 = "Camera-free RE: reads SF on demand vs the too-late passive detour. -> SFACTIVE.TXT.",
+        .help  = "READ-ONLY dump of the SF driver struct (no RBSF) -> ML/LOGS/SFACTIVE.TXT.",
+        .help2 = "v2 poke-handle+read crashed; this is safe. Shows what state SF was left in.",
     },
     {
         .name        = "Capture-signal probe",

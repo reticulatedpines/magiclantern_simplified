@@ -968,52 +968,36 @@ void sfread_capture_dump(void)
 #define SF_STRUCT_PTR_LIT   0xE03C14B4u   /* *(this) = SF driver struct (0x62bc) */
 #define SF_HANDLE_OFFSET    16
 
+/* SAFE SF state dump (Debug -> "SF state dump"). The v2 poke-handle active read CRASHED the camera:
+ * re-setting the handle isn't enough because InstallSerialFlash also reconfigures the SIO registers,
+ * and Canon's SF strings include powerDownSerialFlash / DeepPowerDown -- so post-boot the SF chip is
+ * very likely in deep power-down with its SIO controller torn down; RBSF on it faults. So this is now
+ * READ-ONLY: it just reports the SF driver struct fields (RAM @ struct = *(0xE03C14B4) = 0x62bc) so we
+ * can see what state Canon left -- NO RBSF call, NO poke, no crash. Grounds a future proper re-init. */
 void sfread_active_read(void);
 void sfread_active_read(void)
 {
-    uint32_t n = SF_TUNE_BUFSZ;
-    for (uint32_t i = 0; i < n; i++) sfread_tune_buf[i] = 0xAA;   /* poison so we can see what changed */
-
-    /* re-enable the serial flash: set the "installed" handle (struct+16) back to 1 */
-    uint32_t   sf_struct  = *(volatile uint32_t *)SF_STRUCT_PTR_LIT;
-    volatile uint32_t * handle = (volatile uint32_t *)(sf_struct + SF_HANDLE_OFFSET);
-    uint32_t   handle_before = *handle;
-    *handle = 1;
-
-    int r = sfread_tramp(SF_TUNE_BASE, sfread_tune_buf, n);
-    uint32_t handle_after = *handle;
-    sfread_tune_captured = n;
-
-    uint32_t nonblank = 0, stillpoison = 0;
-    for (uint32_t i = 0; i < n; i++)
-    {
-        uint8_t v = sfread_tune_buf[i];
-        if (v == 0xAA) stillpoison++;
-        else if (v != 0xff && v != 0x00) nonblank++;
-    }
-
-    FILE * f = FIO_CreateFile("ML/LOGS/TUNE.BIN");
-    if (f) { FIO_WriteFile(f, sfread_tune_buf, n); FIO_CloseFile(f); }
+    uint32_t sf_struct = *(volatile uint32_t *)SF_STRUCT_PTR_LIT;
+    const volatile uint32_t * s = (const volatile uint32_t *)sf_struct;
 
     FILE * d = FIO_CreateFile("ML/LOGS/SFACTIVE.TXT");
     if (d)
     {
-        const uint32_t * w = (const uint32_t *)sfread_tune_buf;
-        char buf[400];
+        char buf[420];
         int m = snprintf(buf, sizeof(buf),
-            "SF struct=0x%x  handle(struct+16) before=0x%x after=0x%x (poked to 1)\n"
-            "active sfread_tramp(0x%x, buf, 0x%x) returned %d\n"
-            "captured=0x%x  nonblank(!=00,!=ff)=%d  still-poison(0xAA, untouched)=%d\n"
-            "first words: %08x %08x %08x %08x %08x %08x\n",
-            (unsigned)sf_struct, (unsigned)handle_before, (unsigned)handle_after,
-            (unsigned)SF_TUNE_BASE, (unsigned)n, r,
-            (unsigned)n, (int)nonblank, (int)stillpoison,
-            (unsigned)w[0], (unsigned)w[1], (unsigned)w[2],
-            (unsigned)w[3], (unsigned)w[4], (unsigned)w[5]);
+            "SF driver struct @ 0x%x (handle = struct+16)\n"
+            "+00=0x%08x +04=0x%08x +08=0x%08x +0c=0x%08x\n"
+            "+10=0x%08x (handle) +14=0x%08x +18=0x%08x +1c=0x%08x (readmode)\n"
+            "+20=0x%08x (32MBflag) +24=0x%08x +28=0x%08x +2c=0x%08x +30=0x%08x (size)\n"
+            "READ-ONLY: handle==0 => SF uninstalled post-boot; non-null +04/+08 => SIO cfg survived.\n",
+            (unsigned)sf_struct,
+            (unsigned)s[0], (unsigned)s[1], (unsigned)s[2], (unsigned)s[3],
+            (unsigned)s[4], (unsigned)s[5], (unsigned)s[6], (unsigned)s[7],
+            (unsigned)s[8], (unsigned)s[9], (unsigned)s[10], (unsigned)s[11], (unsigned)s[12]);
         FIO_WriteFile(d, buf, m);
         FIO_CloseFile(d);
     }
-    NotifyBox(5000, "SF active: ret=%d nonblank=%d hbefore=%d", r, (int)nonblank, (int)handle_before);
+    NotifyBox(5000, "SF state dumped (handle=%d) - see SFACTIVE.TXT", (int)s[4]);
 }
 #endif /* CONFIG_R */
 
