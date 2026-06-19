@@ -823,6 +823,36 @@ static void ap_write_task(void)
     NotifyBox(2500, "Aperture write test done");
 }
 
+/* APERTURE SET TEST (Debug -> "Aperture set test"). Validates the PRODUCTION aperture path:
+ * lens_set_rawaperture() -> prop_set_rawaperture -> r_set_rawaperture (ML APEX raw -> R byte-1 Av
+ * code, len 2) through the prop_write_allow gate, then reads lens_info.raw_aperture back (the handler
+ * now decodes byte 1). Sets f/4, f/8, f/11 (the R clamps to the lens range); WATCH the f-number and
+ * check the readback. Av or M mode. -> ML/LOGS/APSET.TXT */
+static void ap_set_test_task(void)
+{
+    static const int aps[] = {40, 56, 64};   /* ML raw: f/4, f/8, f/11 */
+    static char b[600]; int n = 0;
+    int orig = lens_info.raw_aperture;
+    gui_stop_menu();
+    msleep(700);
+    n += snprintf(b + n, sizeof(b) - n,
+                  "production lens_set_rawaperture; orig raw_av=%d. WATCH f-number + check readback:\n", orig);
+    for (int i = 0; i < (int)(sizeof(aps)/sizeof(aps[0])); i++)
+    {
+        int ok = lens_set_rawaperture(aps[i]);
+        msleep(900);
+        n += snprintf(b + n, sizeof(b) - n,
+                      "set raw=%d ok=%d -> readback raw_av=%d aperture(x10)=%d\n",
+                      aps[i], ok, lens_info.raw_aperture, lens_info.aperture);
+        FILE * f = FIO_CreateFile("ML/LOGS/APSET.TXT");
+        if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+        NotifyBox(5000, "set raw=%d -> read raw_av=%d", aps[i], lens_info.raw_aperture);
+        msleep(4500);
+    }
+    if (orig) lens_set_rawaperture(orig);     /* restore */
+    NotifyBox(2500, "Aperture set test done");
+}
+
 /* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
  * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
  * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
@@ -2251,6 +2281,13 @@ static struct menu_entry debug_menus[] = {
         .select        = run_in_separate_task,
         .help  = "Writes f/8 in 4 byte-layouts (~5s each). Watch f-number: which moves it?",
         .help2 = "Tests if/how writing PROP_APERTURE drives the real aperture. -> APFMT.TXT.",
+    },
+    {
+        .name        = "Aperture set test",
+        .priv =         ap_set_test_task,
+        .select        = run_in_separate_task,
+        .help  = "Sets f/4, f/8, f/11 via the production path; checks read-back.",
+        .help2 = "Validates the integrated aperture read+write end to end. -> APSET.TXT.",
     },
     {
         .name        = "Dump EEPROM struct",

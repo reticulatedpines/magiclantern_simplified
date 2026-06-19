@@ -1576,6 +1576,10 @@ static int r_shutter16_to_ml_raw(int rval);
 /* R PROP_ISO byte-1-code <-> ML APEX raw conversions (defined near prop_set_rawiso). */
 static int ml_raw_to_r_iso(int ml_raw);
 static int r_iso_to_ml_raw(int rval);
+/* R PROP_APERTURE byte-1 Av-code <-> ML APEX raw conversions (defined near prop_set_rawaperture). */
+static int ml_raw_to_r_aperture(int ml_raw);
+static int r_aperture_to_ml_raw(int rval);
+static int r_set_rawaperture(unsigned ml_raw);   /* prop_set_rawaperture (above the block) uses it */
 #endif
 
 static void lensinfo_set_shutter(int raw)
@@ -1724,7 +1728,11 @@ PROP_HANDLER( PROP_APERTURE )
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!CONTROL_BV)
     {
+#ifdef CONFIG_R
+        lensinfo_set_aperture(r_aperture_to_ml_raw(buf[0]));  /* R: Av code is in byte 1 */
+#else
         lensinfo_set_aperture(buf[0]);
+#endif
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
@@ -2409,9 +2417,15 @@ void SW2(int v, int wait)
 
 static int prop_set_rawaperture(unsigned aperture)
 {
+#ifdef CONFIG_R
+    /* R: convert ML APEX raw -> R byte-1 Av code and write (len 2). The R clamps to the lens range
+     * itself; ML's raw_aperture_min/max are 0 on the R, so the generic COERCE below would clamp to
+     * [0,0]. The camera echoes its own format, so the readback==aperture check doesn't apply. */
+    return r_set_rawaperture(aperture);
+#else
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     int r = aperture % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5 
+    if (r != 0 && r != 4 && r != 3 && r != 5
         && aperture != lens_info.raw_aperture_min && aperture != lens_info.raw_aperture_max)
     {
         return 0;
@@ -2421,6 +2435,7 @@ static int prop_set_rawaperture(unsigned aperture)
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     prop_request_change_wait(PROP_APERTURE, &aperture, 4, 200);
     return lens_info.raw_aperture == aperture;
+#endif
 }
 
 static int prop_set_rawaperture_approx(unsigned new_av)
@@ -2499,6 +2514,32 @@ static int r_set_rawiso(unsigned ml_raw)
     lens_wait_readytotakepic(64);
     int rval = ml_raw_to_r_iso((int) ml_raw);
     prop_request_change_wait(PROP_ISO, &rval, 4, 100);      /* R PROP_ISO is 4 bytes (ISOMAP.TXT) */
+    return 1;
+}
+/* The EOS R's PROP_APERTURE is a 2-byte value whose Av code lives in BYTE 1 (val = code << 8). The
+ * code is 3 per stop: code = round(6*log2(N)) = round((ml_raw-8)*3/8) -- code 9=f/2.8, 18=f/8,
+ * 27=f/22 (verified on-camera: writing byte 1 drove the lens; the R clamps to the lens range [9,27]).
+ * ML's internal raw_aperture is APEX (8 per stop, f/1.0 = raw 8). Same byte-1 / *3/8 pattern as
+ * PROP_ISO; only the zero-offset differs (8 vs ISO's 72). The lens range isn't reported to ML on the
+ * R (raw_aperture_min/max stay 0), so we must NOT coerce to [0,0] -- the R clamps to the lens itself. */
+static int ml_raw_to_r_aperture(int ml_raw)
+{
+    if (ml_raw <= 0) return 0;
+    int code = (int) roundf((ml_raw - 8) * 3.0f / 8.0f);
+    code = COERCE(code, 1, 0xFE);
+    return (code & 0xFF) << 8;
+}
+static int r_aperture_to_ml_raw(int rval)
+{
+    int code = (rval >> 8) & 0xFF;
+    if (code == 0) return 0;
+    return 8 + (int) roundf(code * 8.0f / 3.0f);
+}
+static int r_set_rawaperture(unsigned ml_raw)
+{
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_aperture((int) ml_raw);
+    prop_request_change_wait(PROP_APERTURE, &rval, 2, 200);  /* R PROP_APERTURE is 2 bytes (APMAP.TXT) */
     return 1;
 }
 #endif
