@@ -194,11 +194,19 @@ help()
 void
 ptpcam_siginthandler(int signum)
 {
-    PTP_USB* ptp_usb=(PTP_USB *)globalparams->data;
-    struct usb_device *dev=usb_device(ptp_usb->handle);
-
     if (signum==SIGINT)
     {
+	if (globalparams==NULL)
+	{
+	    /* No camera connected yet (e.g. still enumerating USB devices),
+	     * so there is nothing to close - exit immediately rather than
+	     * dereferencing a NULL globalparams below. */
+	    exit (-1);
+	}
+
+	PTP_USB* ptp_usb=(PTP_USB *)globalparams->data;
+	struct usb_device *dev=usb_device(ptp_usb->handle);
+
 	/* hey it's not that easy though... but at least we can try! */
 	printf("Got SIGINT, trying to clean up and close...\n");
 	usleep(5000);
