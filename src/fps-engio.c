@@ -396,6 +396,12 @@ static void fps_read_current_timer_values();
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define SENSOR_TIMING_TABLE_SIZE 350
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
+#elif defined(CONFIG_1300D)
+    #define TG_FREQ_BASE 28800000
+    #undef FPS_TIMER_A_MIN
+    #define FPS_TIMER_A_MIN (ZOOM ? 734 : MV1080 ? 546 : 576)
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN (ZOOM ? 1312 : MV480 ? 2000 : MV720 ? 1000 : 2200)
 #elif defined(CONFIG_5D3)
     #define NEW_FPS_METHOD 1
     #ifdef CONFIG_5D3_123

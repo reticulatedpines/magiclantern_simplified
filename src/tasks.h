@@ -26,7 +26,7 @@
 
 #include "dryos.h"
 
-#ifdef CONFIG_DIGIC_678X
+#if defined (CONFIG_DIGIC_678X) || defined(CONFIG_1300D) 
 int get_task_info_by_id(int, int, void*);
 extern int _get_task_info_by_id(int, void*);
 #else

@@ -99,7 +99,8 @@ ML_CAMS = \
     RP.160 \
     SX70.111 \
     SX740.102 \
-    XF605.101
+    XF605.101 \
+    1300D.110
 
 .PHONY: clean zip_contents disk_image $(BUILD_DIR) FORCE
 
