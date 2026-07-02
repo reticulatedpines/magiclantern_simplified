@@ -45,10 +45,36 @@ return "?";
         return "?";
     }
 
+    /* If the caller is asking about the current task, trust the live task
+     * struct directly. On 1300D the packed task ID does not always round-trip
+     * through the lookup helper cleanly.
+     */
+    if (current_task && current_task->name && id == (int)current_task->taskId)
+    {
+        return current_task->name;
+    }
+
+    /*
+     * DryOS task IDs are not always plain indices.
+     * Some call sites pass a small task index, while get_current_task_id()
+     * may return an encoded value that needs unpacking first.
+     */
+    int task_index = id;
+
+    extern unsigned int task_max;
+    if (task_index > (int)task_max)
+    {
+        task_index = (id >> 1) & 0xffff;
+    }
+    if (task_index < 0 || task_index > (int)task_max)
+    {
+        task_index = id & 0xff;
+    }
+
     char *name = "?";
     struct task_attr_str task_attr = {0};
 
-    int r = get_task_info_by_id(1, id & 0xff, &task_attr);
+    int r = get_task_info_by_id(1, task_index, &task_attr);
     if (r == 0) {
         if (task_attr.name != NULL) {
             name = task_attr.name;
