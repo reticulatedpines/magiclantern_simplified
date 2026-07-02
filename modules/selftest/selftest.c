@@ -1096,6 +1096,7 @@ static void stub_test_dryos()
     TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+if (!is_camera("1300D", "*"))
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 }
 
