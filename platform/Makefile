@@ -673,7 +673,8 @@ else
 clean:
 	@echo Cleaning platforms: $(ML_PLATFORM_BUILD_DIRS)
 	-@rm -rf -- $(BUILD_DIR)
-	-@rm -rf -- $(ML_PLATFORM_BUILD_DIRS)
+	-@rm -rf -- $(ML_PLATFORM_BUILD_DIRS) 
+	-@rm -rf -- $(MODULES_DIR)/$(BUILD_DIR)
 
     else
         # last part of working dir not "platform",
