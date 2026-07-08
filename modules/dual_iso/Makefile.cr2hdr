@@ -1,9 +1,11 @@
 # Makefile for the cr2hdr software
 
 CR2HDR_BIN=cr2hdr
-HOSTCC=$(HOST_CC)
-CR2HDR_CFLAGS=-m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -msse -msse2 -std=gnu99
-CR2HDR_LDFLAGS=-lm -m32 
+#HOSTCC=$(HOST_CC)
+HOSTCC ?= gcc
+CR2HDR_CFLAGS= -m32 -mno-ms-bitfields -O2 -Wall -I$(SRC_DIR) -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -msse -msse2 -std=gnu99
+CR2HDR_CFLAGS += -DSIZE_CHECK_STRUCT\(name,size\)=
+CR2HDR_LDFLAGS=-lm  -m32
 CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c adobedng-bridge.c amaze_demosaic_RT.c dither.c timing.c kelvin.c
 HOST=host
 
@@ -82,3 +84,8 @@ $(BUILD_DIR)/$(CR2HDR_BIN).exe: cr2hdr.c $(CR2HDR_DEPS) $(BUILD_DIR)/module_stri
 #cr2hdr-win.zip: cr2hdr.exe dcraw.exe exiftool.exe
 # Windows
 #	zip $@ $< $^
+
+.PHONY: cr2hdr
+
+cr2hdr: $(BUILD_DIR)/$(CR2HDR_BIN)
+	cp $(BUILD_DIR)/$(CR2HDR_BIN) ./cr2hdr

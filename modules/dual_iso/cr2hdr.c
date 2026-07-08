@@ -38,7 +38,7 @@ static int is_bright[4];
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
-
+#define SIZE_CHECK_STRUCT(name, size)
 #include "../../src/raw.h"
 #include "../../src/chdk-dng.h"
 #include "qsort.h"  /* much faster than standard C qsort */
