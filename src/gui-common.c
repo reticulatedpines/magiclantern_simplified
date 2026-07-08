@@ -12,6 +12,8 @@
 #include <config.h>
 #include <lvinfo.h>
 
+extern struct semaphore * gui_sem;
+
 #if defined(FEATURE_AF_PATTERNS)
 #include <af_patterns.h>
 #endif
@@ -522,6 +524,22 @@ int handle_common_events_by_feature(struct event * event)
 
     #ifdef FEATURE_SWAP_INFO_PLAY
     if (handle_swap_info_play(event) == 0) return 0;
+    #endif
+
+    #ifdef CONFIG_1300D
+    if (lv && is_movie_mode() && event->param == BGMT_TRASH_MOVIE_1300D)
+    {
+        static int last_1300d_movie_trash = 0;
+        int now = get_ms_clock();
+
+        if (now - last_1300d_movie_trash > 500)
+        {
+            give_semaphore(gui_sem);
+            last_1300d_movie_trash = now;
+        }
+
+        return 0;
+    }
     #endif
 
     if (handle_ml_menu_erase(event) == 0) return 0;
