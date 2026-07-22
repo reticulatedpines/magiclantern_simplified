@@ -177,9 +177,9 @@
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-// #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
-// skip RECORDING variant for now
-#define GUIMODE_ML_MENU (lv ? 68 : 2)
+// keep ML out of the guessed LV GUI mode while recording;
+// on 1300D that mode can leave the display stuck black until another menu event.
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
 
 #define NUM_PICSTYLES 10
 

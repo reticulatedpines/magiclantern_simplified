@@ -527,7 +527,13 @@ int handle_common_events_by_feature(struct event * event)
     #endif
 
     #ifdef CONFIG_1300D
-    if (lv && is_movie_mode() && event->param == BGMT_TRASH_MOVIE_1300D)
+
+    if (lv && is_movie_mode() &&
+        gui_state == GUISTATE_IDLE &&
+        CURRENT_GUI_MODE == 0 &&
+        BGMT_TRASH_MOVIE_1300D &&
+        !RECORDING &&
+        !RECORDING_H264_STARTING)
     {
         static int last_1300d_movie_trash = 0;
         int now = get_ms_clock();
