@@ -46,7 +46,7 @@ int32_t copy_mmu_tables_ex(uint32_t dst, uint32_t src, uint32_t count)
     ((uint32_t *)dst)[0x1220] = (dst + 0x4400) | ((*(uint32_t *)(dst + 0x4880)) & 0x3ff);
 
     dcache_clean(dst, count);
-    dcache_clean_multicore(dst, count);
+    dcache_clean_multicore(dst, count);   /* no-op on the R (see R.180/function_overrides.c) */
     return 0;
 }
 

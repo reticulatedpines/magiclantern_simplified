@@ -17,35 +17,52 @@ static int (*SF_Destroy)() = NULL;
 /* optional; dumping more will just repeat the contents */
 static int SF_flash_size = 0x1000000;
 
+/* crash breadcrumb: rewrite a marker file after each step so a crash leaves the
+ * last-reached step on the card (ML/LOGS/SFSTEP.TXT) */
+static void sfmark(const char* m)
+{
+    FILE* g = FIO_CreateFile("ML/LOGS/SFSTEP.TXT");
+    if (g) { FIO_WriteFile(g, (void*)m, strlen(m)); FIO_CloseFile(g); }
+    msleep(50);
+}
+
 static void sf_dump_task()
 {
     gui_stop_menu();
     msleep(1000);
     console_show();
-    
+
+    sfmark("1: task started\n");
+
     uint8_t* buffer = 0;
     FILE* f = 0;
 
     buffer = fio_malloc(BUF_SIZE);
-    if (!buffer) goto cleanup;
+    if (!buffer) { sfmark("X: fio_malloc failed\n"); goto cleanup; }
     f = FIO_CreateFile(OUT_FILE);
-    if (!f) goto cleanup;
+    if (!f) { sfmark("X: create OUT_FILE failed\n"); goto cleanup; }
 
-    // This is where the magic happens
+    sfmark("2: about to SF_CreateSerial\n");
     printf("Opening serial flash...\n");
-    /* todo: check return values */
     SF_CreateSerial();
+    sfmark("3: SF_CreateSerial returned\n");
 
     printf("Dumping serial flash...     ");
+    sfmark("4: about to first SF_readSerialFlash\n");
+    SF_readSerialFlash(0, buffer, BUF_SIZE);
+    sfmark("5: first read returned, writing rest\n");
+    FIO_WriteFile(f, buffer, BUF_SIZE);
 
-    for (int i = 0; i < SF_flash_size; i += BUF_SIZE) {
+    for (int i = BUF_SIZE; i < SF_flash_size; i += BUF_SIZE) {
         SF_readSerialFlash(i, buffer, BUF_SIZE);
         FIO_WriteFile(f, buffer, BUF_SIZE);
         printf("\b\b\b\b%3d%%", (i + BUF_SIZE) * 100 / SF_flash_size);
     }
 
+    sfmark("6: dump loop done, about to SF_Destroy\n");
     printf("\nClosing serial flash...\n");
     SF_Destroy();
+    sfmark("7: SF_Destroy returned - DONE\n");
 
     printf("Done!\n");
 
@@ -120,6 +137,15 @@ static unsigned int sf_dump_init()
         SF_CreateSerial     = (void*) 0xFF144D2C;
         SF_readSerialFlash  = (void*) 0xFF144CD4;
         SF_Destroy          = (void*) 0xFF14771C;
+    }
+
+    if (is_camera("R", "1.8.0"))
+    {
+        /* RE'd from ROM0 7.3.9 via Ghidra; Thumb fns -> bit0 set (|1) */
+        SF_CreateSerial     = (void*) 0xE03C002B;  /* FUN_e03c002a "[SF] CreateSerial" (works) */
+        SF_readSerialFlash  = (void*) 0xE03C066B;  /* FUN_e03c066a readSerialFlashWithQuad (src,dest,size) - handles large reads; plain 0xE03C04EE only does <0x200 */
+        SF_Destroy          = (void*) 0xE03C1EE5;  /* FUN_e03c1ee4 teardown */
+        SF_flash_size       = 0x1000000;           /* 16MB */
     }
 
     if (!SF_CreateSerial || !SF_readSerialFlash || !SF_Destroy)

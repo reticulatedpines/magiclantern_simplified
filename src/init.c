@@ -57,7 +57,7 @@ extern void platform_post_init();
 
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+int ml_gui_initialized = 0; // 1 after gui_main_task is started
 struct task *first_task = 0; // first item in the array of task structs
 
 /**
@@ -71,7 +71,7 @@ my_task_dispatch_hook(
         struct task *next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-    struct task * next_task = 
+    struct task * next_task =
         #ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
         next_task_new;
         #else
@@ -616,6 +616,391 @@ static void cpu1_ready(void)
 }
 #endif
 
+#ifdef CONFIG_R
+/* === R MPU boot-spell capture (for qemu-eos) ===========================
+ * Canon's MPU (secondary micro) exchanges a "subsystem ready / property"
+ * handshake with the main CPU during boot. qemu-eos replays these per-camera
+ * "spells"; the R has none (falls back to a generic set), so it can't boot in
+ * the emulator. We poll Canon's MPU send/recv ring buffers and record every
+ * message with a microsecond timestamp, in the dm-spy log format that
+ * extract_init_spells.py parses:
+ *     HHHHH> mpu_send(xx xx ..)   /   HHHHH> mpu_recv(xx xx ..)
+ *
+ * We must NOT touch the ring buffers until Canon has set them up -- doing so
+ * reads uninitialised RAM and aborts the boot (solid red LED, no UI). Also,
+ * task_create() before Canon's init_task is unsafe (no ML platform does it) --
+ * that was the boot hang. So instead of a task, we piggy-back on
+ * my_task_dispatch_hook (installed in boot_pre, runs safely on every task
+ * switch from early boot). Each dispatch we do only a safe pointer-compare:
+ * Canon's InitializeIntercom publishes the genuine recv callback at 0x9E88
+ * (mpu_recv_cbr := &mpu_recv, a ROM addr) at the END of init, right before the
+ * handshake begins; once we see that, we swap in our own logger in front of it.
+ * Our logger runs per received message (SIO3_ISR, core 0) and drains BOTH ring
+ * buffers (known format: slot ptr, message at +4, byte[0] = length), so we
+ * capture send+recv interleaved from the first message -- no wrap, no task,
+ * single writer (no locking). Dump via mpu_capture_dump() (Debug -> "Don't
+ * click me!"). Uses only stubs the R already has. */
+#define MPU_CAP_BUFSIZE (4 * 1024)  /* DIAG 2026-06-18: 128K->4K. The on-camera MPU spell capture
+   is DONE (1107 spells committed); this 128KB BSS buffer bloated _bss_end past the R's user_mem
+   budget -> my_create_init_task reservation fail -> red LED. Freeing it for the MMU-remap build. */
+static char mpu_cap_buf[MPU_CAP_BUFSIZE];
+static volatile int mpu_cap_len = 0;
+
+/* mpu_recv_cbr @ 0x9E88 (Canon sets it to &mpu_recv at the end of
+ * InitializeIntercom); mpu_recv @ 0xE022D3F4 -- from platform/R.180/stubs.S */
+extern int (*mpu_recv_cbr)(char * buf, int size);
+extern int mpu_recv(char * buf);
+static int (*mpu_recv_orig)(char * buf, int size) = 0;
+static volatile int mpu_hook_installed = 0;
+
+/* ring buffers + tails from platform/R.180/stubs.S */
+extern const char * const mpu_send_ring_buffer[50];
+extern const int mpu_send_ring_buffer_tail;
+extern const char * const mpu_recv_ring_buffer[80];
+extern const int mpu_recv_ring_buffer_tail;
+
+/* 20-bit free-running microsecond timer (MMIO, no stub needed) */
+#define MPU_DIGIC_TIMER() ((*(volatile uint32_t *)0xC0242014) & 0xFFFFF)
+
+/* defensive: a real message-slot pointer is word-aligned Canon DRAM */
+static int mpu_ptr_ok(const char * p)
+{
+    uint32_t a = (uint32_t) p;
+    return (a >= 0x1000 && a < 0x40000000 && (a & 3) == 0);
+}
+
+static void mpu_cap_emit(const char * tag, const char * msg)
+{
+    int size = (unsigned char) msg[0];
+    if (size < 1 || size > 0xFF) return;
+    if (mpu_cap_len > MPU_CAP_BUFSIZE - 1024) return;   /* out of room */
+
+    /* Drop the continuous live-metering stream (10 0e 08 ..): it dominates the
+     * traffic and is useless for spell/property work, and formatting all of it
+     * in SIO3_ISR context under heavy use can back up the MPU interrupt and
+     * hang the camera. Skip it so capture stays light no matter how much the
+     * camera is exercised. */
+    if (size == 0x10 && (unsigned char)msg[1] == 0x0e &&
+        (unsigned char)msg[2] == 0x08) return;
+
+    int len = mpu_cap_len;
+    len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len,
+                    "%05x> %s(", (unsigned)MPU_DIGIC_TIMER(), tag);
+    for (int i = 0; i < size; i++)
+        len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len,
+                        "%02x ", (unsigned char) msg[i]);
+    if (len > 0 && mpu_cap_buf[len - 1] == ' ') len--;  /* trim trailing space */
+    len += snprintf(mpu_cap_buf + len, MPU_CAP_BUFSIZE - len, ")\n");
+    mpu_cap_len = len;
+}
+
+/* drain newly-buffered send + recv messages (interleaved); tails are
+ * range-checked so a glitch can never spin us off into garbage. Called only
+ * from the recv hook (single context: SIO3_ISR, core 0) and -- after the hook
+ * is uninstalled -- from the dump fn, so the static indices need no locking. */
+static void mpu_drain(void)
+{
+    static int ls = 0, lr = 0;
+
+    int st = mpu_send_ring_buffer_tail;
+    if (st >= 0 && st < 50) {
+        while (ls != st) {
+            const char * p = mpu_send_ring_buffer[ls];
+            if (mpu_ptr_ok(p)) mpu_cap_emit("mpu_send", p + 4);
+            ls = (ls + 1) % 50;
+        }
+    }
+    int rt = mpu_recv_ring_buffer_tail;
+    if (rt >= 0 && rt < 80) {
+        while (lr != rt) {
+            const char * p = mpu_recv_ring_buffer[lr];
+            if (mpu_ptr_ok(p)) mpu_cap_emit("mpu_recv", p + 4);
+            lr = (lr + 1) % 80;
+        }
+    }
+}
+
+/* our hook in front of Canon's recv callback; runs per received MPU message
+ * (SIO3_ISR context, core 0). Drain both ring buffers, then chain to the
+ * original so Canon still processes the message normally. */
+static int mpu_recv_log(char * buf, int size)
+{
+    mpu_drain();
+    return mpu_recv_orig ? mpu_recv_orig(buf, size) : 0;
+}
+
+/* Opt-in runtime capture. The recv hook drains both ring buffers (snprintf) per
+ * MPU message in SIO3_ISR context; the boot spells are already captured, so we
+ * do NOT install it automatically (nothing is added to the boot path). Arm it
+ * via Debug -> "MPU capture: arm", then exercise the camera, then dump.
+ *
+ * IMPORTANT: at runtime Canon's recv callback is NOT necessarily &mpu_recv --
+ * it can be a different handler installed after boot. The old code required
+ * == &mpu_recv and so silently failed to install (capture only snapshotted the
+ * ring at dump time). Hook whatever valid ROM handler is currently in place. */
+void mpu_capture_arm(void)
+{
+    if (mpu_hook_installed) return;
+    uint32_t cbr = (uint32_t) mpu_recv_cbr;
+    if (cbr < 0xE0000000 || cbr >= 0xF0000000) return;  /* not a ROM handler yet */
+    mpu_cap_len = 0;
+    mpu_recv_orig = mpu_recv_cbr;
+    mpu_recv_cbr  = &mpu_recv_log;
+    mpu_hook_installed = 1;
+}
+
+/* called from debug.c run_test() (Debug -> "Don't click me!") */
+void mpu_capture_dump(void)
+{
+    /* uninstall so the final drain is single-context */
+    if (mpu_hook_installed) {
+        mpu_recv_cbr = mpu_recv_orig;
+        mpu_hook_installed = 0;
+        msleep(20);
+    }
+    mpu_drain();
+
+    FILE * f = FIO_CreateFile("ML/LOGS/MPULOG.TXT");
+    if (!f) { DryosDebugMsg(0, 15, "MPULOG: create failed"); return; }
+    FIO_WriteFile(f, mpu_cap_buf, mpu_cap_len);
+    FIO_CloseFile(f);
+    DryosDebugMsg(0, 15, "MPULOG: wrote %d bytes", mpu_cap_len);
+
+    /* Also dump the intercom struct (base 0x9E60). InitializeIntercom stores
+     * the live MPU MMIO register addresses there, which qemu-eos needs for the
+     * R model but can't be resolved statically:
+     *   [0x9E8C] = mpu_request_register   (written in mpu_send, value 0x4C0003)
+     *   [0x9E90] = mpu_status_register     (read & 1 in SIO3_ISR)
+     *   [0x9E94] = ptr to mpu_control_register (MREQ_ISR writes here)
+     * Dump a window of the struct as hex so all fields are visible. */
+    {
+        char ib[2048];
+        int n = 0;
+        uint32_t req  = MEM(0x9E8C);
+        uint32_t stat = MEM(0x9E90);
+        uint32_t ctlp = MEM(0x9E94);
+        n += snprintf(ib + n, sizeof(ib) - n, "intercom struct @ 0x9E60\n");
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_request_register  [9E8C] = 0x%08X\n", req);
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_status_register   [9E90] = 0x%08X\n", stat);
+        n += snprintf(ib + n, sizeof(ib) - n, "mpu_control_reg_ptr   [9E94] = 0x%08X", ctlp);
+        if (ctlp >= 0xC0000000 && ctlp < 0xE0000000)
+            n += snprintf(ib + n, sizeof(ib) - n, "  -> *ptr = 0x%08X", MEM(ctlp));
+        n += snprintf(ib + n, sizeof(ib) - n, "\n\nraw 0x9E40..0x9EB0:\n");
+        for (uint32_t a = 0x9E40; a < 0x9EB0; a += 16) {
+            n += snprintf(ib + n, sizeof(ib) - n, "%08X:", a);
+            for (int i = 0; i < 16; i += 4)
+                n += snprintf(ib + n, sizeof(ib) - n, " %08X", MEM(a + i));
+            n += snprintf(ib + n, sizeof(ib) - n, "\n");
+        }
+        FILE * g = FIO_CreateFile("ML/LOGS/INTERCOM.TXT");
+        if (g) { FIO_WriteFile(g, ib, n); FIO_CloseFile(g); }
+        DryosDebugMsg(0, 15, "INTERCOM: req=%X stat=%X ctl=%X", req, stat, ctlp);
+    }
+}
+
+/* === R serial-flash read-capture (passive, READ-ONLY, MMU-remap detour) =====
+ * Goal: capture the bytes the firmware reads out of the serial-flash-backed
+ * TUNE region (0xF09C0000..0xF0A00000) during boot, so we can hand them to
+ * qemu-eos (where that region reads back blank -- see from_region_dump_task()
+ * in debug.c). We must NOT issue our own serial-flash read: the active read
+ * path (sf_dump module / SF_readSerialFlash) deadlocks the camera. So instead
+ * we OBSERVE the firmware's own ReadBlockSerialFlash and copy out the data it
+ * has just read into its destination buffer. We never call any SF
+ * write/erase/program/init function, never re-power the flash, never drive the
+ * SPI/SIO hardware, and never issue a read of our own.
+ *
+ * ReadBlockSerialFlash(uint32_t addr /r0/, void *dst /r1/, uint32_t len /r2/)
+ *   @ 0xE03C10C4 (RBSF). Its first 8 bytes are:
+ *     2d e9 f0 47   stmdb sp!, {r4-r9, sl, lr}      ; RBSF+0
+ *     82 46         mov   sl, r0                     ; RBSF+4
+ *     fa 4c         ldr   r4, [pc, #1000]            ; -> r4 = *(0xe03c14b4)
+ *
+ * INSTALL MECHANISM (mmu_patches.h early_code_patches[]):
+ * patch_mmu.c overwrites RBSF's first 8 bytes (in MMU-remapped RAM, NOT flash)
+ * with "ldr.w pc,[pc]; .word &sfread_wrapper", so the call REPLACES RBSF with
+ * sfread_wrapper. To still run the real read we use a DETOUR: sfread_wrapper
+ * calls sfread_tramp (a trampoline that replays RBSF's overwritten first 8
+ * bytes, relocated, then jumps to RBSF+8 = 0xE03C10CC), so the firmware gets
+ * correct data and boots normally. Then sfread_wrapper memcpys the result out.
+ *
+ * The detour is READ-ONLY: it only patches ICU code in remapped RAM, calls the
+ * REAL read, and memcpys the firmware's own buffer. No flash write/erase/
+ * program/install path exists anywhere in this file. */
+
+#define SF_TUNE_BASE 0xF09C0000u
+#define SF_TUNE_END  0xF0A00000u            /* exclusive; 0x40000 window */
+#define SF_TUNE_SIZE (SF_TUNE_END - SF_TUNE_BASE)
+
+#define SF_RBSF_ADDR     0xE03C10C4u        /* ReadBlockSerialFlash entry      */
+#define SF_RBSF_LDR_PTR  0xE03C14B4u        /* literal the orig ldr r4 loads   */
+#define SF_RBSF_CONT     0xE03C10CDu        /* RBSF+8, thumb bit set, for bx    */
+
+/* DIAGNOSTIC (2026-06-18): buffer shrunk 256KB -> 8KB to cut BSS while we isolate the
+ * solid-red-LED no-boot (730KB BSS is a suspect). The detour is disabled in mmu_patches.h
+ * for this build, so sfread_wrapper never runs and never indexes past this small buffer.
+ * Restore to SF_TUNE_SIZE when re-enabling capture. */
+/* SF_TUNE_BUFSZ: capture window for TUNE. The full 0x40000 (256KB) can't be a static BSS buffer --
+ * it overruns the R's user_mem budget (see MMU_REMAP_PORT.md). 0x4000 (16KB) fits and captures the
+ * start of TUNE (firmware reads from offset 0). If SFREAD.TXT shows reads past 16KB, switch to a
+ * Canon-AllocateMemory dynamic buffer (stub _AllocateMemory @0xE0552814). */
+#define SF_TUNE_BUFSZ 0x4000
+static uint8_t sfread_tune_buf[SF_TUNE_BUFSZ];
+static volatile uint32_t sfread_tune_captured = 0;  /* high-water mark of captured bytes */
+volatile int sfread_diag_mmu_ret = -99;             /* mmu_init() return, set in boot_pre_init_task */
+static char    sfread_log[2048];   /* was 8192; shrunk to reclaim ML user_mem budget (passive SF
+                                    * capture fires 0 times on the R, so this is effectively unused) */
+static int     sfread_log_len = 0;
+
+/* Trampoline: replays RBSF's overwritten first 8 bytes (relocated -- the orig
+ * "ldr r4,[pc,#1000]" is turned into an absolute load of 0xe03c14b4) and then
+ * jumps to RBSF+8. Naked: no prologue/epilogue, so the stmdb/mov it replays
+ * leave the stack/regs exactly as the real RBSF expects at +8. r0..r3 (the args
+ * addr/dst/len) are passed through untouched from sfread_wrapper's call. */
+int sfread_tramp(uint32_t addr, void *dst, uint32_t len);
+__attribute__((naked)) int sfread_tramp(uint32_t addr, void *dst, uint32_t len)
+{
+    asm volatile (
+        "stmdb sp!, {r4, r5, r6, r7, r8, r9, sl, lr}\n"  /* = RBSF+0          */
+        "mov   sl, r0\n"                                  /* = RBSF+4          */
+        "movw  r4, #0x14b4\n"                             /* relocate orig ldr:*/
+        "movt  r4, #0xe03c\n"                             /*  r4 = 0xe03c14b4  */
+        "ldr   r4, [r4]\n"                                /*  r4 = *(0xe03c14b4)*/
+        "movw  r12, #0x10cd\n"                            /* RBSF+8 | thumb    */
+        "movt  r12, #0xe03c\n"
+        "bx    r12\n"
+    );
+}
+
+/* same defensive check used by the MPU capture (mpu_ptr_ok): a real dst is a
+ * word-aligned DRAM pointer, well below the MMIO/ROM range. */
+static int sfread_dst_ok(uint32_t p)
+{
+    return (p >= 0x1000 && p < 0x40000000 && (p & 3) == 0);
+}
+
+/* Hook target: REPLACES RBSF via early_code_patches[]. Runs the REAL read via
+ * the trampoline, then (read-only) copies the just-read TUNE bytes out of the
+ * firmware's own destination buffer. Never touches the flash itself. */
+int sfread_wrapper(uint32_t addr, void *dst, uint32_t len);
+int sfread_wrapper(uint32_t addr, void *dst, uint32_t len)
+{
+    /* 1. perform the real serial-flash read; dst is filled on return */
+    int r = sfread_tramp(addr, dst, len);
+
+    /* 2. log EVERY SF read so we can confirm the hook fires and see regions */
+    if (sfread_log_len < (int)sizeof(sfread_log) - 40)
+        sfread_log_len += snprintf(sfread_log + sfread_log_len,
+                                   sizeof(sfread_log) - sfread_log_len,
+                                   "addr=%08x len=%x\n", addr, len);
+
+    /* 3. if this read targeted the TUNE region, copy it into our buffer.
+     * Pure memory read of the firmware's filled dst -- no flash I/O. */
+    if (addr >= SF_TUNE_BASE && addr < SF_TUNE_END &&
+        sfread_dst_ok((uint32_t)dst) && len != 0)
+    {
+        uint32_t off = addr - SF_TUNE_BASE;
+        /* clamp to the actual buffer size (SF_TUNE_BUFSZ < SF_TUNE_SIZE on the R: the full
+         * 256KB can't be a static BSS buffer w/o overrunning the R's user_mem budget -- capture
+         * the first SF_TUNE_BUFSZ window). off>=BUFSZ reads are skipped (no OOB write). */
+        if (off < SF_TUNE_BUFSZ)
+        {
+            uint32_t remaining = SF_TUNE_BUFSZ - off;
+            uint32_t n = (len < remaining) ? len : remaining;
+            const uint8_t * src = (const uint8_t *)dst;
+            for (uint32_t i = 0; i < n; i++)
+                sfread_tune_buf[off + i] = src[i];
+            if (off + n > sfread_tune_captured) sfread_tune_captured = off + n;
+        }
+    }
+
+    return r;
+}
+
+/* called from debug.c run_test() (Debug -> "Dump SF reads") */
+void sfread_capture_dump(void)
+{
+    FILE * f = FIO_CreateFile("ML/LOGS/TUNE.BIN");
+    if (f) { FIO_WriteFile(f, sfread_tune_buf, SF_TUNE_BUFSZ); FIO_CloseFile(f); } /* DIAG size */
+
+    FILE * g = FIO_CreateFile("ML/LOGS/SFREAD.TXT");
+    if (g) { FIO_WriteFile(g, sfread_log, sfread_log_len); FIO_CloseFile(g); }
+
+    /* HW DIAGNOSTIC: report cpu0's post-boot view of the RBSF patch site + mmu_init status.
+     * This menu task runs on cpu0, so reading 0xE03C10C4 shows whether cpu0's MMU remap actually
+     * redirected to our detour. patch = "df f8 00 f0" (word 0xf000f8df); orig = "2d e9 f0 47"
+     * (word 0x47f0e92d). If orig -> the cpu0 redirect didn't take (HW cache/coherency). */
+    FILE * d = FIO_CreateFile("ML/LOGS/SFDIAG.TXT");
+    if (d)
+    {
+        const volatile uint32_t * rbsf = (const volatile uint32_t *)0xE03C10C4;
+        char buf[420];   /* was 300 -> truncated the last 2 lines (= u / = 00) */
+        int n = snprintf(buf, sizeof(buf),
+            "RBSF @0xE03C10C4 cpu0-view = %08x %08x\n"
+            "  patch word0 should be 0xf000f8df (ldr.w pc); orig is 0x47f0e92d\n"
+            "  => detour %s on cpu0\n"
+            "mmu_init() returned = %d  (0=ok, <0=fail; -3=SGI not registered)\n"
+            "sfread_wrapper calls (log bytes) = %d\n"
+            "sfread_tune_captured (high-water) = %u\n"
+            "&sfread_wrapper = %08x\n",
+            (unsigned)rbsf[0], (unsigned)rbsf[1],
+            (rbsf[0] == 0xf000f8df) ? "ACTIVE" : "NOT active (saw orig/other)",
+            sfread_diag_mmu_ret, sfread_log_len, sfread_tune_captured,
+            (unsigned)(uintptr_t)&sfread_wrapper);
+        FIO_WriteFile(d, buf, n);
+        FIO_CloseFile(d);
+    }
+
+    NotifyBox(4000, "SF reads: %d log bytes (see SFDIAG.TXT)", sfread_log_len);
+}
+
+/* ACTIVE serial-flash read (Debug -> "SF active read TUNE"). SFDIAG proved the passive detour is
+ * live on cpu0 but fires 0 times on a normal boot -- Canon reads the property-DB serial flash during
+ * its OWN pre-ML init, before mmu_init installs the detour, so there is nothing left to observe by
+ * the time ML runs. Instead of waiting to OBSERVE a read, we PERFORM one: call sfread_tramp (the
+ * clean original RBSF, validated to run on cpu0) directly for the TUNE region. Read-only flash I/O,
+ * no brick risk. Fills sfread_tune_buf, dumps TUNE.BIN + SFACTIVE.TXT (return code + a non-blank byte
+ * count so we can tell real flash data from an all-0xff/all-0 miss). This is the camera-free-RE
+ * enabler: if it returns real TUNE bytes, we can dump every region qemu needs without the detour. */
+/* SF driver struct ptr lives in a ROM literal; the "installed" handle is struct+16. RE of RBSF
+ * (returns 17 when handle==0) + InstallSerialFlash (sets handle=1) + UninstallSerialFlash (sets
+ * handle=0, and NOTHING else) showed Canon's teardown only clears that flag -- the SIO controller
+ * config from boot stays intact. So re-poking handle=1 should let RBSF read again. */
+#define SF_STRUCT_PTR_LIT   0xE03C14B4u   /* *(this) = SF driver struct (0x62bc) */
+#define SF_HANDLE_OFFSET    16
+
+/* SAFE SF state dump (Debug -> "SF state dump"). The v2 poke-handle active read CRASHED the camera:
+ * re-setting the handle isn't enough because InstallSerialFlash also reconfigures the SIO registers,
+ * and Canon's SF strings include powerDownSerialFlash / DeepPowerDown -- so post-boot the SF chip is
+ * very likely in deep power-down with its SIO controller torn down; RBSF on it faults. So this is now
+ * READ-ONLY: it just reports the SF driver struct fields (RAM @ struct = *(0xE03C14B4) = 0x62bc) so we
+ * can see what state Canon left -- NO RBSF call, NO poke, no crash. Grounds a future proper re-init. */
+void sfread_active_read(void);
+void sfread_active_read(void)
+{
+    uint32_t sf_struct = *(volatile uint32_t *)SF_STRUCT_PTR_LIT;
+    const volatile uint32_t * s = (const volatile uint32_t *)sf_struct;
+
+    FILE * d = FIO_CreateFile("ML/LOGS/SFACTIVE.TXT");
+    if (d)
+    {
+        char buf[420];
+        int m = snprintf(buf, sizeof(buf),
+            "SF driver struct @ 0x%x (handle = struct+16)\n"
+            "+00=0x%08x +04=0x%08x +08=0x%08x +0c=0x%08x\n"
+            "+10=0x%08x (handle) +14=0x%08x +18=0x%08x +1c=0x%08x (readmode)\n"
+            "+20=0x%08x (32MBflag) +24=0x%08x +28=0x%08x +2c=0x%08x +30=0x%08x (size)\n"
+            "READ-ONLY: handle==0 => SF uninstalled post-boot; non-null +04/+08 => SIO cfg survived.\n",
+            (unsigned)sf_struct,
+            (unsigned)s[0], (unsigned)s[1], (unsigned)s[2], (unsigned)s[3],
+            (unsigned)s[4], (unsigned)s[5], (unsigned)s[6], (unsigned)s[7],
+            (unsigned)s[8], (unsigned)s[9], (unsigned)s[10], (unsigned)s[11], (unsigned)s[12]);
+        FIO_WriteFile(d, buf, m);
+        FIO_CloseFile(d);
+    }
+    NotifyBox(5000, "SF state dumped (handle=%d) - see SFACTIVE.TXT", (int)s[4]);
+}
+#endif /* CONFIG_R */
+
 /* called before Canon's init_task */
 void boot_pre_init_task()
 {
@@ -629,13 +1014,22 @@ void boot_pre_init_task()
     RPC_sem = create_named_semaphore("RPC", SEM_CREATE_UNLOCKED);
     #endif
     #if defined(CONFIG_MMU_REMAP)
-    if (mmu_init() < 0)
+    extern volatile int sfread_diag_mmu_ret;
+    sfread_diag_mmu_ret = mmu_init();   /* captured for SFDIAG.TXT */
+    if (sfread_diag_mmu_ret < 0)
         DryosDebugMsg(0, 15, "ERROR doing mmu_init()");
     #endif
     // Install our task creation hooks
     qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     DryosDebugMsg(0, 15, "replacing task_dispatch_hook");
     task_dispatch_hook = my_task_dispatch_hook;
+    /* NOTE (CONFIG_R): the passive serial-flash read-capture detour
+     * (sfread_wrapper / sfread_tramp, above) is no longer installed from here.
+     * It is now installed automatically and much earlier, via the
+     * early_code_patches[] entry in platform/R.180/include/platform/mmu_patches.h,
+     * applied during mmu_init() above (apply_early_patches() in patch_mmu.c).
+     * That replaces ReadBlockSerialFlash @ 0xE03C10C4 with a READ-ONLY detour
+     * that calls the real read and copies out the TUNE bytes. */
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif

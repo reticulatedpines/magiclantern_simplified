@@ -4398,9 +4398,14 @@ int take_a_pic(int should_af)
 
 // do a part of the bracket (half or full) with ISO
 // return the remainder EV to be done normally (shutter, flash, whatever)
-static int hdr_iso00;
+static int hdr_iso00 __attribute__((unused)); /* unused on R (ISO not writable) */
 static int hdr_iso_shift(int ev_x8)
 {
+#ifdef CONFIG_R
+    /* R: PROP_ISO is not writable (not delivered to ML, in prop_handler_deny) -
+     * writing it red-boxes. Bracket via shutter only; no ISO shifting. */
+    return ev_x8;
+#else
     hdr_iso00 = lens_info.raw_iso;
     int iso0 = hdr_iso00;
     if (!iso0) iso0 = lens_info.raw_iso_auto;
@@ -4432,11 +4437,14 @@ static int hdr_iso_shift(int ev_x8)
         }
     }
     return ev_x8;
+#endif
 }
 
 static void hdr_iso_shift_restore()
 {
-    hdr_set_rawiso(hdr_iso00);
+#ifndef CONFIG_R
+    hdr_set_rawiso(hdr_iso00);  /* R: ISO not writable (PROP_ISO not delivered); skip */
+#endif
 }
 // Here, you specify the correction in 1/8 EV steps (for shutter or exposure compensation)
 // The function chooses the best method for applying this correction (as exposure compensation, altering shutter value, or bulb timer)
@@ -4451,6 +4459,14 @@ static int hdr_shutter_release(int ev_x8)
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
+#ifdef CONFIG_R
+    /* R: BRKSHUT.TXT CONFIRMED shooting_mode==3 (M) IS reported correctly and the per-frame
+     * shutter IS set correctly (set==target, raw 68..132). So the exposure problem is NOT the
+     * manual/AE-path selection here -- the IR-remote-release CAPTURE itself uses AE/metering and
+     * ignores the manual shutter (every frame came out ~1"). Real fix tracked via the "Capture
+     * exposure test" probe + PATH1_CAPTURE_STATE.md. r_orig_sm is kept for the BRKSHUT log. */
+    int r_orig_sm = shooting_mode;
+#endif
     int dont_change_exposure = ev_x8 == 0 && !is_hdr_bracketing_enabled() && !is_bulb_mode();
 
     if (dont_change_exposure)
@@ -4514,6 +4530,14 @@ static int hdr_shutter_release(int ev_x8)
         }
         #endif
 
+#ifdef CONFIG_R
+        /* R: lens_info.raw_shutter doesn't reliably track the M-mode dial (the camera doesn't
+         * broadcast PROP_SHUTTER on dial changes), so the bracket base can be stale/0 -> every
+         * frame would clamp to one end. Center on ~1/125 (raw 112) when it's out of a sane range
+         * so the bracket still produces a visible spread. (Set the dial near 1/125 to match.) */
+        if (rs < 24 || rs > 152) rs = 112;
+#endif
+
         if (rs == 0) // shouldn't happen
         {
             msleep(1000);
@@ -4542,6 +4566,21 @@ static int hdr_shutter_release(int ev_x8)
             if (get_expsim() == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
             ans &= (hdr_set_rawshutter(rc) == 1);
+#ifdef CONFIG_R
+            /* SAFE per-frame exposure log: card is idle here (shutter just set, BEFORE the
+             * capture's take_a_pic). Confirms each frame's shutter actually varies.
+             *   ev=requested EV*8  sm=raw shooting_mode  rs=base raw_shutter
+             *   rc=target raw_shutter  set=actual raw_shutter after the write */
+            {
+                static char bs[1000]; static int bsn;
+                if (bsn < (int)sizeof(bs) - 110)
+                    bsn += snprintf(bs + bsn, sizeof(bs) - bsn,
+                        "ev=%d sm=%d rs=%d rc=%d set=%d\n",
+                        ev_x8, r_orig_sm, rs, rc, lens_info.raw_shutter);
+                FILE * bf = FIO_CreateFile("ML/LOGS/BRKSHUT.TXT");
+                if (bf) { FIO_WriteFile(bf, bs, bsn); FIO_CloseFile(bf); }
+            }
+#endif
             take_a_pic(AF_DONT_CHANGE);
         }
         
@@ -4587,12 +4626,31 @@ static int hdr_check_cancel(int init)
         return 0;
 
     // cancel bracketing
-    if (shooting_mode != m || MENU_MODE) 
-    { 
-        beep(); 
+#ifdef CONFIG_R
+    /* On the R, the brief image-review state after a fast capture reads as MENU_MODE
+     * (gui_mode 3), which falsely cancelled the bracket after frame 1. Only cancel on a
+     * real shooting-mode change -- the bracket is short, so losing the menu-open cancel
+     * is acceptable. (BRKCANCEL.TXT confirmed: shooting_mode unchanged, MENU_MODE=1.) */
+    if (shooting_mode != m)
+#else
+    if (shooting_mode != m || MENU_MODE)
+#endif
+    {
+#ifdef CONFIG_R
+        /* diagnostic: why did the R bracket cancel after one frame? */
+        FILE * cf = FIO_CreateFile("ML/LOGS/BRKCANCEL.TXT");
+        if (cf) {
+            char cb[160];
+            int cn = snprintf(cb, sizeof(cb),
+                "CANCEL: shooting_mode=%d m=%d (changed=%d) MENU_MODE=%d gui_state=%d gui_mode=%d\n",
+                shooting_mode, m, (shooting_mode != m), (int)(MENU_MODE), gui_state, (int)CURRENT_GUI_MODE);
+            FIO_WriteFile(cf, cb, cn); FIO_CloseFile(cf);
+        }
+#endif
+        beep();
         lens_wait_readytotakepic(64);
         NotifyBox(5000, "Bracketing stopped.");
-        return 1; 
+        return 1;
     }
     return 0;
 }
@@ -4768,6 +4826,21 @@ end:
 // skip0: don't take the middle exposure
 static void hdr_take_pics(int steps, int step_size, int skip0)
 {
+#ifdef CONFIG_R
+    /* Auto bracket (steps<2 = "A") relies on hdr_check_for_under_or_over_exposure
+     * histogram metering, which is unreliable on the R and stops after a random
+     * 1-3 frames. The menu value-editing is also awkward on the R, so the user
+     * can get stuck in auto. Until the metering is wired up, treat auto as a
+     * deterministic 5-frame symmetric bracket. A fixed count (2-9) is honored. */
+    if (steps < 2) steps = 5;
+    {
+        char lb[96];
+        int ln = snprintf(lb, sizeof(lb), "bracket: steps=%d seq=%d stepsize=%d skip0=%d\n",
+                          steps, hdr_sequence, step_size, skip0);
+        FILE * lf = FIO_CreateFile("ML/LOGS/BRKFRAME.TXT");
+        if (lf) { FIO_WriteFile(lf, lb, ln); FIO_CloseFile(lf); }
+    }
+#endif
     if (steps < 2)  // auto number of steps, based on highlight/shadow levels
     {
         hdr_auto_take_pics(step_size, skip0);
@@ -4775,11 +4848,26 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
     }
     //printf("hdr_take_pics: %d, %d, %d\n", steps, step_size, skip0);
     int i;
-    
+
     // make sure it won't autofocus
     lens_setup_af(AF_DISABLE);
     // be careful: don't return without restoring the setting back!
-    
+
+#ifdef CONFIG_R
+    /* R: read the M-mode dial so the bracket centers on it. The R doesn't keep
+     * lens_info.raw_shutter current at idle, but a brief half-press (metering) makes it report
+     * the real dial shutter (verified: dial 1/500 -> raw_shutter 128 during a half-press). AF is
+     * already disabled above, so this just meters. The per-frame fallback in hdr_shutter_release
+     * still defaults to ~1/125 if this doesn't land a sane value. */
+    {
+        extern void fake_simple_button(int bgmt_code);
+        fake_simple_button(BGMT_PRESS_HALFSHUTTER);       /* 0x7D: meter */
+        msleep(600);
+        fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);   /* 0x7E: release */
+        msleep(200);
+    }
+#endif
+
     hdr_check_cancel(1);
 
     // first frame for the bracketing script
@@ -5654,6 +5742,24 @@ shoot_task( void* unused )
         }
         #endif
 
+        #if defined(CONFIG_R) && defined(FEATURE_HDR_BRACKETING)
+        /* R: the job_state-based picture-taken detector (lens.c PROP_LAST_JOB_STATE ->
+         * hdr_flag_picture_was_taken) is UNRELIABLE -- the R's job_state notifications lag and
+         * skip, so the user's shutter press is frequently NOT detected and the bracket never
+         * extends past the one shot. Detect "a new frame was saved" reliably via the card
+         * file_number instead, and set the flag the rest of the code already keys off of. */
+        static int r_bracket_last_fn = -1;
+        {
+            int r_fn = get_shooting_card()->file_number;
+            if (r_bracket_last_fn < 0) r_bracket_last_fn = r_fn;
+            if (r_fn != r_bracket_last_fn && is_hdr_bracketing_enabled() &&
+                NOT_RECORDING && !gui_menu_shown())
+            {
+                picture_was_taken_flag = 1;
+            }
+        }
+        #endif
+
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
             if (NOT_RECORDING)
@@ -5663,7 +5769,7 @@ shoot_task( void* unused )
                 {
                     lens_wait_readytotakepic(64);
                     hdr_shot(1,1); // skip the first image, which was just taken
-                    lens_wait_readytotakepic(64); 
+                    lens_wait_readytotakepic(64);
                 }
                 #endif
                 #ifdef FEATURE_INTERVALOMETER
@@ -5682,6 +5788,12 @@ shoot_task( void* unused )
             }
             picture_was_taken_flag = 0;
         }
+
+        #if defined(CONFIG_R) && defined(FEATURE_HDR_BRACKETING)
+        /* Resync AFTER any bracket frames fired above, so the bracket's OWN frames (which also
+         * bump file_number) don't re-trigger another bracket on the next loop iteration. */
+        r_bracket_last_fn = get_shooting_card()->file_number;
+        #endif
 
         #ifdef FEATURE_FLASH_TWEAKS
         
@@ -6006,7 +6118,7 @@ shoot_task( void* unused )
         #define SECONDS_ELAPSED (get_seconds_clock() - seconds_clock_0)
         
         intervalometer_check_trigger();
-        
+
         if (intervalometer_running)
         {
             int seconds_clock_0 = get_seconds_clock();

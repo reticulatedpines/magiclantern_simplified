@@ -294,6 +294,13 @@ static void run_test()
     // since dm_store is more permissive than dm_print.
     call("dumpf");
 
+#ifdef CONFIG_R
+    /* dump captured MPU boot-spell log to ML/LOGS/MPULOG.TXT
+     * (capture task started in boot_pre_init_task) */
+    extern void mpu_capture_dump(void);
+    mpu_capture_dump();
+#endif
+
 #if 0 && defined(CONFIG_200D)
     // Want to run a quick test?  You can hack it in here,
     // after modifying the above guards.  The guards allow
@@ -302,6 +309,760 @@ static void run_test()
 #endif
 
 }
+
+#ifdef CONFIG_R
+/* R image-capture probe (Debug -> "Take test pic (no AF)").
+ * Calls take_a_pic(AF_DONT_CHANGE) -- AF_DONT_CHANGE skips lens_setup_af, the
+ * suspected null-pointer crash path. Brackets the call with SHOOT0/SHOOT9 marker
+ * files; lens_take_picture writes the detailed step trail to ML/LOGS/SHOOT.TXT.
+ * After: SHOOT9.TXT present = completed; absent = crashed (see SHOOT.TXT). */
+static void shoot_test_task()
+{
+    extern int take_a_pic(int should_af);
+    gui_stop_menu();
+    msleep(500);
+
+    FILE * f = FIO_CreateFile("ML/LOGS/SHOOT0.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"0: shoot_test_task start\n", 25); FIO_CloseFile(f); }
+    msleep(50);
+
+    take_a_pic(AF_DONT_CHANGE);
+
+    f = FIO_CreateFile("ML/LOGS/SHOOT9.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"9: take_a_pic returned\n", 23); FIO_CloseFile(f); }
+}
+
+/* R AF-capture probe (Debug -> "Take test pic (SW1/SW2 AF)").
+ * Drives a real half-press (SW1 -> meter + autofocus) then full-press
+ * (SW2 -> capture), which call("Release") alone does not do on the R.
+ * Breadcrumbs -> ML/LOGS/SHOOTAF.TXT. Needs PROP_REMOTE_SW1/SW2 whitelisted. */
+static char afbc[256];
+static int  afbc_len;
+static void af_bc(const char * s)
+{
+    if (afbc_len > (int)sizeof(afbc) - 48) return;
+    afbc_len += snprintf(afbc + afbc_len, sizeof(afbc) - afbc_len, "%s\n", s);
+    FILE * f = FIO_CreateFile("ML/LOGS/SHOOTAF.TXT");
+    if (f) { FIO_WriteFile(f, afbc, afbc_len); FIO_CloseFile(f); }
+    msleep(30);
+}
+static void shoot_test_af_task()
+{
+    extern void fake_simple_button(int bgmt_code);
+    extern int  get_focus_confirmation(void);
+    char b[80];
+    gui_stop_menu();
+    msleep(800);
+    afbc_len = 0;
+
+    /* inject the actual half-shutter button event (triggers metering + AF),
+     * the way the physical shutter does -- PROP_REMOTE_SW1 had no effect */
+    af_bc("1: fake half-shutter (AF)");
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER);   /* 0x7D */
+    msleep(2000);                                 /* let AF run/lock */
+    snprintf(b, sizeof(b), "2: focusconf=%d", get_focus_confirmation());
+    af_bc(b);
+
+    /* capture (call("Release") is proven to capture on the R) */
+    af_bc("3: call(Release) -> capture");
+    call("Release");
+    msleep(1200);
+
+    /* release the half-shutter -- otherwise Canon stays in the shooting/
+     * metering state and won't finish ("saving..." hang at power-off) */
+    af_bc("4: release half-shutter");
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);   /* 0x7E = unpress half-shutter */
+    msleep(300);
+    af_bc("5: done");
+}
+
+static void mpu_capture_arm_menu()
+{
+    extern void mpu_capture_arm(void);
+    gui_stop_menu();
+    mpu_capture_arm();
+    NotifyBox(2000, "MPU capture armed");
+}
+
+/* flush + write the passive serial-flash read capture (defined in init.c,
+ * installed in boot_pre_init_task). Writes ML/LOGS/TUNE.BIN + SFREAD.TXT. */
+static void sfread_capture_dump_menu()
+{
+    extern void sfread_capture_dump(void);
+    gui_stop_menu();
+    msleep(300);
+    sfread_capture_dump();
+}
+
+/* ACTIVE serial-flash read (defined in init.c). Calls the real RBSF on cpu0 ourselves rather than
+ * waiting to observe Canon's boot-time reads (which finish before ML loads). -> TUNE.BIN+SFACTIVE.TXT. */
+static void sfread_active_read_menu()
+{
+    extern void sfread_active_read(void);
+    gui_stop_menu();
+    msleep(300);
+    sfread_active_read();
+}
+
+/* SRM probe (Debug -> "Test SRM alloc"). SRM is disabled on the R
+ * (CONFIG_MEMORY_SRM_NOT_WORKING: SRM_AllocateMemoryResourceFor1stJob crashes).
+ * Call it directly (RscMgr FUN_e04e41be @0xE04E41BE) with a logging callback +
+ * breadcrumbs to learn whether it works or exactly where it dies.
+ * Result files: SRM0 (entered) / SRMCBR (callback fired = WORKS, with buf+size)
+ * / SRM9 (call returned). If SRM0 only -> crashed inside the SRM call. */
+/* v2: set globals only (FIO is unreliable in the resource-manager callback
+ * context); the task reports them afterward. */
+static volatile int      srm_cbr_fired = 0;
+static volatile uint32_t srm_cbr_buf = 0, srm_cbr_size = 0;
+static void srm_test_cbr(void ** dst_ptr, void * raw_buffer, uint32_t raw_size)
+{
+    srm_cbr_fired = 1;
+    srm_cbr_buf  = (uint32_t) raw_buffer;
+    srm_cbr_size = raw_size;
+    if (dst_ptr) *dst_ptr = raw_buffer;
+}
+/* EEPROM dump (Debug -> "Dump EEPROM"). Uses the firmware's own working
+ * ReadBlockEEPROM (FUN_e03d404e @0xE03D404E) -- the EEPROM is a small SPI
+ * device on SIO3 (0xC0820000), a different channel than the serial flash, so
+ * this read does NOT deadlock the way the sf_dump serial-flash read did.
+ * readEEP(addr, dest, size) returns 0 on success. Dumps up to 32KB (the size
+ * InstEEP implies, piVar1[3]=0x8000) in 0x100 chunks -> ML/LOGS/EEPROM.BIN.
+ * Gives qemu the EEPROM/[EEP] config data it currently reads as zeros. */
+static void eeprom_dump_task()
+{
+    int (*readEEP)(uint32_t, void *, uint32_t) = (void *)0xE03D404Fu;  /* thumb */
+    static uint8_t eepbuf[0x100];
+    int total = 0, lastret = 0;
+    gui_stop_menu();
+    msleep(500);
+    FILE * f = FIO_CreateFile("ML/LOGS/EEPROM.BIN");
+    for (uint32_t a = 0; a < 0x8000; a += 0x100) {
+        lastret = readEEP(a, eepbuf, sizeof(eepbuf));
+        if (lastret != 0) break;
+        if (f) FIO_WriteFile(f, eepbuf, sizeof(eepbuf));
+        total += sizeof(eepbuf);
+    }
+    if (f) FIO_CloseFile(f);
+    FILE * g = FIO_CreateFile("ML/LOGS/EEPSTEP.TXT");
+    if (g) { char b[64]; int n = snprintf(b, sizeof(b), "EEPROM dumped %d bytes, lastret=%d\n", total, lastret); FIO_WriteFile(g, b, n); FIO_CloseFile(g); }
+}
+
+/* Clean-capture probe (Debug -> "Take pic (IR remote)"). ML's call("Release")
+ * capture leaves the shooting job unfinalized -> "saving" hang at power-off;
+ * the PHYSICAL shutter is clean. SetEventIrRemoteReleaseBtn (FUN_e0190214)
+ * drives the same CameraConductor remote-release pipeline a wireless remote
+ * uses (1=press, 0=release) -> a full, properly-finalized capture. Test whether
+ * this avoids the saving hang. Breadcrumbs -> ML/LOGS/IRREL.TXT. */
+static void ir_release_task()
+{
+    void (*ir_rel)(int) = (void *)0xE0190215u;  /* thumb: SetEventIrRemoteReleaseBtn */
+    FILE * f;
+    gui_stop_menu();
+    msleep(500);
+    f = FIO_CreateFile("ML/LOGS/IRREL.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"1: IR remote press\n", 19); FIO_CloseFile(f); }
+    ir_rel(1);                 /* remote button press (SW2-equivalent) */
+    msleep(300);
+    ir_rel(0);                 /* remote button release */
+    msleep(2000);
+    f = FIO_CreateFile("ML/LOGS/IRREL2.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"2: IR remote released, capture issued\n", 38); FIO_CloseFile(f); }
+}
+
+/* Exposure-write probe (Debug -> "Test shutter write"). ML's prop_set_rawshutter
+ * writes PROP_SHUTTER with hardcoded len=4, but the R delivers it as 2 bytes, so
+ * prop_request_change's length check blocks the write (the red box seen during
+ * bracketing) and exposure can't be varied. This tests a 2-byte write directly:
+ * nudge shutter ~1 stop, read back, restore. M mode + fully reversible.
+ * -> ML/LOGS/SHUTWR.TXT */
+static void shutter_write_test_task()
+{
+    char b[400]; int n = 0;
+    gui_stop_menu();
+    msleep(600);
+    int before = lens_info.raw_shutter;
+    n += snprintf(b + n, sizeof(b) - n, "before: raw_shutter=%d raw_iso=%d\n",
+                  before, lens_info.raw_iso);
+    int target = (before >= 24 && before <= 144) ? before + 8 : 96; /* ~1 stop, safe range */
+    n += snprintf(b + n, sizeof(b) - n, "writing PROP_SHUTTER=%d with len=2 ...\n", target);
+    prop_request_change(PROP_SHUTTER, &target, 2);   /* 2-byte write (R's actual length) */
+    msleep(600);
+    int after = lens_info.raw_shutter;
+    n += snprintf(b + n, sizeof(b) - n, "after:  raw_shutter=%d -> %s\n",
+                  after, (after == target) ? "CHANGED (2-byte write WORKS)" : "unchanged");
+    prop_request_change(PROP_SHUTTER, &before, 2);   /* restore */
+    msleep(400);
+    n += snprintf(b + n, sizeof(b) - n, "restored: raw_shutter=%d\n", lens_info.raw_shutter);
+    FILE * f = FIO_CreateFile("ML/LOGS/SHUTWR.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+}
+
+/* PATH 1 capture-EXPOSURE matrix (Debug -> "Capture exposure test").
+ * BRKSHUT.TXT proved ML sets the per-frame shutter correctly (raw 68..132) but every
+ * IR-remote-release frame came out ~1" -- i.e. the IR-remote release captures at AE/
+ * metered exposure and IGNORES the manual shutter. This probe fires ONE shot per capture
+ * METHOD, each at a fixed VERY FAST shutter (raw 140 ~ 1/4000). A method that RESPECTS the
+ * manual shutter -> a near-BLACK frame; an AE method -> a normally-exposed frame. Whichever
+ * method comes out dark is the one to drive bracketing with.
+ * Use M mode, ~1/125 dial, normal room, lens able to fire. -> ML/LOGS/CAPEXP.TXT.
+ * Report which shot numbers (1-4) are DARK vs NORMAL. */
+static char capx[480]; static int capx_n;
+static void capx_bc(const char * s)
+{
+    if (capx_n > (int)sizeof(capx) - 72) return;
+    capx_n += snprintf(capx + capx_n, sizeof(capx) - capx_n, "%s\n", s);
+    FILE * f = FIO_CreateFile("ML/LOGS/CAPEXP.TXT");
+    if (f) { FIO_WriteFile(f, capx, capx_n); FIO_CloseFile(f); }
+    msleep(20);
+}
+static void capx_set_fast(void)
+{
+    int sh = 140;   /* raw ~1/4000: several stops under a normal/indoor exposure */
+    prop_request_change(PROP_SHUTTER, &sh, 2);
+    msleep(250);
+    char b[72]; snprintf(b, sizeof(b), "   set raw=140 -> now=%d", lens_info.raw_shutter);
+    capx_bc(b);
+}
+static void cap_expo_matrix_task(void)
+{
+    extern void fake_simple_button(int bgmt_code);
+    void (*ir_rel)(int) = (void *)0xE0190215u;  /* SetEventIrRemoteReleaseBtn */
+    int before;
+    gui_stop_menu();
+    msleep(800);
+    capx_n = 0;
+    before = lens_info.raw_shutter;
+    capx_bc("CAPEXP: each shot raw=140 (~1/4000). DARK=manual respected, NORMAL=AE/metered.");
+
+    /* Shot 1: IR-remote release alone (baseline -- expect NORMAL, confirms the AE finding) */
+    capx_bc("shot 1: IR-remote release alone");
+    capx_set_fast();
+    ir_rel(1); msleep(300); ir_rel(0);
+    msleep(3500);
+
+    /* Shot 2: call("Release") alone (different capture path -- may respect manual) */
+    capx_bc("shot 2: call(Release) alone");
+    capx_set_fast();
+    call("Release");
+    msleep(3500);
+    ir_rel(0);                 /* nudge the job to finalize */
+    msleep(1000);
+
+    /* Shot 3: half-press SW1 (locks metering, as a physical press does) THEN IR-remote */
+    capx_bc("shot 3: SW1 half-press (held) + IR-remote release");
+    capx_set_fast();
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER);       /* 0x7D press */
+    msleep(1200);
+    ir_rel(1); msleep(300); ir_rel(0);
+    msleep(2800);
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);   /* 0x7E release */
+    msleep(900);
+
+    /* Shot 4: half-press SW1 (held) THEN call("Release") */
+    capx_bc("shot 4: SW1 half-press (held) + call(Release)");
+    capx_set_fast();
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER);
+    msleep(1200);
+    call("Release");
+    msleep(2800);
+    fake_simple_button(BGMT_PRESS_HALFSHUTTER + 1);
+    msleep(900);
+
+    /* restore the original shutter */
+    prop_request_change(PROP_SHUTTER, &before, 2);
+    msleep(300);
+    capx_bc("done. Which shots (1-4) are DARK (manual) vs NORMAL (AE)?");
+}
+
+static void srm_test_task()
+{
+    void (*srm_alloc)(void *, void *) = (void *)0xE04E41BFu;  /* thumb */
+    void * dst = 0;
+    FILE * f;
+    gui_stop_menu();
+    msleep(500);
+    srm_cbr_fired = 0; srm_cbr_buf = 0; srm_cbr_size = 0;
+    f = FIO_CreateFile("ML/LOGS/SRM0.TXT");
+    if (f) { FIO_WriteFile(f, (void *)"1: about to call SRM alloc @E04E41BE\n", 37); FIO_CloseFile(f); }
+    msleep(50);
+
+    srm_alloc((void *)srm_test_cbr, &dst);   /* async: callback fires when buffer ready */
+
+    msleep(6000);                            /* wait longer for the async resource callback */
+    f = FIO_CreateFile("ML/LOGS/SRMRES.TXT");
+    if (f) {
+        char b[128];
+        int n = snprintf(b, sizeof(b), "fired=%d buf=0x%x size=0x%x (%d MB) dst=0x%x\n",
+                         srm_cbr_fired, (unsigned)srm_cbr_buf, (unsigned)srm_cbr_size,
+                         (int)(srm_cbr_size >> 20), (unsigned)dst);
+        FIO_WriteFile(f, b, n); FIO_CloseFile(f);
+    }
+}
+
+/* Dump the EEPROM driver struct (base 0x4CD4) to find the EEPROM's SIO channel
+ * + CS register for the qemu EEPROM emulation. */
+static void eeprom_struct_dump_task()
+{
+    char ib[1200]; int n = 0;
+    gui_stop_menu(); msleep(300);
+    n += snprintf(ib + n, sizeof(ib) - n, "EEPROM struct @0x4CD4:\n");
+    for (uint32_t a = 0x4CD4; a < 0x4DD4; a += 16) {
+        n += snprintf(ib + n, sizeof(ib) - n, "%08X:", a);
+        for (int i = 0; i < 16; i += 4)
+            n += snprintf(ib + n, sizeof(ib) - n, " %08X", MEM(a + i));
+        n += snprintf(ib + n, sizeof(ib) - n, "\n");
+    }
+    FILE * f = FIO_CreateFile("ML/LOGS/EEPSTRUCT.TXT");
+    if (f) { FIO_WriteFile(f, ib, n); FIO_CloseFile(f); }
+}
+
+/* PATH 2 (qemu): dump the camera's loaded FROM/property package DB so we can
+ * feed it to the emulator, whose property loaders hang for lack of this data
+ * (the R keeps it in SPI serial flash, not memory-mapped -> ROM1 is blank).
+ * SearchFromProperty walks a list whose head pointer lives at 0xE054D758.
+ * Walk the list and dump each node's words; pointer-looking words (RAM range)
+ * get followed one level so the property data lands in the same dump. */
+static void from_dump_task()
+{
+    static char buf[0x8000];
+    int n = 0;
+    gui_stop_menu(); msleep(500);
+    uint32_t head = MEM(0xE054D758);
+    n += snprintf(buf + n, sizeof(buf) - n, "DAT_e054d758 -> head=0x%08X\n", head);
+    uint32_t node = head;
+    int guard = 0;
+    while (guard++ < 40 && node >= 0x1000 && node < 0x40000000) {
+        n += snprintf(buf + n, sizeof(buf) - n, "n%02d %08X:", guard, node);
+        for (int i = 0; i < 24; i++)
+            n += snprintf(buf + n, sizeof(buf) - n, " %08X", MEM(node + i * 4));
+        n += snprintf(buf + n, sizeof(buf) - n, "\n");
+        /* follow pointer-looking words one level (capture the actual data) */
+        for (int i = 0; i < 24 && n < (int)sizeof(buf) - 300; i++) {
+            uint32_t p = MEM(node + i * 4);
+            if (p >= 0x1000 && p < 0x40000000 && (p & 3) == 0) {
+                n += snprintf(buf + n, sizeof(buf) - n, "  +%02X->%08X:", i * 4, p);
+                for (int j = 0; j < 8; j++)
+                    n += snprintf(buf + n, sizeof(buf) - n, " %08X", MEM(p + j * 4));
+                n += snprintf(buf + n, sizeof(buf) - n, "\n");
+            }
+        }
+        uint32_t next = MEM(node + 4);
+        if (next == head || next == node) break;
+        node = next;
+        if (n > (int)sizeof(buf) - 1200) break;
+    }
+    FILE * f = FIO_CreateFile("ML/LOGS/PKGDUMP.TXT");
+    if (f) { FIO_WriteFile(f, buf, n); FIO_CloseFile(f); }
+    NotifyBox(4000, "PKGDUMP: %d nodes, %d B", guard - 1, n);
+}
+
+/* PATH 2 step 2: dump the exact FROM source regions the property handles point
+ * at (from PKGDUMP analysis). The E1xxxxxx regions live in ROM0 (qemu already
+ * has them); the F0xxxxxx regions are serial-flash-backed and blank in qemu --
+ * those are what the loaders hang without. Check readability first (FROMCHK),
+ * then dump any region that holds real data -> SFDATA.BIN (concatenated,
+ * order = the F0 regions below). */
+static void from_region_dump_task()
+{
+    static const uint32_t regions[] = { 0xF09C0000, 0xF0A80000, 0xF0AC0000, 0xF0B00000,
+                                        0xE1FFC000, 0xE1C60000 };
+    static const uint32_t sizes[]   = { 0x40000, 0x40000, 0x40000, 0x40000, 0x1000, 0x10000 };
+    static uint8_t buf[0x4000];  /* chunk buffer (kept small to limit BSS) */
+    char cb[600]; int cn = 0;
+    gui_stop_menu(); msleep(400);
+
+    cn += snprintf(cb + cn, sizeof(cb) - cn, "FROM region readability (first 4 words):\n");
+    for (int i = 0; i < 6; i++)
+        cn += snprintf(cb + cn, sizeof(cb) - cn, "%08X: %08X %08X %08X %08X\n",
+                       regions[i], MEM(regions[i]), MEM(regions[i] + 4),
+                       MEM(regions[i] + 8), MEM(regions[i] + 12));
+
+    /* dump the 4 serial-flash-backed regions (skip blank ones) */
+    FILE * f = FIO_CreateFile("ML/LOGS/SFDATA.BIN");
+    for (int i = 0; i < 4 && f; i++) {
+        int blank = (MEM(regions[i]) == 0xFFFFFFFF && MEM(regions[i] + 4) == 0xFFFFFFFF);
+        cn += snprintf(cb + cn, sizeof(cb) - cn, "%08X: %s\n", regions[i],
+                       blank ? "BLANK (needs SF driver)" : "DATA -> dumping");
+        if (blank) continue;
+        for (uint32_t off = 0; off < sizes[i]; off += sizeof(buf)) {
+            for (uint32_t j = 0; j < sizeof(buf); j += 4)
+                *(uint32_t *)(buf + j) = MEM(regions[i] + off + j);
+            FIO_WriteFile(f, buf, sizeof(buf));
+        }
+    }
+    if (f) FIO_CloseFile(f);
+
+    FILE * c = FIO_CreateFile("ML/LOGS/FROMCHK.TXT");
+    if (c) { FIO_WriteFile(c, cb, cn); FIO_CloseFile(c); }
+    NotifyBox(4000, "FROM regions checked + dumped");
+}
+
+/* PATH 1: capture-done signal probe. The bracket drops frames because the R has
+ * no reliable "capture complete / ready" signal (job_state delivers inconsistently;
+ * the file-number wait is a model-dependent fallback). Fire 3 captures via the same
+ * IR-remote path the bracket uses, and log how the 3 candidate signals evolve after
+ * each release -> ML/LOGS/CAPSIG.TXT. Reveals which signal reliably tracks a capture
+ * (and whether each release even produces one). */
+static void capsig_probe_task()
+{
+    static char b[3800];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    n += snprintf(b + n, sizeof(b) - n, "Capture-signal probe (R) -- 3 shots via IR-remote\n");
+    void (*ir_remote_release)(int) = (void *)0xE0190215u; /* SetEventIrRemoteReleaseBtn */
+    for (int shot = 0; shot < 3; shot++)
+    {
+        int fnb = get_shooting_card()->file_number;
+        n += snprintf(b + n, sizeof(b) - n, "--- shot %d (pre: job_state=0x%x burst=%d file=%d) ---\n",
+                      shot + 1, lens_info.job_state, burst_count, fnb);
+        ir_remote_release(1); msleep(300); ir_remote_release(0);
+        int t0 = get_ms_clock();
+        int ljs = -1, lbc = -1, lfn = -1;
+        for (int i = 0; i < 130 && n < (int)sizeof(b) - 90; i++)   /* ~2.6s */
+        {
+            int js = lens_info.job_state, bc = burst_count, fn = get_shooting_card()->file_number;
+            if (js != ljs || bc != lbc || fn != lfn)
+            {
+                n += snprintf(b + n, sizeof(b) - n, "  t=%5d ms: job_state=0x%x burst=%d file=%d\n",
+                              get_ms_clock() - t0, js, bc, fn);
+                ljs = js; lbc = bc; lfn = fn;
+            }
+            msleep(20);
+        }
+        n += snprintf(b + n, sizeof(b) - n, "  shot %d captured=%s\n",
+                      shot + 1, (get_shooting_card()->file_number != fnb) ? "YES" : "NO");
+    }
+    FILE * f = FIO_CreateFile("ML/LOGS/CAPSIG.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(5000, "CAPSIG probe done -> ML/LOGS/CAPSIG.TXT");
+}
+
+/* PATH 1: test the NORMAL electronic shutter-press capture (SW1/SW2 via
+ * PROP_REMOTE_SW1/SW2) instead of the slow IR-remote stopgap. The physical
+ * shutter is fast AND self-finalizes (no saving-hang), so this path should be
+ * too -- IF the R accepts the SW props. Fires ONE shot via SW1/SW2, logs the
+ * job_state timeline + how fast it returns to idle -> ML/LOGS/SWCAP.TXT. Then
+ * power off: clean = winner (fast + clean); saving-hang = SW path doesn't
+ * finalize either. Compare timeline speed vs the IR-remote's ~1.7s grind. */
+static void sw_capture_test_task()
+{
+    static char b[1600];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "SW1/SW2 capture test\npre: js=0x%x file=%d\n",
+                  lens_info.job_state, fn0);
+    int t0 = get_ms_clock();
+    SW1(1, 50);
+    SW2(1, 250);
+    SW2(0, 50);
+    SW1(0, 50);
+    n += snprintf(b + n, sizeof(b) - n, "SW seq done at t=%d ms\njob_state timeline:\n",
+                  get_ms_clock() - t0);
+    int last = -1;
+    for (int k = 0; k < 90 && n < (int)sizeof(b) - 40; k++)   /* ~3s */
+    {
+        int js = lens_info.job_state;
+        if (js != last)
+        {
+            n += snprintf(b + n, sizeof(b) - n, " [%d]0x%x", get_ms_clock() - t0, js);
+            last = js;
+        }
+        msleep(33);
+    }
+    int captured = (get_shooting_card()->file_number != fn0);
+    n += snprintf(b + n, sizeof(b) - n, "\ncaptured=%s\n", captured ? "YES" : "NO");
+    FILE * f = FIO_CreateFile("ML/LOGS/SWCAP.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(6000, "SW capture: %s -> SWCAP.TXT. Power off: clean or hang?",
+              captured ? "CAPTURED" : "no capture");
+}
+
+/* PATH 1: test direct capture commands found in the ROM, looking for a path that
+ * is BOTH fast and self-finalizing (unlike the IR-remote which is clean but ~1.7s,
+ * and call("Release") which is fast but hangs at power-off). Tries, in order:
+ *   1. call("FA_Release")            -- direct release (the 40D's capture command)
+ *   2. call("FA_RemoteRelease") + call("FA_FinishRemoteRelease")  -- release + explicit finalize
+ * Each is a SEPARATE menu item so one capture is tested at a time. Logs the
+ * job_state timeline + whether it captured. Then power off: clean = winner. */
+static void fa_release_test_task()
+{
+    static char b[1500];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "call(FA_Release) test\npre: js=0x%x file=%d\n",
+                  lens_info.job_state, fn0);
+    int t0 = get_ms_clock();
+    call("FA_Release");
+    n += snprintf(b + n, sizeof(b) - n, "call done at t=%d ms\njob_state:\n", get_ms_clock() - t0);
+    int last = -1;
+    for (int k = 0; k < 90 && n < (int)sizeof(b) - 40; k++)   /* ~3s */
+    {
+        int js = lens_info.job_state;
+        if (js != last)
+        {
+            n += snprintf(b + n, sizeof(b) - n, " [%d]0x%x", get_ms_clock() - t0, js);
+            last = js;
+        }
+        msleep(33);
+    }
+    int captured = (get_shooting_card()->file_number != fn0);
+    n += snprintf(b + n, sizeof(b) - n, "\ncaptured=%s\n", captured ? "YES" : "NO");
+    FILE * f = FIO_CreateFile("ML/LOGS/FACAP.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(6000, "FA_Release: %s -> FACAP.TXT. Power off: clean or hang?",
+              captured ? "CAPTURED" : "no capture");
+}
+
+static void fa_remote_finish_test_task()
+{
+    static char b[1500];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "FA_RemoteRelease + FA_FinishRemoteRelease test\npre: js=0x%x file=%d\n",
+                  lens_info.job_state, fn0);
+    int t0 = get_ms_clock();
+    call("FA_RemoteRelease");
+    msleep(50);
+    call("FA_FinishRemoteRelease");
+    n += snprintf(b + n, sizeof(b) - n, "calls done at t=%d ms\njob_state:\n", get_ms_clock() - t0);
+    int last = -1;
+    for (int k = 0; k < 90 && n < (int)sizeof(b) - 40; k++)
+    {
+        int js = lens_info.job_state;
+        if (js != last)
+        {
+            n += snprintf(b + n, sizeof(b) - n, " [%d]0x%x", get_ms_clock() - t0, js);
+            last = js;
+        }
+        msleep(33);
+    }
+    int captured = (get_shooting_card()->file_number != fn0);
+    n += snprintf(b + n, sizeof(b) - n, "\ncaptured=%s\n", captured ? "YES" : "NO");
+    FILE * f = FIO_CreateFile("ML/LOGS/FARMCAP.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(6000, "FA_Remote+Finish: %s -> FARMCAP.TXT. Power off: clean or hang?",
+              captured ? "CAPTURED" : "no capture");
+}
+
+/* PATH 1: the key fast-capture experiment. The IR-remote path is clean but waits
+ * ~1.7s (the develop) before it's "ready". The R bursts at 8fps because it
+ * PIPELINES shots into a buffer instead of waiting. So: fire 5 IR-remote releases
+ * only ~300ms apart -- much faster than develop -- and see how many actually
+ * capture. If the buffer absorbs them (most/all fire), fast bracketing is possible
+ * (we just wait for buffer space, not full develop). If they drop, the camera
+ * genuinely can't accept the next yet via this path. Set CONTINUOUS drive first.
+ * Logs per-shot job_state + capture -> ML/LOGS/RAPID.TXT. */
+static void rapid_fire_test_task()
+{
+    static char b[2200];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    void (*ir_remote_release)(int) = (void *)0xE0190215u;
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "Rapid-fire: 5 releases ~300ms apart\npre: file=%d js=0x%x\n",
+                  fn0, lens_info.job_state);
+    int t0 = get_ms_clock();
+    for (int shot = 0; shot < 5; shot++)
+    {
+        int fnb = get_shooting_card()->file_number;
+        ir_remote_release(1); msleep(100); ir_remote_release(0);   /* quick press */
+        n += snprintf(b + n, sizeof(b) - n, "shot %d @%dms js=0x%x", shot + 1,
+                      get_ms_clock() - t0, lens_info.job_state);
+        msleep(200);                                               /* short gap -- faster than develop */
+        int fn = get_shooting_card()->file_number;
+        n += snprintf(b + n, sizeof(b) - n, " -> js=0x%x file=%d %s\n",
+                      lens_info.job_state, fn, (fn != fnb) ? "CAP" : "(no file yet)");
+    }
+    msleep(4000);                                                  /* let the buffer drain/develop */
+    int total = get_shooting_card()->file_number - fn0;
+    n += snprintf(b + n, sizeof(b) - n, "AFTER DRAIN: final file=%d -> %d of 5 captured\n",
+                  get_shooting_card()->file_number, total);
+    FILE * f = FIO_CreateFile("ML/LOGS/RAPID.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(7000, "Rapid-fire: %d of 5 captured -> RAPID.TXT", total);
+}
+
+/* PATH 2: dump the serial-flash driver struct. On the CAMERA the SF init succeeds
+ * (unlike qemu), so the struct is fully populated -- giving the device constants
+ * needed to enable qemu's serial_flash.c: SIO channel (+0x30), CS register pointer
+ * (+0x2c), base (+0x14), size (+0x18), init flag (+0x10). -> ML/LOGS/SFSTRUCT.TXT. */
+static void sf_struct_dump_task()
+{
+    static char b[1400];
+    int n = 0;
+    gui_stop_menu(); msleep(400);
+    uint32_t s0 = MEM(0xE03C0358), s1 = MEM(0xE03C14B4), s2 = MEM(0xE03C1F90);
+    n += snprintf(b + n, sizeof(b) - n, "SF globals: DAT_e03c0358=0x%X DAT_e03c14b4=0x%X DAT_e03c1f90=0x%X\n",
+                  s0, s1, s2);
+    uint32_t s = s2;   /* IsAddressSerialFlash struct: base/size/CS live here */
+    if (s >= 0x1000 && s < 0x40000000)
+    {
+        n += snprintf(b + n, sizeof(b) - n,
+                      "struct@0x%X: init[+10]=0x%X base[+14]=0x%X size[+18]=0x%X csptr[+2c]=0x%X ch[+30]=0x%X\n",
+                      s, MEM(s + 0x10), MEM(s + 0x14), MEM(s + 0x18), MEM(s + 0x2c), MEM(s + 0x30));
+        uint32_t csptr = MEM(s + 0x2c);
+        if (csptr >= 0x1000 && csptr < 0xE0000000)
+            n += snprintf(b + n, sizeof(b) - n, "CS register = 0x%X (current val=0x%X)\n", csptr, MEM(csptr));
+        n += snprintf(b + n, sizeof(b) - n, "full struct:\n");
+        for (uint32_t a = s; a < s + 0x80 && n < (int)sizeof(b) - 60; a += 16)
+        {
+            n += snprintf(b + n, sizeof(b) - n, "%08X:", a);
+            for (int i = 0; i < 16; i += 4)
+                n += snprintf(b + n, sizeof(b) - n, " %08X", MEM(a + i));
+            n += snprintf(b + n, sizeof(b) - n, "\n");
+        }
+    }
+    FILE * f = FIO_CreateFile("ML/LOGS/SFSTRUCT.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(4000, "SF struct dumped -> SFSTRUCT.TXT");
+}
+
+/* PATH 1: validate the fast-capture gate. RAPID.TXT showed the camera re-accepts a
+ * shot ~700ms after the previous (not the ~1.7s full develop), and a dropped release
+ * makes no file + does no harm. So: fire, and if no new file appeared, RETRY until it
+ * takes -- this auto-paces at the camera's true accept rate. This test runs that gate
+ * for 5 frames and reports per-frame time + attempts + total. Expect 5/5, ~700ms each.
+ * CONTINUOUS drive, M mode. -> ML/LOGS/FASTFIRE.TXT. */
+static void fastfire_retry_test_task()
+{
+    static char b[2000];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    void (*ir_remote_release)(int) = (void *)0xE0190215u;
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "Fast-fire RETRY: 5 frames, fire-until-accepted\npre file=%d\n", fn0);
+    int big_t0 = get_ms_clock();
+    for (int frame = 0; frame < 5; frame++)
+    {
+        int fnb = get_shooting_card()->file_number;
+        int t0 = get_ms_clock();
+        int attempts = 0, got = 0;
+        while (get_ms_clock() - t0 < 4000 && !got)
+        {
+            attempts++;
+            ir_remote_release(1); msleep(80); ir_remote_release(0);
+            for (int i = 0; i < 15; i++)   /* ~300ms for the file to register */
+            {
+                if (get_shooting_card()->file_number != fnb) { got = 1; break; }
+                msleep(20);
+            }
+            if (!got) msleep(80);          /* still busy -- brief wait then retry */
+        }
+        n += snprintf(b + n, sizeof(b) - n, "frame %d: %s in %dms, %d attempts (js=0x%x)\n",
+                      frame + 1, got ? "CAP" : "FAIL", get_ms_clock() - t0, attempts, lens_info.job_state);
+    }
+    msleep(2000);
+    int total = get_shooting_card()->file_number - fn0;
+    int dt = get_ms_clock() - big_t0;
+    n += snprintf(b + n, sizeof(b) - n, "TOTAL: %d of 5 in %dms (~%dms/frame)\n", total, dt, dt / 5);
+    FILE * f = FIO_CreateFile("ML/LOGS/FASTFIRE.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(7000, "Fast-fire: %d of 5, ~%dms/frame", total, dt / 5);
+}
+
+/* PATH 1 (deeper layer): the retry gate gives ~700ms/frame because each release is a
+ * separate CC remote-release sequence. The camera bursts at 8fps (~125ms) only when the
+ * shutter is HELD and it stays in burst mode. So: hold the IR release down (press, no
+ * release) for 1.5s in CONTINUOUS drive and count frames. If it bursts (~12 frames),
+ * the true-rate path is reachable; for bracketing we'd then change exposure between the
+ * buffered frames. -> ML/LOGS/BURST.TXT. */
+static void burst_hold_test_task()
+{
+    static char b[1500];
+    int n = 0;
+    gui_stop_menu(); msleep(800);
+    void (*ir_remote_release)(int) = (void *)0xE0190215u;
+    int fn0 = get_shooting_card()->file_number;
+    n += snprintf(b + n, sizeof(b) - n, "Burst HOLD test: hold release 1500ms (CONTINUOUS drive)\npre file=%d\n", fn0);
+    int t0 = get_ms_clock();
+    ir_remote_release(1);                 /* PRESS + HOLD */
+    int last = fn0;
+    for (int k = 0; k < 30; k++)          /* 1500ms */
+    {
+        int fn = get_shooting_card()->file_number;
+        if (fn != last && n < (int)sizeof(b) - 30)
+        {
+            n += snprintf(b + n, sizeof(b) - n, " [%dms]f=%d", get_ms_clock() - t0, fn);
+            last = fn;
+        }
+        msleep(50);
+    }
+    ir_remote_release(0);                 /* RELEASE */
+    int held = get_shooting_card()->file_number - fn0;
+    msleep(2500);                         /* let the buffer drain */
+    int total = get_shooting_card()->file_number - fn0;
+    int msper = (total > 0) ? 1500 / total : 0;
+    n += snprintf(b + n, sizeof(b) - n, "\nduring hold: %d frames; after drain: %d total; ~%d ms/frame (8fps=125ms)\n",
+                  held, total, msper);
+    FILE * f = FIO_CreateFile("ML/LOGS/BURST.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(7000, "Burst: %d frames / 1.5s hold (~%dms/frame)", total, msper);
+}
+
+/* PATH 2: call the firmware's own full serial-flash dump (FUN_e03c052a). It acquires
+ * the SF, reads all 8MB, and writes it to card files -- giving us the SF DATA the qemu
+ * loaders hang without. EXPERIMENTAL: calling an internal factory function directly; if
+ * it hangs, pull the battery (no harm). Run once; then check the card root for new .bin
+ * files. Also wakes the SF, so a struct dump right after would show the live channel/CS. */
+static void sf_firmware_dump_task()
+{
+    gui_stop_menu(); msleep(500);
+    NotifyBox(3000, "Calling firmware SF dump (8MB)... wait ~30s");
+    msleep(1500);
+    void (*sf_full_dump)(void) = (void *)0xE03C052Bu;   /* FUN_e03c052a | 1 (thumb) */
+    sf_full_dump();
+    /* if we get here it returned cleanly; dump the now-active struct too */
+    static char b[700];
+    int n = 0;
+    uint32_t s = MEM(0xE03C1F90);
+    n += snprintf(b + n, sizeof(b) - n, "after firmware SF dump: struct@0x%X init=0x%X ch=0x%X csptr=0x%X size=0x%X base=0x%X\n",
+                  s, MEM(s + 0x10), MEM(s + 0x30), MEM(s + 0x2c), MEM(s + 0x18), MEM(s + 0x14));
+    FILE * f = FIO_CreateFile("ML/LOGS/SFDUMP.TXT");
+    if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    NotifyBox(8000, "SF dump returned. Look for .bin files on card root + SFDUMP.TXT");
+}
+
+/* Dump the secondary-ROM / FROM region (0xF0000000+) that holds the property
+ * tuning data the qemu boot reads as garbage (random ROM1 placeholder). The
+ * firmware loads property packages from 0xF09C0000 (TUNE/0x02), 0xF0A80000,
+ * 0xF0AC0000 (Main/StartupDataLoad.c). First write a readability check
+ * (ROM1CHK.TXT) -- if these are CPU-readable (non-zero), dump 16MB via plain
+ * MEM() reads (no SPI, so no sf_dump-style SIO deadlock) -> ML/LOGS/ROM1.BIN. */
+static void rom1_dump_task()
+{
+    static uint8_t buf[0x4000];  /* chunk buffer (kept small to limit BSS) */
+    char cb[400]; int cn = 0;
+    const uint32_t probes[] = {0xF0000000, 0xF09C0000, 0xF0A80000, 0xF0AC0000};
+    gui_stop_menu(); msleep(400);
+    cn += snprintf(cb + cn, sizeof(cb) - cn, "ROM1 readability check:\n");
+    for (int i = 0; i < 4; i++) {
+        cn += snprintf(cb + cn, sizeof(cb) - cn, "%08X: %08X %08X %08X %08X\n",
+                       probes[i], MEM(probes[i]), MEM(probes[i] + 4),
+                       MEM(probes[i] + 8), MEM(probes[i] + 12));
+    }
+    FILE * c = FIO_CreateFile("ML/LOGS/ROM1CHK.TXT");
+    if (c) { FIO_WriteFile(c, cb, cn); FIO_CloseFile(c); }
+
+    /* gate on the ROM1 base (0xF0000000 = 0x80000424 header + "7.3.9"); the
+     * region is fully mapped & readable even where blank (returns 0xFF), so a
+     * 16MB read is safe. */
+    uint32_t w0 = MEM(0xF0000000);
+    if (w0 == 0 || w0 == 0xFFFFFFFF) return;   /* not memory-mapped here -> needs SPI path */
+
+    FILE * f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
+    if (!f) return;
+    for (uint32_t off = 0; off < 0x1000000; off += sizeof(buf)) {   /* 16MB */
+        volatile uint32_t * src = (volatile uint32_t *)(0xF0000000u + off);
+        uint32_t * dst = (uint32_t *)buf;
+        for (unsigned i = 0; i < sizeof(buf) / 4; i++) dst[i] = src[i];
+        FIO_WriteFile(f, buf, sizeof(buf));
+    }
+    FIO_CloseFile(f);
+}
+#endif
 
 #ifdef FEATURE_BOOTFLAG_MENU
 static void bootflag_disable(void* priv, int delta)
@@ -724,6 +1485,85 @@ static void ambient_display(
 }
 #endif
 
+#ifdef CONFIG_R
+/* ---- METERING PROBE (Debug -> "Brightness probe"). Find a scene-brightness signal on the R. v1
+ * (PROP_BV via an M-mode half-press) never updated -- the R doesn't surface brightness in M mode.
+ * v2 watches the AUTO/metering properties the camera computes WHEN IT METERS:
+ *   SA = PROP_SHUTTER_AUTO   (the shutter it PICKS in Av mode -- the prime candidate)
+ *   IA = PROP_ISO_AUTO,  AA = PROP_APERTURE_AUTO,  LV = PROP_LV_BV (LiveView brightness),  BV = PROP_BV
+ * Runs ~2 min, half-pressing to meter each line. *** RUN IN Av MODE (set a fixed aperture) and vary
+ * the light. *** Whichever value TRACKS the light is our signal -- SA should: brighter scene -> faster
+ * picked shutter. -> ML/LOGS/BRIGHT.TXT */
+static const unsigned meter_props[] = {
+    PROP_SHUTTER, PROP_SHUTTER_AUTO, PROP_ISO_AUTO, PROP_AE, PROP_LV_BV, PROP_BV
+};
+#define METER_NPROP ((int)(sizeof(meter_props)/sizeof(meter_props[0])))
+static void *          meter_token = NULL;
+static volatile uint32_t meter_val[METER_NPROP];
+static volatile uint32_t meter_seq[METER_NPROP];
+static volatile int      meter_active = 0;
+static void meter_token_handler(void * token) { meter_token = token; }
+static void * meter_cb(unsigned property, void * priv, void * addr, unsigned len)
+{
+    extern void* _prop_cleanup(void* token, int property);
+    for (int i = 0; i < METER_NPROP; i++)
+    {
+        if (property == meter_props[i] && addr)
+        {
+            uint32_t w = 0;
+            unsigned c = len < 4 ? len : 4;
+            for (unsigned j = 0; j < c; j++) ((uint8_t *)&w)[j] = ((uint8_t *)addr)[j];
+            meter_val[i] = w; meter_seq[i]++;
+        }
+    }
+    return (void *)_prop_cleanup(meter_token, (int)property);
+}
+static void meter_start(void)
+{
+    if (meter_active) return;
+    meter_active = 1;
+    prop_register_slave((unsigned *)meter_props, METER_NPROP, meter_cb, NULL, meter_token_handler);
+}
+static void brightness_probe_task(void)
+{
+    static char b[10000]; int n = 0;
+    gui_stop_menu();
+    msleep(500);
+    meter_start();
+    n += snprintf(b + n, sizeof(b) - n,
+        "RUN IN LIVEVIEW + vary light. avgY = average luma of the LIVE IMAGE (0-255) = the real scene "
+        "brightness, straight off the sensor feed. lv=buffer w x h. LV_BV=PROP_LV_BV (backup).\n");
+    for (int i = 0; i < 90 && n < (int)sizeof(b) - 90; i++)  /* ~2.5 min */
+    {
+        msleep(1600);
+        /* average the luma of the LiveView YUV422 image -- this is the scene brightness itself,
+         * independent of the (uncooperative) meter. UYVY: Y in bytes 1 and 3 of each 32-bit word. */
+        int avg_y = -1, w = 0, h = 0;
+        struct vram_info * lv = get_yuv422_vram();
+        if (lv) { w = lv->width; h = lv->height; }
+        if (lv && lv->vram && lv->pitch > 0 && lv->height > 0)
+        {
+            const uint32_t * buf = (const uint32_t *)lv->vram;
+            int n32 = (lv->pitch * lv->height) / 4;
+            long sum = 0; int s = 0;
+            for (int p = 0; p < n32; p += 97)   /* sparse prime-ish stride */
+            {
+                uint32_t px = buf[p];
+                sum += ((((px >> 24) & 0xFF) + ((px >> 8) & 0xFF)) >> 1);   /* avg of the 2 Y's */
+                s++;
+            }
+            if (s) avg_y = (int)(sum / s);
+        }
+        n += snprintf(b + n, sizeof(b) - n,
+            "%d avgY=%d  (lv %dx%d)  LV_BV=0x%x/%d\n",
+            i, avg_y, w, h, (unsigned)meter_val[4], (int)meter_seq[4]);
+        FILE * f = FIO_CreateFile("ML/LOGS/BRIGHT.TXT");
+        if (f) { FIO_WriteFile(f, b, n); FIO_CloseFile(f); }
+    }
+    NotifyBox(3000, "LiveView luma probe done -> BRIGHT.TXT");
+}
+#endif
+
 #ifdef FEATURE_DEBUG_PROP_DISPLAY
 static CONFIG_INT("prop.i", prop_i, 0);
 static CONFIG_INT("prop.j", prop_j, 0);
@@ -1032,6 +1872,15 @@ static struct menu_entry debug_menus[] = {
         .select = run_in_separate_task,
         .priv = guimode_test,
         .help = "Cycle through all GUI modes and take screenshots.",
+    },
+#endif
+#ifdef CONFIG_R
+    {
+        .name        = "Brightness probe",
+        .priv        = brightness_probe_task,
+        .select      = run_in_separate_task,
+        .help  = "LIVEVIEW + vary light (~2.5min, passive): logs PROP_LV_BV vs the scene.",
+        .help2 = "Finds a metering signal for adaptive-exposure timelapse. -> BRIGHT.TXT.",
     },
 #endif
     MENU_PLACEHOLDER("Free Memory"),

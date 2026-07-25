@@ -23,6 +23,19 @@
 
 #include <dryos.h>
 #include <property.h>
+
+/* R MMU-remap fix (2026-06-18): dcache_clean_multicore is the inter-core cpu1 cache broadcast
+ * (Canon fn @0xE008E23E -- conditionally writes the inter-core sync reg 0xc1100730). It CRASHES on
+ * the R when called this early in mmu_init (inter-core HW not yet up). VERIFIED ON HARDWARE: build
+ * WITH it red-LEDs; build WITHOUT it boots ML fully. It is also unnecessary on the R: the remap is
+ * cpu0-only (CONFIG_INIT1_HIJACK is not defined, so cpu1 never takes the remapped tables), and
+ * dcache_clean (cpu0) already covers coherency for the cpu0 detour. Override the Canon stub (which
+ * is commented out in stubs.S) with a no-op so all 5 callers in the MMU code are safe. */
+void dcache_clean_multicore(uint32_t addr, uint32_t size)
+{
+    (void)addr;
+    (void)size;
+}
 #include <bmp.h>
 #include <config.h>
 #include <consts.h>

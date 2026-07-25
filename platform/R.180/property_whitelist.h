@@ -28,7 +28,9 @@
 // deny reads / do not register property handlers for these
 const uint32_t prop_handler_deny[] =
 {
-    PROP_ISO,
+    // PROP_ISO was a defensive carry-over (sister D8 cams tag it "FIXME not a confirmed problem").
+    // On the R a runtime PROP_ISO slave delivered fine + the handler now decodes the byte-1 code,
+    // so it is allowed (read) and written -- see prop_write_allow[] below.
     PROP_MVR_REC_START, // probably related to MVR stubs being all wrong
     PROP_LV_AFFRAME // so far crash only confirmed on Digic 8
 };
@@ -36,6 +38,18 @@ const uint32_t prop_handler_deny[] =
 // allow writes / allow prop_request_change() for these:
 const uint32_t prop_write_allow[] =
 {
+    // remote shutter (half/full press) for ML-triggered AF capture
+    PROP_REMOTE_SW1,
+    PROP_REMOTE_SW2,
+    // shutter speed: enables expo bracketing / expo override (shutter axis).
+    // R delivers PROP_SHUTTER as 2 bytes; value range coerced by prop_set_rawshutter.
+    PROP_SHUTTER,
+    // ISO: R delivers PROP_ISO as 4 bytes with the code in byte 1 (15=ISO100, +3/stop).
+    // prop_set_rawiso converts ML APEX raw -> that code; the handler decodes it back.
+    PROP_ISO,
+    // aperture: R delivers PROP_APERTURE as 2 bytes with the Av code in byte 1 (9=f/2.8, +3/stop).
+    // prop_set_rawaperture converts ML APEX raw -> that code; the handler decodes it back.
+    PROP_APERTURE,
     PROP_PICTURE_STYLE,
     PROP_PICSTYLE_SETTINGS_STANDARD,
     PROP_PICSTYLE_SETTINGS_PORTRAIT,

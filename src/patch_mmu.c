@@ -32,10 +32,15 @@
 //   0x300 padding
 //   0x400 per L2 table (0x400 aligned) // need one per 1MB region containing remaps
 // sizeof(struct mmu_L2_page_info)
+/* 2026-06-18 R FIX: the aligned(0x10000) attribute forced a huge linker-padding hole in BSS
+ * (removing the 86KB buffer freed 257KB), overrunning the R's tight user_mem -> red LED.
+ * calc_mmu_globals already aligns the L1 table / 64KB page WITHIN this buffer (via start_adjust),
+ * so the buffer itself needs NO 0x10000 alignment -- just MMU_PAGE_SIZE of slack for that internal
+ * alignment. Dropping the attribute removes the padding while keeping the remap functional. */
 static uint8_t generic_mmu_space[MMU_PAGE_SIZE + MMU_L1_TABLE_SIZE
                                  + 0x300 + MMU_L2_TABLE_SIZE
-                                 + sizeof(struct mmu_L2_page_info)]
-               __attribute__((aligned(0x10000)));
+                                 + sizeof(struct mmu_L2_page_info)
+                                 + MMU_PAGE_SIZE /* slack for internal 64KB alignment */];
 #endif
 
 #include "platform/mmu_patches.h"
