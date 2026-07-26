@@ -1054,7 +1054,7 @@ lens_take_picture(
     {
         lens_setup_af(should_af);
     }
-    
+
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -1066,7 +1066,7 @@ lens_take_picture(
     goto end;
 #else
     int took_pic = mlu_lock_mirror_if_needed();
-    if (took_pic) goto end;
+    if (took_pic) { goto end; }
 #endif
     
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
@@ -1090,6 +1090,40 @@ lens_take_picture(
     call("rssRelease");
     #elif defined(CONFIG_40D)
     call("FA_Release");
+    #elif defined(CONFIG_R)
+    /* On the R, call("Release") leaves the shooting job unfinalized -> "saving..."
+     * hang at power-off. SetEventIrRemoteReleaseBtn drives the CameraConductor
+     * remote-release path, which finalizes cleanly. (1 = press, 0 = release.)
+     *
+     * Bracket pacing: the camera DROPS a release issued while still busy with the
+     * previous frame; job_state's "busy" notification also lags ~2s on the first
+     * frame of a sequence -- so a ~2s settle is the reliable spacing (4/4 brackets).
+     * [A faster retry-until-accepted gate gave 5/5 for SINGLE shots but HUNG inside
+     * the bracket wrapper (AF-disabled context / rapid re-fire + file polling).
+     * Deferred -- reliability first; see eosr_port/PATH1_CAPTURE_STATE.md.] */
+    {
+        extern void SetEventIrRemoteReleaseBtn(int on);
+        SetEventIrRemoteReleaseBtn(1);
+        msleep(300);
+        SetEventIrRemoteReleaseBtn(0);
+    }
+    msleep(2000);   /* settle: covers the develop + the first-frame job_state lag */
+    for (int i = 0; i < 75 && lens_info.job_state != 0; i++)
+        msleep(20);
+    /* DO NOT do any FIO (card file I/O) here. Writing a log file to the card right after
+     * the release races the camera's OWN JPG write to the same card and INTERMITTENTLY
+     * DEADLOCKS -- frame 1's take_a_pic never returns, so a bracket/intervalometer stops at
+     * one shot (single shots survived because the photo was already saved). This was the
+     * regression behind "1 shot fired, then nothing." Verify bracket exposure from the
+     * photos (dark->bright on a high-contrast scene); PROP_SHUTTER variation is already
+     * proven by ML/LOGS/SHUTWR.TXT. See eosr_port/PATH1_CAPTURE_STATE.md. */
+    /* Return here, skipping the generic post-capture waits below. On the R those waits
+     * (esp. lens_wait_readytotakepic) STALL inside a bracket -- frame 1's take_a_pic never
+     * returns, so the bracket stops at one frame. The settle above is enough sequencing. */
+    if (should_af != AF_DONT_CHANGE)
+        lens_cleanup_af();
+    ml_taking_pic = 0;
+    return 1;
     #else
     call("Release");
     #endif
@@ -1495,6 +1529,25 @@ static void lensinfo_set_iso(int raw)
     update_stuff();
 }
 
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
+/* R PROP_SHUTTER hi-byte-Tv <-> ML APEX raw conversions (defined near prop_set_rawshutter). */
+static int ml_raw_to_r_shutter16(int ml_raw);
+static int r_shutter16_to_ml_raw(int rval);
+#endif
+
+#ifdef CONFIG_PROP_ISO_BYTE1
+/* R PROP_ISO byte-1-code <-> ML APEX raw conversions (defined near prop_set_rawiso). */
+static int ml_raw_to_r_iso(int ml_raw);
+static int r_iso_to_ml_raw(int rval);
+#endif
+
+#ifdef CONFIG_PROP_APERTURE_BYTE1
+/* R PROP_APERTURE byte-1 Av-code <-> ML APEX raw conversions (defined near prop_set_rawaperture). */
+static int ml_raw_to_r_aperture(int ml_raw);
+static int r_aperture_to_ml_raw(int rval);
+static int r_set_rawaperture(unsigned ml_raw);   /* prop_set_rawaperture (above the block) uses it */
+#endif
+
 static void lensinfo_set_shutter(int raw)
 {
     //~ bmp_printf(FONT_MED, 600, 100, "liss %d %d ", raw, caller);
@@ -1541,7 +1594,11 @@ extern int bv_auto;
 static int iso_ack = -1;
 PROP_HANDLER( PROP_ISO )
 {
+#ifdef CONFIG_PROP_ISO_BYTE1
+    if (!CONTROL_BV) lensinfo_set_iso(r_iso_to_ml_raw(buf[0]));  /* R: ISO code is in byte 1 */
+#else
     if (!CONTROL_BV) lensinfo_set_iso(buf[0]);
+#endif
     #ifdef FEATURE_EXPO_OVERRIDE
     else if 
         (
@@ -1603,7 +1660,11 @@ PROP_HANDLER( PROP_SHUTTER )
     if (!CONTROL_BV) 
     {
         if (shooting_mode != SHOOTMODE_AV && shooting_mode != SHOOTMODE_P)
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
+            lensinfo_set_shutter(r_shutter16_to_ml_raw(buf[0]));  /* R: decode hi-byte-Tv format */
+#else
             lensinfo_set_shutter(buf[0]);
+#endif
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0]  // sync expo override to Canon values
@@ -1633,7 +1694,11 @@ PROP_HANDLER( PROP_APERTURE )
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     if (!CONTROL_BV)
     {
+#ifdef CONFIG_PROP_APERTURE_BYTE1
+        lensinfo_set_aperture(r_aperture_to_ml_raw(buf[0]));  /* R: Av code is in byte 1 */
+#else
         lensinfo_set_aperture(buf[0]);
+#endif
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
@@ -2318,9 +2383,15 @@ void SW2(int v, int wait)
 
 static int prop_set_rawaperture(unsigned aperture)
 {
+#ifdef CONFIG_PROP_APERTURE_BYTE1
+    /* R: convert ML APEX raw -> R byte-1 Av code and write (len 2). The R clamps to the lens range
+     * itself; ML's raw_aperture_min/max are 0 on the R, so the generic COERCE below would clamp to
+     * [0,0]. The camera echoes its own format, so the readback==aperture check doesn't apply. */
+    return r_set_rawaperture(aperture);
+#else
     // Canon likes only numbers in 1/3 or 1/2-stop increments
     int r = aperture % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5 
+    if (r != 0 && r != 4 && r != 3 && r != 5
         && aperture != lens_info.raw_aperture_min && aperture != lens_info.raw_aperture_max)
     {
         return 0;
@@ -2330,6 +2401,7 @@ static int prop_set_rawaperture(unsigned aperture)
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
     prop_request_change_wait(PROP_APERTURE, &aperture, 4, 200);
     return lens_info.raw_aperture == aperture;
+#endif
 }
 
 static int prop_set_rawaperture_approx(unsigned new_av)
@@ -2356,8 +2428,102 @@ static int prop_set_rawaperture_approx(unsigned new_av)
     return 0;
 }
 
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
+/* The EOS R's PROP_SHUTTER is a 2-byte value whose HIGH byte is the shutter as a SIGNED Tv in
+ * 1/3-stop units (3 units per stop), 0 = 1" (verified on-camera: hi-byte +3 -> 0.5", -3 -> 2",
+ * +9 -> 1/8). ML's internal raw_shutter is APEX in 1/8-stop, raw 56 = 1" (Tv = (raw-56)/8).
+ * Convert between the two so ML keeps its own scale internally. (ML had been writing the value
+ * in the LOW byte -> the R always saw hi-byte 0 -> every shot came out 1".) */
+static int ml_raw_to_r_shutter16(int ml_raw)
+{
+    int tv3 = (int) roundf((ml_raw - 56) * 3.0f / 8.0f);   /* signed Tv in thirds of a stop */
+    tv3 = COERCE(tv3, -120, 120);
+    return (tv3 & 0xFF) << 8;                              /* code goes in the HIGH byte */
+}
+static int r_shutter16_to_ml_raw(int rval)
+{
+    int tv3 = (signed char)((rval >> 8) & 0xFF);           /* signed high byte */
+    return 56 + (int) roundf(tv3 * 8.0f / 3.0f);
+}
+static int r_set_rawshutter(unsigned ml_raw)
+{
+    /* Coerce into the valid range rather than failing: a bracket frame past the limit then
+     * captures AT the limit (e.g. 1/8000) instead of falling back to the base shutter, which
+     * would waste it as a duplicate of the center frame (seen when bracketing from a fast base). */
+    int raw = COERCE((int) ml_raw, 16, FASTEST_SHUTTER_SPEED_RAW);
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_shutter16(raw);
+    prop_request_change_wait(PROP_SHUTTER, &rval, 2, 100);
+    return 1;
+}
+#endif
+
+#ifdef CONFIG_PROP_ISO_BYTE1
+/* The EOS R's PROP_ISO is a 4-byte value whose ISO code lives in BYTE 1 (val = code << 8). The code
+ * is 15 = ISO 100, +3 per stop (1/3-stop units); code 0 = ISO Auto/unset. Verified on-camera: dialing
+ * stepped byte 1 through 0x0f..0x1b (15..27), one unit per 1/3 stop -- 15->100, 18->200, 27->1600.
+ * ML's internal raw_iso is APEX (raw 72 = ISO 100, 8 units/stop), so convert at the property boundary,
+ * same pattern as the PROP_SHUTTER hi-byte fix. (ML had been writing the code in byte 0, which the R
+ * ignores -> every write left the ISO at 100.) */
+static int ml_raw_to_r_iso(int ml_raw)
+{
+    if (ml_raw <= 0) return 0;                              /* ISO Auto / unset */
+    int code = 15 + (int) roundf((ml_raw - 72) * 3.0f / 8.0f);
+    code = COERCE(code, 1, 0xFE);                           /* keep in byte 1, never 0 (=Auto) */
+    return (code & 0xFF) << 8;
+}
+static int r_iso_to_ml_raw(int rval)
+{
+    int code = (rval >> 8) & 0xFF;
+    if (code == 0) return 0;                                /* ISO Auto / unset */
+    return 72 + (int) roundf((code - 15) * 8.0f / 3.0f);
+}
+static int r_set_rawiso(unsigned ml_raw)
+{
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_iso((int) ml_raw);
+    prop_request_change_wait(PROP_ISO, &rval, 4, 100);      /* R PROP_ISO is 4 bytes, code in byte 1 */
+    return 1;
+}
+#endif
+
+#ifdef CONFIG_PROP_APERTURE_BYTE1
+/* The EOS R's PROP_APERTURE is a 2-byte value whose Av code lives in BYTE 1 (val = code << 8). The
+ * code is 3 per stop: code = round(6*log2(N)) = round((ml_raw-8)*3/8) -- code 9=f/2.8, 18=f/8,
+ * 27=f/22 (verified on-camera: writing byte 1 drove the lens; the R clamps to the lens range [9,27]).
+ * ML's internal raw_aperture is APEX (8 per stop, f/1.0 = raw 8). Same byte-1 / *3/8 pattern as
+ * PROP_ISO; only the zero-offset differs (8 vs ISO's 72). The lens range isn't reported to ML on the
+ * R (raw_aperture_min/max stay 0), so we must NOT coerce to [0,0] -- the R clamps to the lens itself. */
+static int ml_raw_to_r_aperture(int ml_raw)
+{
+    if (ml_raw <= 0) return 0;
+    int code = (int) roundf((ml_raw - 8) * 3.0f / 8.0f);
+    code = COERCE(code, 1, 0xFE);
+    return (code & 0xFF) << 8;
+}
+static int r_aperture_to_ml_raw(int rval)
+{
+    int code = (rval >> 8) & 0xFF;
+    if (code == 0) return 0;
+    return 8 + (int) roundf(code * 8.0f / 3.0f);
+}
+static int r_set_rawaperture(unsigned ml_raw)
+{
+    lens_wait_readytotakepic(64);
+    int rval = ml_raw_to_r_aperture((int) ml_raw);
+    prop_request_change_wait(PROP_APERTURE, &rval, 2, 200);  /* R PROP_APERTURE is 2 bytes (APMAP.TXT) */
+    return 1;
+}
+#endif
+
 static int prop_set_rawshutter(unsigned shutter)
 {
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
+    /* R: convert ML APEX -> R hi-byte-Tv format and write directly. The generic readback/retry
+     * below assumes the camera echoes the same value it was given (ML format); the R echoes its
+     * own format, so we bypass that path. */
+    return r_set_rawshutter(shutter);
+#else
     // Canon likes numbers in 1/3 or 1/2-stop increments
     if (is_movie_mode())
     {
@@ -2365,7 +2531,7 @@ static int prop_set_rawshutter(unsigned shutter)
         if (r != 0 && r != 4 && r != 3 && r != 5)
             return 0;
     }
-    
+
     if (shutter < 16) return 0;
     if (shutter > FASTEST_SHUTTER_SPEED_RAW) return 0;
     
@@ -2373,7 +2539,7 @@ static int prop_set_rawshutter(unsigned shutter)
 
     int s0 = shutter;
     prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
-    
+
     if (lens_info.raw_shutter != s0 && !(CONTROL_BV && lv))
     {
         /* no confirmation? try set shutter 2 stops away from final value, and back */
@@ -2383,10 +2549,14 @@ static int prop_set_rawshutter(unsigned shutter)
     }
     
     return lens_info.raw_shutter == s0;
+#endif
 }
 
 static int prop_set_rawshutter_approx(unsigned shutter)
 {
+#ifdef CONFIG_PROP_SHUTTER_HI_BYTE
+    return r_set_rawshutter(shutter);
+#else
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
     
@@ -2398,7 +2568,7 @@ static int prop_set_rawshutter_approx(unsigned shutter)
      */
     prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
     int delta = (int)lens_info.raw_shutter - (int)shutter;
-    
+
     if (ABS(delta) == 2)
     {
         /* if we get a rounding error of 2, try altering the shutter speed by one;
@@ -2407,16 +2577,24 @@ static int prop_set_rawshutter_approx(unsigned shutter)
         prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
         delta = (int)lens_info.raw_shutter - (int)shutter;
     }
-    
+
     return ABS(delta) <= 1;
+#endif
 }
 
 static int prop_set_rawiso(unsigned iso)
 {
+#ifdef CONFIG_PROP_ISO_BYTE1
+    /* R: convert ML APEX raw -> R byte-1 code and write. The camera echoes its own format, so the
+     * generic readback==iso check below doesn't apply; r_set_rawiso writes and returns 1. */
+    if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO);
+    return r_set_rawiso(iso);
+#else
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
     prop_request_change_wait( PROP_ISO, &iso, 4, 100);
     return lens_info.raw_iso == iso;
+#endif
 }
 
 static int prop_set_rawiso_approx(unsigned iso)
