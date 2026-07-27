@@ -9,3 +9,6 @@ include $(TOP_DIR)/modules/Makefile
 
 # include cr2hdr makefile rules
 include Makefile.cr2hdr
+
+$(BUILD_DIR)/module_complete: $(BUILD_DIR)/cr2hdr
+	cp $(BUILD_DIR)/cr2hdr ./cr2hdr

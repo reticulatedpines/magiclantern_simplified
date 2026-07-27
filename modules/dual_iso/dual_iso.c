@@ -109,6 +109,11 @@ static int is_650d = 0;
 static int is_700d = 0;
 static int is_eosm = 0;
 static int is_1100d = 0;
+static int is_1300d = 0;
+
+static uint16_t backup_1300d_photo = 0;
+static uint32_t backup_1300d_photo_addr = 0;
+static int backup_1300d_valid = 0;
 
 static uint32_t FRAME_CMOS_ISO_START = 0;
 static uint32_t FRAME_CMOS_ISO_COUNT = 0;
@@ -401,6 +406,90 @@ end:
     return result;
 }
 
+static int patch_cmos_iso_values_1300d(uint32_t start_addr, int item_size, int count)
+{
+    (void)start_addr;
+    (void)item_size;
+    (void)count;
+
+    /*
+     * 1300D PHOTO temp CMOS table found from adtg_log:
+     * ISO100  @40585080 = 0000
+     * ISO200  @40585092 = 0024
+     * ISO400  @405850A4 = 0048
+     * ISO800  @405850B6 = 006C
+     * ISO1600 @405850C8 = 0090
+     * ISO3200 @405850DA = 00B4
+     *
+     * size = 0x12
+     */
+    uint32_t temp_base;
+    uint32_t temp_size;
+
+    if (start_addr == PHOTO_CMOS_ISO_START)
+    {
+        temp_base = 0x40585080;
+        temp_size = 0x12;
+    }
+    else
+    {
+        temp_base = 0x405863FC;
+        temp_size = 0x1E;
+    }
+
+    int cur_index = (lens_info.iso_analog_raw - 72) / 8;
+    int alt_index = get_alternate_iso_index();
+
+    cur_index = COERCE(cur_index, 0, 5);
+    alt_index = COERCE(alt_index, 0, 5);
+
+    uint32_t cur_addr = temp_base + cur_index * temp_size;
+
+    uint16_t *cur = (uint16_t *)cur_addr;
+    uint16_t old = *cur;
+
+    static const uint16_t iso_words[6] = {
+        0x0000, 0x0024, 0x0048, 0x006C, 0x0090, 0x00B4
+    };
+
+    uint16_t alt = iso_words[alt_index];
+
+    /*
+     * 1300D encoding:
+     * bits 0..1 = flags
+     * bits 2..4 = ISO field 1
+     * bits 5..7 = ISO field 2
+     *
+     * Pentru Dual ISO păstrăm ISO2 din ISO curent și înlocuim ISO1
+     * cu Recovery ISO.
+     *
+     * ISO800/ISO100:
+     * old 006C -> patched 0060
+     */
+    uint16_t patched = (old & ~0x001C) | (alt & 0x001C);
+
+    backup_1300d_photo_addr = cur_addr;
+    backup_1300d_photo = old;
+    backup_1300d_valid = 1;
+
+    *cur = patched;
+
+    NotifyBox(3000, "1300D DISO %04X->%04X", old, patched);
+
+    return 0;
+}
+
+static int unpatch_cmos_iso_values_1300d(void)
+{
+    if (backup_1300d_valid && backup_1300d_photo_addr)
+    {
+        *(uint16_t *)backup_1300d_photo_addr = backup_1300d_photo;
+        backup_1300d_valid = 0;
+    }
+
+    return 0;
+}
+
 // start_addr should be the address of one of the arrays of ADTG command values,
 // which encode, amongst other things, the ISO values.
 // There is a different array for photo and video.
@@ -431,6 +520,11 @@ static int dual_iso_enable(uint32_t start_addr, int size, int count, uint32_t* b
                 msleep(20);
             start_addr = (uint32_t) local_buf + 2; /* our numbers are aligned at 16 bits, but not at 32 */
         }
+
+        if (is_1300d)
+{
+    return patch_cmos_iso_values_1300d(start_addr, size, count);
+}
 
         // SJE FIXME this is rather ugly, making 200D special and skipping the function body.
         //
@@ -573,7 +667,10 @@ static int dual_iso_disable(uint32_t start_addr, int size, int count, uint32_t* 
         while(wait) msleep(20);
         start_addr = (uint32_t) local_buf + 2;
     }
-
+if (is_1300d)
+{
+    return unpatch_cmos_iso_values_1300d();
+}
     // undo our patches
     if (is_200d)
     {
@@ -1608,6 +1705,21 @@ static unsigned int dual_iso_init()
         CMOS_FLAG_BITS = 5;
         CMOS_EXPECTED_FLAG = 0;
     }
+    else if (is_camera("1300D", "1.1.0"))
+{
+    is_1300d = 1;
+    PHOTO_CMOS_ISO_START = 0x40586348;
+    PHOTO_CMOS_ISO_COUNT = 6;
+    PHOTO_CMOS_ISO_SIZE  = 20;
+
+    FRAME_CMOS_ISO_START = 0x405863FC;
+    FRAME_CMOS_ISO_COUNT = 6;
+    FRAME_CMOS_ISO_SIZE  = 30;
+
+    CMOS_ISO_BITS = 3;
+    CMOS_FLAG_BITS = 2;
+    CMOS_EXPECTED_FLAG = 0;
+}
 
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
     {

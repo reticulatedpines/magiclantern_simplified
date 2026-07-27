@@ -111,6 +111,11 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 // NB: instructions not tested with current code...  If they work,
 // please remove this part of the comment.
 
+#ifdef CONFIG_1300D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x37930 + 0x30))     /*0xfe1a3d6c how much do we have allocated? */
+#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024     /* is this really overwritten by other code? needs some investigation */
+#endif
+
 #ifndef DEFAULT_RAW_BUFFER_SIZE
 /* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
 #pragma message "FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE"
@@ -158,7 +163,7 @@ static volatile struct edmac_mmio *raw_lv_edmac = (struct edmac_mmio *)RAW_LV_ED
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_7D)
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_60D) || defined(CONFIG_550D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_1200D) || defined(CONFIG_7D) || defined(CONFIG_1300D)
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
@@ -493,6 +498,19 @@ static int get_default_white_level()
      -797, 10000,    2424, 10000,   7010, 10000
 #endif
 
+#ifdef CONFIG_1300D
+	// PLACEHOLDER DATA FROM 600D TO BUILD HELLOWORLD
+        //~as seen here https://fossies.org/linux/darktable/src/external/adobe_coeff.c
+        //~ { "Canon EOS 1300D", 0, 0x3510,
+        //~ { 6461,-907,-882,-4300,12184,2378,-819,1944,5931 } },
+	//{ "Canon EOS 1300D", { 6939,-1016,-866,-4428,12473,2177,-1175,2178,6162 } },
+//      6461, 10000,     -907, 10000,    -882, 10000,    -4300, 10000,    12184, 10000,    2378, 10000,      -819, 10000,     1944, 10000,    5931, 10000
+    #define CAM_COLORMATRIX1                       \
+     6939, 10000,      -1016, 10000,    -886, 10000, \
+    -4428, 10000,    12473, 10000,    2177, 10000, \
+    -1175, 10000,     2178, 10000,    6162, 10000
+#endif
+
 struct raw_info GUARDED_BY(raw_sem) raw_info = {
     .api_version = 1,
     .bits_per_pixel = 14,
@@ -591,6 +609,10 @@ static int dynamic_ranges[] = {1233, 1180, 1093, 1008, 921, 837, 756, 648, 560};
 // SJE FIXME - dxomark didn't have 850D listed, check again in the future.
 // For now, copied from R.
 static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
+#endif
+
+#ifdef CONFIG_1300D
+static int dynamic_ranges[] = {1112, 1080, 1038, 984, 917, 834, 733, 655};
 #endif
 
 #ifdef CONFIG_100D
@@ -1059,6 +1081,13 @@ int raw_update_params_work()
         skip_left   = 100;
         #endif
 
+        #ifdef CONFIG_1300D
+        skip_top    = 28;
+        skip_left   = zoom ? 0 : 154;
+        skip_right  = zoom ? 0 : 4;
+        skip_bottom = zoom ? 4 : 0;
+        #endif
+
         #if defined(CONFIG_70D)
         skip_top    = 28;
         skip_left   = 144; // 146 could work, too
@@ -1129,7 +1158,7 @@ int raw_update_params_work()
         height--;
         #endif
 
-        #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D)
+        #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1300D)
         skip_left = 142;
         skip_top = 52;
         #endif

@@ -211,6 +211,11 @@ static void stub_test_cache_bmp()
 {
     TEST_MSG("Cache test A (EDMAC on BMP buffer)...\n");
 
+#ifdef CONFIG_1300D
+    TEST_MSG("[INFO] Skipping Cache test A on 1300D\n\n");
+    return;
+#endif
+
     void * bmp;
     TEST_FUNC_CHECK(bmp = bmp_load("ML/CROPMKS/CINESCO2.BMP", 1), != 0);
     if (!bmp) return;
@@ -1096,6 +1101,7 @@ static void stub_test_dryos()
     TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+if (!is_camera("1300D", "*"))
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 }
 

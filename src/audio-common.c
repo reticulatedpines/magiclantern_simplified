@@ -1096,11 +1096,13 @@ PROP_HANDLER( PROP_LV_ACTION )
     enable_meters( mode );
 }
 
+#if defined(CONFIG_AUDIO_CONTROLS) || defined(CONFIG_600D) || defined(CONFIG_7D)
 PROP_HANDLER( PROP_MVR_REC_START )
 {
     const unsigned mode = buf[0];
     enable_recording( mode );
 }
+#endif
 
 
 

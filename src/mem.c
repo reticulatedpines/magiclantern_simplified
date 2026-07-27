@@ -1147,7 +1147,11 @@ static void guess_free_mem_task(void *priv, int delta)
 //    bin_search(1, 72, stack_size_crit);
     bin_search(1, 72, stack_size_crit);
 #else
+#ifdef CONFIG_1300D
+    bin_search(1, 256, stack_size_crit);
+#else
     bin_search(1, 1024, stack_size_crit);
+#endif
 #endif
 
     /* we won't keep these things allocated much, so we can pause malloc activity while running this (just so nothing will fail) */

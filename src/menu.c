@@ -4933,7 +4933,7 @@ static struct msg_queue *menu_redraw_queue = 0;
 static void
 menu_redraw_task()
 {
-    DryosDebugMsg(0, 15, "starting menu_redraw_task");
+//    DryosDebugMsg(0, 15, "starting menu_redraw_task");
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
@@ -5218,6 +5218,22 @@ handle_ml_menu_keys(struct event * event)
 
     int menu_needs_full_redraw = 0; // if true, do not allow quick redraws
     
+    #ifdef CONFIG_1300D
+    if (BGMT_TRASH_MOVIE_1300D)
+    {
+        if (lv && is_movie_mode() && SUBMENU_OR_EDIT)
+        {
+            submenu_level = 0;
+            edit_mode = 0;
+            menu_lv_transparent_mode = 0;
+            menu_help_active = 0;
+            return 0;
+        }
+        give_semaphore(gui_sem);
+        return 0;
+    }
+    #endif
+
     switch( button_code )
     {
     case BGMT_MENU:
@@ -5661,7 +5677,7 @@ static void menu_open()
     if (menu_shown)
         return;
 
-    DryosDebugMsg(0, 15, "in menu_open");
+//    DryosDebugMsg(0, 15, "in menu_open");
     
     // start in my menu, if configured
     /*
