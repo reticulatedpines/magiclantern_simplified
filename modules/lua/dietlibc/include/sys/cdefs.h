@@ -111,4 +111,36 @@
 #define __attribute_formatarg__(x) __attribute__((format_arg(x)))
 #endif
 
+/* lua does not bundle a setjmp.h, so lua/ldo.c's #include <setjmp.h>
+ * reaches the toolchain's.  That header then does #include <sys/cdefs.h>
+ * with angle brackets, which -Idietlibc/include/ resolves to *this* file
+ * rather than the toolchain's own.  The macros it expects are therefore
+ * undefined, and the declarations fail to parse - the whole ldo.c error
+ * cascade starts here.  See issue #286.
+ *
+ * newlib avoided this by using a quoted #include "_ansi.h", which cannot
+ * be shadowed; picolibc (the default target libc from gcc 15 on) uses
+ * angle brackets, which is why this only began failing recently.
+ *
+ * Different picolibc versions spell these differently, so define the lot.
+ * The real fix is to stop system headers leaking into the module build at
+ * all (-nostdinc plus a complete bundled header set), but that is a much
+ * larger change.
+ */
+#ifndef _BEGIN_STD_C
+#define _BEGIN_STD_C
+#endif
+#ifndef _END_STD_C
+#define _END_STD_C
+#endif
+#ifndef __dead2
+#define __dead2 __attribute__((__noreturn__))
+#endif
+#ifndef __noreturn
+#define __noreturn __attribute__((__noreturn__))
+#endif
+#ifndef __returns_twice
+#define __returns_twice __attribute__((__returns_twice__))
+#endif
+
 #endif
