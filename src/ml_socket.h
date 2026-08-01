@@ -7,6 +7,12 @@
 // I didn't want to call it socket.h, because that conflicts with a system library,
 // and ML code has a bad habit of using <blah.h> for non-system libs
 
+// for fd_set and struct timeval, used by socket_select_caller() below.
+// We used to get these by luck, via whatever the includer had already
+// pulled in; newlib 4.5 and earlier happened to provide them transitively,
+// newlib 4.6 and picolibc do not.
+#include <sys/select.h>
+
 static const int16_t SOCK_FAMILY_IPv4 = 0x100; // network order 1
 static const int16_t SOCK_FAMILY_IPv6 = 0x200;
 static const int16_t SOCK_FAMILY_ETH = 0x300;
