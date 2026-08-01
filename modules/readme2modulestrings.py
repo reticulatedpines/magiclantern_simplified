@@ -4,6 +4,7 @@
 import sys, re
 import subprocess
 import os
+import shutil
 from datetime import datetime
 
 from align_string_proportional import word_wrap
@@ -61,9 +62,7 @@ def declare_string_section():
     
 def is_command_available(name):
     """Check if command `name` is on PATH."""
-    import distutils.spawn
-    from distutils.spawn import find_executable
-    return find_executable(name) is not None
+    return shutil.which(name) is not None
 
 # return the first command of the list that can be found on the OS
 def get_command_of(commands):
