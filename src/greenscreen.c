@@ -77,7 +77,7 @@ void green_screen_step()
       uint16_t * const b_row = (uint16_t*)( bm        + BM_R(y)       );  // 2 pixels
       uint16_t * const m_row = (uint16_t*)( bm_mirror + BM_R(y)       );  // 2 pixels
       
-      uint8_t* lvp; // that's a moving pointer through lv vram
+      uint8_t* UNUSED_ATTR(lvp); // that's a moving pointer through lv vram
       uint16_t* bp;  // through bmp vram
       uint16_t* mp;  // through mirror
       

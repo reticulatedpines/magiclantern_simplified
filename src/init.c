@@ -509,7 +509,8 @@ static void my_big_init_task()
     extern struct task_create _tasks_end[];
     struct task_create * task = _tasks_start;
 
-    int ml_tasks = 0;
+    /* counts the ML tasks created; kept for documentation and future use */
+    int UNUSED_ATTR(ml_tasks) = 0;
     for( ; task < _tasks_end ; task++ )
     {
 #if defined(POSITION_INDEPENDENT)

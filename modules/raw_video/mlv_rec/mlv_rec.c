@@ -3436,7 +3436,8 @@ static void raw_video_rec_task()
         }
 
         uint32_t used_slots = 0;
-        uint32_t writing_slots = 0;
+        /* kept for the commented-out trace_write below */
+        uint32_t UNUSED_ATTR(writing_slots) = 0;
         uint32_t queued_writes = 0;
 
         /* this will enable the vsync CBR and the other task(s) */

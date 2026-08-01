@@ -379,7 +379,12 @@ task_create_##ENTRY = { \
 
 extern int ml_shutdown_requested;
 
-#define TASK_LOOP for (int k = 0; !ml_shutdown_requested ; k++)
+/* k is a loop counter most task loops never read, but some do
+ * (e.g. idle_led_blink_step(k) in zebra.c), so it cannot be removed.
+ * gcc 16 warns (set-but-not-used) at every call site that ignores it,
+ * where 15 and earlier did not, and we build with -Werror.
+ */
+#define TASK_LOOP for (int UNUSED_ATTR(k) = 0; !ml_shutdown_requested ; k++)
 
 
 const char * get_task_name_from_id(int id);

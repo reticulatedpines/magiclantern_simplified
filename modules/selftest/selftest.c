@@ -1375,7 +1375,8 @@ static void thread_test_task(void* arg)
 
 static void rpc_test_task(void* unused)
 {
-    uint32_t loops = 0;
+    /* counts the RPC pings sent; kept for documentation and future use */
+    uint32_t UNUSED_ATTR(loops) = 0;
 
     ml_rpc_verbose(1);
     while(1)

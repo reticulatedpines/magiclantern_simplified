@@ -58,7 +58,12 @@ asm(
 static void busy_wait(int n)
 {
     int i,j;
-    static volatile int k = 0;
+    /* k is written but never read; it exists only so the delay loop is
+     * not optimised away.  gcc 16 warns about it (set-but-not-used) even
+     * though k is volatile, where 15 and earlier did not, and we build
+     * with -Werror.
+     */
+    static volatile int UNUSED_ATTR(k) = 0;
     for (i = 0; i < n; i++)
         for (j = 0; j < 100000; j++)
             k++;

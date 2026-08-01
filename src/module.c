@@ -52,7 +52,8 @@ static int module_load_symbols(TCCState *s, char *filename)
     uint32_t size = 0;
     FILE* file = NULL;
     char *buf = NULL;
-    uint32_t count = 0;
+    /* counts the symbols loaded; kept for documentation and future use */
+    uint32_t UNUSED_ATTR(count) = 0;
     uint32_t pos = 0;
 
     if( FIO_GetFileSize( filename, &size ) != 0 )

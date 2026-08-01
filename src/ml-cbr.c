@@ -224,7 +224,9 @@ int ml_unregister_cbr(const char* event, cbr_func cbr) {
     LOCK(ml_cbr_lock);
     struct cbr_record * record = find_record(event, 0);
     int retval = -1;
-    int count = 0;
+    /* only read by dbg_printf below, which compiles to nothing
+     * unless CBR debugging is enabled */
+    int UNUSED_ATTR(count) = 0;
     if (record == NULL) {
         dbg_printf("Unknown event %s\n", event);
         retval = -1;

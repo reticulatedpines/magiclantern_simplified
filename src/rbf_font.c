@@ -402,7 +402,8 @@ static int rbf_draw_string_simple(font *rbf_font, int x, int y, const char *str,
 //-------------------------------------------------------------------
 static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str, int fontspec, int maxlen)
 {
-    int i = 0;
+    /* counts the chars drawn; kept for documentation and future use */
+    int UNUSED_ATTR(i) = 0;
     int l = 0;
     
     int justified = (fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_JUSTIFIED;

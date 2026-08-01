@@ -224,7 +224,9 @@ int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int total_wid
 static REQUIRES(lvinfo_sem)
 int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int total_width)
 {
-    int used_items = 0;
+    /* counted like the sibling functions above, but this one squeezes by
+     * priority rather than dividing space; kept for documentation and future use */
+    int UNUSED_ATTR(used_items) = 0;
     int used_width = 0;
     for (int i = 0; i < count; i++)
     {
