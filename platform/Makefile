@@ -380,6 +380,7 @@ ML_SRC_OBJS_00 = \
     chdk-dng.o \
     edmac-memcpy.o \
     sd.o \
+    sd_overclock.o \
     cache_hacks.o \
     patch.o \
     picstyle.o \
