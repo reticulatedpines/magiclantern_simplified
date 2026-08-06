@@ -153,6 +153,10 @@ static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_PANNING (dolly_mode == 1)
 
 static CONFIG_INT("raw.preview", preview_mode, 0);
+/* DIGIC 4 lossless soft preview: 0 = off, 1 = gray ~5 fps, 2 = color ~2.5 fps */
+static CONFIG_INT("raw.d4.soft.preview", d4_soft_preview_mode, 1);
+#define D4_SOFT_PREVIEW_OFF   (d4_soft_preview_mode == 0)
+#define D4_SOFT_PREVIEW_COLOR (d4_soft_preview_mode == 2)
 #define PREVIEW_AUTO   (preview_mode == 0)
 #define PREVIEW_CANON  (preview_mode == 1)
 #define PREVIEW_ML     (preview_mode == 2)
@@ -2188,6 +2192,16 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void unhack_liveview_vsync(int unused);
 
+/* Digic 4 lossless freezes Canon's Evf display branch (shared JPCORE). Defined
+ * early so hack_liveview_vsync can silence the LV EDMACs the same way Frozen LV
+ * does. Soft preview then paints into whatever buffer the LCD is already
+ * scanning (raw_preview dest -1). */
+static int d4_lossless_preview_active(void)
+{
+    return get_digic_version() == 4 && OUTPUT_COMPRESSION && RAW_IS_RECORDING
+        && !D4_SOFT_PREVIEW_OFF;
+}
+
 static REQUIRES(LiveViewTask)
 void FAST hack_liveview_vsync()
 {
@@ -2227,7 +2241,7 @@ void FAST hack_liveview_vsync()
         }
     }
     
-    if (!PREVIEW_HACKED) return;
+    if (!PREVIEW_HACKED && !d4_lossless_preview_active()) return;
     
     if (RAW_IS_RECORDING && frame_count == 0)
     {
@@ -4326,8 +4340,8 @@ static struct menu_entry raw_video_menu[] =
                 .max = 3,
                 .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
                 .help  = "Raw video preview (long half-shutter press to override):",
-                .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Plain old LiveView (color and real-time). Framing is not always correct.\n"
+                .help2 = "Auto: ML chooses what's best for each video mode. On DIGIC 4 lossless, this preview is replaced by 'Soft preview' while recording.\n"
+                         "Plain old LiveView (color and real-time). Freezes during DIGIC 4 lossless; Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
                          "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
                 .depends_on = DEP_GLOBAL_DRAW,
@@ -4397,6 +4411,17 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
+            },
+            {
+                .name = "Soft preview",
+                .priv = &d4_soft_preview_mode,
+                .max = 2,
+                .choices = CHOICES("OFF", "Gray (5 fps)", "Color (2.5 fps)"),
+                .help  = "DIGIC 4 lossless only: repaint LiveView while recording.",
+                .help2 = "OFF: Canon LiveView stays frozen from the first encode.\n"
+                         "Gray: cheap grayscale repaint, about 5 fps.\n"
+                         "Color: ~16x the CPU of gray, so it repaints at half the rate.\n",
                 .advanced = 1,
             },
             {
@@ -4609,6 +4634,14 @@ static int raw_rec_should_preview(void)
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
 
+    /* Digic 4 lossless does not use the display-filter preview: the core only
+     * invokes CBR_DISPLAY_FILTER when display_filter_get_buffers() can hand out
+     * a source buffer, and that requires REG_EDMAC_WRITE_LV_ADDR to keep moving.
+     * LiveView is frozen (and we silence those EDMACs ourselves), so the address
+     * is static and the CBR is never called with a paint request.
+     * d4_soft_preview_task paints instead. */
+    if (d4_lossless_preview_active()) return 0;
+
     /* framing is incorrect in modes with high resolutions
      * (e.g. x5 zoom, crop_rec) */
     int raw_active_width = raw_info.active_area.x2 - raw_info.active_area.x1;
@@ -4680,6 +4713,73 @@ static int raw_rec_should_preview(void)
     return 0;
 }
 
+/* Digic 4 lossless soft preview: best-effort ~5 Hz paint from our own task.
+ *
+ * This cannot ride CBR_DISPLAY_FILTER. The core only issues a paint request when
+ * display_filter_get_buffers() yields a source buffer, and that source is "the
+ * previous LV buffer", detected by watching REG_EDMAC_WRITE_LV_ADDR change. Once
+ * the first encode freezes Evf (and once we silence the LV EDMACs), that address
+ * is constant, so src_buf stays NULL and module_display_filter_update() skips
+ * the handler forever.
+ *
+ * Painting from a private task also drops the Global Draw / zebra dependency. */
+static EXCLUDES(settings_sem)
+void d4_soft_preview_paint(void)
+{
+    int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+    int free_slots = count_free_slots();
+
+    /* A non-empty writing queue is the healthy steady state, not backlog.
+     * Skip only on real backlog. */
+    int backlog = queued_frames > valid_slot_count / 2;
+    int slots_low = free_slots <= valid_slot_count / 4;
+    int soft_skip = backlog || slots_low || buffer_full;
+
+    if (soft_skip)
+    {
+        msleep(400);
+        return;
+    }
+
+    static int fi = 0; fi = !fi;
+
+    take_semaphore(settings_sem, 0);
+
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
+    raw_force_aspect_ratio(0, 0);
+
+    /* Color costs roughly 16x gray: full-res vertically, twice the columns, and
+     * 6 raw reads plus rgb2yuv422() per output pixel instead of one LUT. Half
+     * shutter promotes gray to color for a focus check. */
+    int color = D4_SOFT_PREVIEW_COLOR || get_halfshutter_pressed();
+    int quality = color
+        ? RAW_PREVIEW_COLOR_HALFRES
+        : RAW_PREVIEW_GRAY_ULTRA_FAST;
+
+    /* dest -1 resolves to YUV422_LV_BUFFER_DISPLAY_ADDR inside raw.c: one paint,
+     * into the buffer the panel is scanning. */
+    raw_preview_fast_ex(fullsize_buffers[fi], (void *)-1, -1, -1, quality);
+
+    give_semaphore(settings_sem);
+
+    /* color is far heavier, so give the recorder twice as much room between paints */
+    msleep(color ? 400 : 200);
+}
+
+static void d4_soft_preview_task(void)
+{
+    TASK_LOOP
+    {
+        if (!d4_lossless_preview_active())
+        {
+            msleep(200);
+            continue;
+        }
+
+        d4_soft_preview_paint();
+    }
+}
+
 static REQUIRES(LiveVHiPrioTask) EXCLUDES(settings_sem)
 unsigned int raw_rec_update_preview(unsigned int ctx)
 {
@@ -4698,8 +4798,9 @@ unsigned int raw_rec_update_preview(unsigned int ctx)
         return enabled;
     }
 
-    /* only consider speed when the recorder is actually busy */
     int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+
+    /* only consider speed when the recorder is actually busy */
     int need_for_speed = (RAW_IS_RECORDING) && (
         (PREVIEW_HACKED && queued_frames > valid_slot_count / 8) ||
         (queued_frames > valid_slot_count / 4)
@@ -4720,9 +4821,15 @@ unsigned int raw_rec_update_preview(unsigned int ctx)
     /* when recording, preview both full-size buffers,
      * to make sure it's not recording every other frame */
     static int fi = 0; fi = !fi;
+    /* Frozen LV paints into the buffer the LCD is already scanning. */
+    void * dst = buffers->dst_buf;
+    if (PREVIEW_HACKED && RAW_IS_RECORDING)
+    {
+        dst = (void *)-1;
+    }
     raw_preview_fast_ex(
         RAW_IS_RECORDING ? fullsize_buffers[fi] : (void*)-1,
-        PREVIEW_HACKED && RAW_IS_RECORDING ? (void*)-1 : buffers->dst_buf,
+        dst,
         -1,
         -1,
         (need_for_speed && !get_halfshutter_pressed())
@@ -4851,6 +4958,11 @@ static unsigned int raw_rec_init()
 
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
 
+    /* Low priority: the soft preview must never delay capture or encode.
+     * Stack must clear raw_preview_color_work's two 1024-byte gamma tables plus
+     * call frames; a 0x800 stack crashed the camera as soon as Color was picked. */
+    task_create("d4_soft_preview", 0x1F, 0x2000, d4_soft_preview_task, (void*)0);
+
     return 0;
 }
 
@@ -4884,6 +4996,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(card_spanning)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
+    MODULE_CONFIG(d4_soft_preview_mode)
     MODULE_CONFIG(use_srm_memory)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
