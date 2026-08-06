@@ -2137,8 +2137,15 @@ void FAST raw_lv_vsync()
         if (lv_raw_gain)
         {
             /* optional - adjust digital gain */
-            /* fixme: hardcoded for 5D3 */
+            /* The raw type override is a DIGIC 5 value. On DIGIC 4
+             * RAW_TYPE_REGISTER is PACK32_ISEL, where the CCD selector is 0x5
+             * (PREFERRED_RAW_TYPE) and 0x12 picks a different input entirely -
+             * the same register mlv_lite zeroes to fix the pink preview. Writing
+             * it here also fought the lv_raw_type write just above, every frame.
+             * So leave the type alone on DIGIC 4 and only set the gain. */
+            #ifndef CONFIG_DIGIC_IV
             EngDrvOut(RAW_TYPE_REGISTER, 0x12);
+            #endif
             EngDrvOut(SHAD_GAIN_REGISTER, lv_raw_gain);
         }
 
@@ -2163,12 +2170,19 @@ void FAST raw_lv_vsync()
 /* this gain must not (!) change the raw data */
 int _raw_lv_get_iso_post_gain()
 {
+#ifdef CONFIG_DIGIC_IV
+    /* On DIGIC 4 the ISO boost that accompanies digital gain does change the
+     * raw data, so there is nothing to correct in metadata. Returning the D5
+     * reciprocal made 12-bit clips ~4x too bright and 11-bit ~8x. */
+    return 1;
+#else
     if (lv_raw_gain)
     {
         return 4096 / lv_raw_gain;
     }
 
     return 1;
+#endif
 }
 
 #endif // CONFIG_EDMAC_RAW_SLURP

@@ -166,7 +166,24 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
         _lv_vsync_signal();
 #elif defined(CONFIG_600D)
-    if (self == EVF_STATE && old_state == 5) {  
+    if (self == EVF_STATE && old_state == 5) {
+        /* Borrowing JPCORE for lossless encoding makes every LiveView frame
+         * report an EngineError (EvfState +0x28). Untouched Evf never sets a
+         * single bit here, so this is inert until something steals the core;
+         * then, without a trim, 32 consecutive errors hit EvfState.c:1190 and
+         * ASSERT the camera in about a second. Trim once 20 of 32 bits are set,
+         * keeping the low half so the recent pattern stays readable. */
+        if ((uint32_t) x >= 0x10000 && (uint32_t) x < 0x20000000)
+        {
+            volatile uint32_t * hist = (volatile uint32_t *)((uint32_t) x + 0x28);
+            uint32_t v = *hist;
+            uint32_t c = v - ((v >> 1) & 0x55555555);
+            c = (c & 0x33333333) + ((c >> 2) & 0x33333333);
+            c = (c + (c >> 4)) & 0x0F0F0F0F;
+            c = (c * 0x01010101) >> 24;
+            if ((int) c >= 20)
+                *hist = v & 0x0000FFFF;
+        }
         //600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
         _lv_vsync_signal();
     }
