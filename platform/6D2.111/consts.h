@@ -131,6 +131,16 @@ extern int winsys_bmp_dirty_bit_neg;
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
 
+// Recording time limits, in ms, in a literal pool in ROM0.
+// Both are read by a two-armed getter at 0xe042fee8: the beq at 0xe042fef0
+// selects normal vs high FPS, and each arm is an "ldr r0, [pc, #128]".
+// Located by searching ROM0 for 1799000 (29m59s) and 449000 (7m29s): each byte
+// pattern occurs exactly once in the whole 32MB image, adjacent and in this
+// order, so there is no competing candidate. Verified by decoding both literal
+// loads and confirming their computed targets.
+#define MVR_TIME_LIMIT_NORMAL_FPS 0xe042ff74
+#define MVR_TIME_LIMIT_HIGH_FPS 0xe042ff78
+
 
 // SJE new stuff added after we have ML menus working!
 // Not needed for early code.

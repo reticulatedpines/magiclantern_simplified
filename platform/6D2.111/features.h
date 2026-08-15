@@ -36,4 +36,8 @@
 
 #define CONFIG_AUTOBACKUP_ROM
 
+// We are able to override the MOV / MP4 29:59 limit
+// (needs MVR_TIME_LIMIT_NORMAL_FPS / MVR_TIME_LIMIT_HIGH_FPS in consts.h)
+#define FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+
 #undef CONFIG_ADDITIONAL_VERSION
