@@ -313,7 +313,17 @@ void log_start()
 #endif
     qprintf("Logging buffer: %X - %X\n", buf, buf + buf_size - 1);
     qprintf("Free memory: %X\n", GetFreeMemForAllocateMemory());
-    while (!buf);
+    if (!buf)
+    {
+        /* Allocation failed.  This used to be "while (!buf);" - an infinite
+         * spin inside boot_post_init_task with no LED and no display,
+         * indistinguishable from a bricked camera.  Give up on logging
+         * instead: my_DebugMsg() drops everything while buf is NULL, and
+         * log_finish() returns early for the same case, so the camera
+         * boots normally, just without a startup log. */
+        buf_size = 0;
+        return;
+    }
 
     /* override Canon's DebugMsg (requires RAM address) */
     uint32_t old_int = cli();
@@ -359,6 +369,11 @@ void log_start()
 
 void log_finish()
 {
+    /* log_start() bailed out on allocation failure: nothing was patched or
+     * installed, so there is nothing to undo and nothing to save. */
+    if (!buf)
+        return;
+
 #ifdef CONFIG_MMIO_TRACE
     io_trace_uninstall();
     io_trace_dump();
