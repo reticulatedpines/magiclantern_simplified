@@ -67,7 +67,7 @@ static void my_DebugMsg(int class, int level, char* fmt, ...)
     const char *task_name = get_current_task_name();
     
     /* Canon's vsnprintf doesn't know %20s */
-    char task_name_padded[11] = "           ";
+    char task_name_padded[12] = "           ";
     int spaces = 10 - strlen(task_name);
     if (spaces < 0)
         spaces = 0;
