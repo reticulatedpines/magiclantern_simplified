@@ -409,6 +409,14 @@ ok:
 
 int prop_request_change_wait(unsigned property, const void* addr, size_t len, int timeout)
 {
+#ifdef CONFIG_DIGIC_678X
+    /* On D678, prop_request_change() silently drops writes to properties not
+     * in prop_write_allow[].  Waiting for an ack from a write that was never
+     * issued just burns the full timeout (2s per gui_uilock() call, from
+     * mlv_lite's polling loop among others).  Bail out up front instead. */
+    if (!is_prop_allowed(property))
+        return 0;
+#endif
     prop_reset_ack(property);
     prop_request_change(property, addr, len);
     
