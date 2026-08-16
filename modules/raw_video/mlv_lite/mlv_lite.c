@@ -2065,6 +2065,16 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
         return 0;
     }
 
+    /* Re-arm after a recording that ended on its own. Stopping frees both memory
+     * suites, but the only realloc trigger is a change in the state fingerprint
+     * above, which finishing a recording does not produce. Raw video is then left
+     * active with no buffers: the next REC press starts with zero slots and hangs.
+     * Both suites gone while raw video is active and idle means we need them back. */
+    if (!shoot_mem_suite && !srm_mem_suite && raw_video_active && RAW_IS_IDLE)
+    {
+        realloc = 1;
+    }
+
     /* reallocate buffers if needed (only if not recording) */
     if (realloc && (RAW_IS_IDLE || RAW_IS_PREPARING) && gui_state == GUISTATE_IDLE)
     {
