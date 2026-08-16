@@ -374,6 +374,13 @@ static GUARDED_BY(RawRecTask)   mlv_rtci_hdr_t rtci_hdr;
 static GUARDED_BY(RawRecTask)   mlv_wbal_hdr_t wbal_hdr;
 static GUARDED_BY(LiveViewTask) mlv_vidf_hdr_t vidf_hdr;
 static GUARDED_BY(RawRecTask)   uint64_t mlv_start_timestamp = 0;
+
+/* frame timing measured from the VIDF timestamps, used to stamp the MLVI header.
+ * Written by the vsync hook, read by RawRecTask when finishing a chunk;
+ * deliberately unguarded, as a torn read only skews the fps estimate slightly. */
+static uint64_t vidf_ts_first = 0;      /* first VIDF timestamp, us since rec start */
+static uint64_t vidf_ts_last  = 0;      /* most recent VIDF timestamp */
+static int      vidf_ts_count = 0;      /* how many VIDF timestamps we stamped */
        GUARDED_BY(RawRecTask)   uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 
 static int raw_rec_should_preview(void);
@@ -2913,6 +2920,11 @@ void process_frame(int next_fullsize_buffer_pos)
     /* set VIDF metadata for this frame */
     vidf_hdr.frameNumber = slots[capture_slot].frame_number - 1;
     mlv_set_timestamp((mlv_hdr_t*)&vidf_hdr, mlv_start_timestamp);
+    /* remember the span of frame timestamps, so finish_chunk() can stamp a
+     * measured fps into the MLVI header (see comment there) */
+    if (!vidf_ts_count) vidf_ts_first = vidf_hdr.timestamp;
+    vidf_ts_last = vidf_hdr.timestamp;
+    vidf_ts_count++;
     vidf_hdr.cropPosX = (skip_x + 7) & ~7;
     vidf_hdr.cropPosY = skip_y & ~1;
     vidf_hdr.panPosX = skip_x;
@@ -3204,7 +3216,24 @@ static REQUIRES(RawRecTask)
 void finish_chunk(FILE *f, int card_index)
 {
     file_hdr[card_index].videoFrameCount = chunk_frame_count[card_index];
-    
+
+    /* Stamp the fps we actually measured, overriding the value written when the
+     * header was created. That one comes from fps_get_current_x1000(), which
+     * derives the rate from the FPS timer registers; on bodies whose TG_FREQ_BASE
+     * and timer A were never measured (e.g. 6D2, where reg A cannot be read back
+     * at all) it returns nonsense - 215.430 fps for a 59.94p take. The VIDF
+     * timestamps come from get_us_clock() and are good to ~1%, so prefer them. */
+    if (vidf_ts_count >= 2 && vidf_ts_last > vidf_ts_first)
+    {
+        int64_t fps_x1000 = (int64_t)(vidf_ts_count - 1) * 1000000000LL
+                          / (int64_t)(vidf_ts_last - vidf_ts_first);
+        if (fps_x1000 > 0 && fps_x1000 < 1000000)
+        {
+            file_hdr[card_index].sourceFpsNom = (uint32_t) fps_x1000;
+            file_hdr[card_index].sourceFpsDenom = 1000;
+        }
+    }
+
     /* call the CBRs which may update fields */
     mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, (mlv_hdr_t *)&file_hdr[card_index]);
     
@@ -3381,6 +3410,8 @@ void raw_video_rec_task(uint32_t card_index)
         for (int t = 0; t < CARD_COUNT; ++t) {
             chunk_frame_count[t] = 0;
         }
+        vidf_ts_first = vidf_ts_last = 0;
+        vidf_ts_count = 0;
         mlv_chunk = 0;
         buffer_full = 0;
 
@@ -3463,7 +3494,10 @@ void raw_video_rec_task(uint32_t card_index)
             beep();
         }
 
-        int fps = fps_get_current_x1000();
+        /* assign, don't redeclare: a local `int fps` here shadowed the outer one
+         * (declared at the top of this function and initialised to 1), leaving the
+         * anti-overflow throttle further down computing overflow_time from fps == 1 */
+        fps = fps_get_current_x1000();
         if (fps == 0)
             goto cleanup;
 
