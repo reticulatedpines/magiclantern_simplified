@@ -88,6 +88,8 @@ static void console_init()
 {
     #ifdef CONSOLE_DEBUG
     menu_add( "Debug", script_menu, COUNT(script_menu) );
+    #endif
+    #ifdef CONFIG_CONSOLE_LOG
     FIO_RemoveFile("ML/LOGS/console.log");
     #endif
 }
@@ -101,7 +103,9 @@ void console_puts(const char* str) // don't DebugMsg from here!
 
     #ifdef CONSOLE_DEBUG
     bmp_printf(FONT_MED, 0, 0, "%s ", str);
+    #endif
 
+    #ifdef CONFIG_CONSOLE_LOG
     FILE* f = FIO_CreateFileOrAppend("ML/LOGS/console.log");
     if (f)
     {

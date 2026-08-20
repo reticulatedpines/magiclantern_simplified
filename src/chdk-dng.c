@@ -172,7 +172,7 @@ void dng_set_thumbnail_size(int32_t width, int32_t height)
     dng_th_height = height;
 }
 
-struct dir_entry{uint16_t tag; uint16_t type; uint32_t count; unsigned int offset;};
+struct dir_entry{uint16_t tag; uint16_t type; uint32_t count; uintptr_t offset;};
 
 #define T_BYTE      1
 #define T_ASCII     2

@@ -30,6 +30,7 @@
 #include "property.h"
 #include "lens.h"
 #include "font.h"
+#include "rbf_font.h"
 #include "menu.h"
 #include "beep.h"
 #include "zebra.h"
@@ -2743,10 +2744,13 @@ entry_print(
         /* in My Menu and Recent menu, we will include the submenu name in the original entry */
         if (my_menu->selected)// || mru_menu->selected)
         {
+            const char *parent_name = rbf_translate(entry->parent_menu->name);
+            const char *display_name = rbf_translate(info->name);
+
             /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
             int max_len = w;
-            int current_len = bmp_string_width(fnt, info->name);
-            int extra_len = bmp_strlen_clipped(fnt, entry->parent_menu->name, max_len - current_len - 50);
+            int current_len = bmp_string_width(fnt, display_name);
+            int extra_len = bmp_strlen_clipped(fnt, parent_name, max_len - current_len - 50);
 
             /* try to modify the name to show where it's coming from */
             char new_name[100];
@@ -2756,12 +2760,12 @@ entry_print(
             {
                 /* we have some space to show the menu where the original entry is coming from */
                 /* (or at least some part of it) */
-                snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", entry->parent_menu->name);
+                snprintf(new_name, MIN(extra_len + 1, sizeof(new_name)), "%s", parent_name);
                 STR_APPEND(new_name, " - ");
             }
 
             /* print the original name */
-            STR_APPEND(new_name, "%s", info->name);
+            STR_APPEND(new_name, "%s", display_name);
 
             /* if it's too long, add some dots */
             if ((int)strlen(new_name) > max_len)
@@ -2773,7 +2777,7 @@ entry_print(
             bmp_printf(
                 fnt,
                 x, y + y_font_offset,
-                new_name
+                "%s", new_name
             );
             
             /* don't indent */
@@ -3580,8 +3584,22 @@ static inline int islovowel(char c)
 static char* junkie_get_shortname(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
-    static char sname[20];
+    static char sname[MENU_MAX_HELP_LEN];
     memset(sname, 0, sizeof(sname));
+
+    const char *source = info->short_name[0] ? info->short_name : info->name;
+    const char *translated = rbf_translate(source);
+    if (translated == source && info->short_name[0])
+    {
+        source = info->name;
+        translated = rbf_translate(source);
+    }
+    if (translated != source)
+    {
+        int bytes = bmp_strlen_clipped(fnt, translated, maxlen);
+        snprintf(sname, MIN(bytes + 1, sizeof(sname)), "%s", translated);
+        return sname;
+    }
 
     if (info->short_name[0])
     {
@@ -3632,8 +3650,22 @@ static char* junkie_get_shortname(struct menu_display_info * info, int fnt, int 
 static char* junkie_get_shortvalue(struct menu_display_info * info, int fnt, int maxlen)
 {
     static char tmp[30];
-    static char svalue[20];
+    static char svalue[MENU_MAX_HELP_LEN];
     memset(svalue, 0, sizeof(svalue));
+
+    const char *source = info->short_value[0] ? info->short_value : info->value;
+    const char *translated = rbf_translate(source);
+    if (translated == source && info->short_value[0])
+    {
+        source = info->value;
+        translated = rbf_translate(source);
+    }
+    if (translated != source)
+    {
+        int bytes = bmp_strlen_clipped(fnt, translated, maxlen);
+        snprintf(svalue, MIN(bytes + 1, sizeof(svalue)), "%s", translated);
+        return svalue;
+    }
 
     if (info->short_value[0])
     {
@@ -3682,7 +3714,7 @@ static char* junkie_get_shorttext(struct menu_display_info * info, int fnt, int 
         int char_width = fontspec_font(fnt)->width;
         if (maxlen - len >= char_width * 4) // still plenty of space? try to print part of name too
         {
-            static char nv[30];
+            static char nv[MENU_MAX_HELP_LEN];
             char* sname = junkie_get_shortname(info, fnt, maxlen - len - bmp_string_width(fnt, " "));
             if (bmp_string_width(fnt, sname) >= char_width * 2)
             {

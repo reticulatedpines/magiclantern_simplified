@@ -19,6 +19,153 @@ static int rbf_font_load(char *file, font* f, int maxchar);
 static inline int rbf_font_height(font *rbf_font);
 static inline int rbf_char_width(font *rbf_font, int ch);
 
+#define ZH_PACK_MAGIC 0x31485A4D
+
+struct zh_pack_header
+{
+    uint32_t magic;
+    uint32_t version;
+    uint32_t size;
+    uint32_t translation_count;
+    uint32_t glyph_count;
+    uint32_t translation_offset;
+    uint32_t glyph_offset;
+};
+
+struct zh_translation
+{
+    uint32_t english_offset;
+    uint32_t chinese_offset;
+};
+
+struct zh_glyph
+{
+    uint16_t codepoint;
+    uint16_t advance;
+    uint16_t rows[16];
+};
+
+static const struct zh_glyph *zh_find_glyph(uint32_t codepoint);
+static int zh_glyph_advance(font *rbf_font, const struct zh_glyph *glyph);
+static int draw_zh_glyph(font *rbf_font, int x, int y, const struct zh_glyph *glyph, int fontspec);
+
+SIZE_CHECK_STRUCT(zh_pack_header, 28);
+SIZE_CHECK_STRUCT(zh_translation, 8);
+SIZE_CHECK_STRUCT(zh_glyph, 36);
+
+static uint8_t *zh_pack;
+static const struct zh_pack_header *zh_header;
+static const struct zh_translation *zh_translations;
+static const struct zh_glyph *zh_glyphs;
+
+static int zh_range_valid(uint32_t offset, uint32_t count, uint32_t item_size, uint32_t size)
+{
+    return offset <= size && count <= (size - offset) / item_size;
+}
+
+static int zh_has_nul(const uint8_t *text, uint32_t size)
+{
+    while (size--)
+        if (!*text++) return 1;
+    return 0;
+}
+
+static void zh_load_from_card(void)
+{
+    int file_size = 0;
+    uint8_t *file_data = read_entire_file("ML/data/zh_cn.bin", &file_size);
+    if (!file_data || file_size < (int) sizeof(struct zh_pack_header)) return;
+
+    uint8_t *data = malloc(file_size);
+    if (!data)
+    {
+        fio_free(file_data);
+        return;
+    }
+    memcpy(data, file_data, file_size);
+    fio_free(file_data);
+
+    const struct zh_pack_header *header = (const void *) data;
+    if (header->magic != ZH_PACK_MAGIC || header->version != 2 ||
+        header->size != (uint32_t) file_size ||
+        header->translation_offset < sizeof(struct zh_pack_header) ||
+        !zh_range_valid(header->translation_offset, header->translation_count,
+                        sizeof(struct zh_translation), header->size) ||
+        !zh_range_valid(header->glyph_offset, header->glyph_count,
+                        sizeof(struct zh_glyph), header->size))
+    {
+        free(data);
+        return;
+    }
+
+    uint32_t translation_end = header->translation_offset +
+        header->translation_count * sizeof(struct zh_translation);
+    uint32_t glyph_end = header->glyph_offset + header->glyph_count * sizeof(struct zh_glyph);
+    if (header->glyph_offset < translation_end)
+    {
+        free(data);
+        return;
+    }
+
+    const struct zh_translation *translations = (const void *) (data + header->translation_offset);
+    for (uint32_t i = 0; i < header->translation_count; i++)
+    {
+        uint32_t english = translations[i].english_offset;
+        uint32_t chinese = translations[i].chinese_offset;
+        if (english < glyph_end || chinese < glyph_end ||
+            english >= header->size || chinese >= header->size ||
+            !zh_has_nul(data + english, header->size - english) ||
+            !zh_has_nul(data + chinese, header->size - chinese) ||
+            (i && strcmp((const char *) data + translations[i-1].english_offset,
+                         (const char *) data + english) >= 0))
+        {
+            free(data);
+            return;
+        }
+    }
+
+    const struct zh_glyph *glyphs = (const void *) (data + header->glyph_offset);
+    for (uint32_t i = 1; i < header->glyph_count; i++)
+    {
+        if (glyphs[i-1].codepoint >= glyphs[i].codepoint)
+        {
+            free(data);
+            return;
+        }
+    }
+
+    zh_pack = data;
+    zh_header = (const void *) data;
+    zh_translations = (const void *) (data + header->translation_offset);
+    zh_glyphs = (const void *) (data + header->glyph_offset);
+}
+
+const char *rbf_translate(const char *str)
+{
+    if (!zh_pack) return str;
+    int lo = 0;
+    int hi = zh_header->translation_count - 1;
+
+    while (lo <= hi)
+    {
+        int mid = lo + (hi - lo) / 2;
+        const char *english = (const char *) zh_pack + zh_translations[mid].english_offset;
+        int cmp = strcmp(str, english);
+        if (cmp == 0) return (const char *) zh_pack + zh_translations[mid].chinese_offset;
+        if (cmp < 0) hi = mid - 1;
+        else lo = mid + 1;
+    }
+    return str;
+}
+
+int rbf_use_utf8_renderer(const char *str)
+{
+    if (zh_pack) return 1;
+    while (*str)
+        if ((unsigned char) *str++ >= 0x80) return 1;
+    return 0;
+}
+
 //-------------------------------------------------------------------
 static int RBF_HDR_MAGIC1 = 0x0DF00EE0;
 static int RBF_HDR_MAGIC2 = 0x00000003;
@@ -229,6 +376,8 @@ static inline int rbf_font_height(font *rbf_font) {
 }
 //-------------------------------------------------------------------
 static inline int rbf_char_width(font *rbf_font, int ch) {
+    const struct zh_glyph *glyph = ch >= 32 && ch < 127 ? zh_find_glyph(ch) : 0;
+    if (glyph) return zh_glyph_advance(rbf_font, glyph);
     return rbf_font->wTable[ch];
 }
 
@@ -352,6 +501,9 @@ static void FAST font_draw_char_shadow(font *rbf_font, int x, int y, char *cdata
 
 //-------------------------------------------------------------------
 static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec) {
+    const struct zh_glyph *glyph = ch >= 32 && ch < 127 ? zh_find_glyph(ch) : 0;
+    if (glyph) return draw_zh_glyph(rbf_font, x, y, glyph, fontspec);
+
     // Get char data pointer
     char* cdata = rbf_font_char(rbf_font, ch);
     
@@ -371,6 +523,211 @@ static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec
 #endif
     ml_refresh_display_needed = 1;
     return rbf_font->wTable[ch];
+}
+
+static uint32_t utf8_next(const char **text)
+{
+    const unsigned char *s = (const unsigned char *) *text;
+    if (s[0] < 0x80)
+    {
+        (*text)++;
+        return s[0];
+    }
+    if ((s[0] & 0xe0) == 0xc0 && (s[1] & 0xc0) == 0x80)
+    {
+        *text += 2;
+        return ((s[0] & 0x1f) << 6) | (s[1] & 0x3f);
+    }
+    if ((s[0] & 0xf0) == 0xe0 && (s[1] & 0xc0) == 0x80 && (s[2] & 0xc0) == 0x80)
+    {
+        *text += 3;
+        return ((s[0] & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    }
+    (*text)++;
+    return '?';
+}
+
+static const struct zh_glyph *zh_find_glyph(uint32_t codepoint)
+{
+    if (!zh_pack) return 0;
+    int lo = 0;
+    int hi = zh_header->glyph_count - 1;
+    while (lo <= hi)
+    {
+        int mid = lo + (hi - lo) / 2;
+        if (codepoint == zh_glyphs[mid].codepoint) return &zh_glyphs[mid];
+        if (codepoint < zh_glyphs[mid].codepoint) hi = mid - 1;
+        else lo = mid + 1;
+    }
+    return 0;
+}
+
+static int zh_glyph_width(font *rbf_font)
+{
+    if (rbf_font->hdr.height >= 28) return 24;
+    if (rbf_font->hdr.height >= 20) return 15;
+    return 12;
+}
+
+static int zh_glyph_height(font *rbf_font)
+{
+    if (rbf_font->hdr.height >= 28) return 32;
+    if (rbf_font->hdr.height >= 20) return 20;
+    return 16;
+}
+
+static int zh_glyph_advance(font *rbf_font, const struct zh_glyph *glyph)
+{
+    return MAX(1, glyph->advance * zh_glyph_width(rbf_font) / 12);
+}
+
+static int utf8_char_width(font *rbf_font, uint32_t codepoint)
+{
+    const struct zh_glyph *glyph = zh_find_glyph(codepoint);
+    return glyph ? zh_glyph_advance(rbf_font, glyph)
+                 : rbf_char_width(rbf_font, codepoint < 0x100 ? codepoint : '?');
+}
+
+static int draw_zh_glyph(font *rbf_font, int x, int y, const struct zh_glyph *glyph, int fontspec)
+{
+    int width = zh_glyph_width(rbf_font);
+    int advance = zh_glyph_advance(rbf_font, glyph);
+    int height = zh_glyph_height(rbf_font);
+    int y_offset = (rbf_font->hdr.height - height) / 2;
+    int fg = FG_COLOR(fontspec);
+    int bg = BG_COLOR(fontspec);
+    uint8_t *bmp = bmp_vram();
+
+    if (!bmp) return advance;
+
+    if (!(fontspec & SHADOW_MASK) && bg != NO_BG_ERASE)
+        bmp_fill(bg, x, y, advance, rbf_font->hdr.height);
+
+    for (int pass = (fontspec & SHADOW_MASK) ? 0 : 1; pass < 2; pass++)
+    {
+        for (int row = 0; row < 16; row++)
+        {
+            for (int col = 0; col < 12; col++)
+            {
+                if (!(glyph->rows[row] & (1 << (11 - col)))) continue;
+                int px = x + col * width / 12;
+                int px_end = x + (col + 1) * width / 12;
+                int py = y + y_offset + row * height / 16;
+                int py_end = y + y_offset + (row + 1) * height / 16;
+                int border = pass == 0 ? 1 : 0;
+                int color = pass == 0 ? bg : fg;
+                for (int yy = py - border; yy < py_end + border; yy++)
+                {
+                    for (int xx = px - border; xx < px_end + border; xx++)
+                    {
+                        if (xx >= BMP_W_MINUS && xx < BMP_W_PLUS && yy >= BMP_H_MINUS && yy < BMP_H_PLUS)
+                            bmp_putpixel_fast(bmp, xx, yy, color);
+                    }
+                }
+            }
+        }
+    }
+    ml_refresh_display_needed = 1;
+    return advance;
+}
+
+static int utf8_line_width(font *rbf_font, const char *str)
+{
+    int width = 0;
+    while (*str && *str != '\n')
+    {
+        uint32_t codepoint = utf8_next(&str);
+        width += utf8_char_width(rbf_font, codepoint);
+    }
+    return width;
+}
+
+int rbf_utf8_str_width(font *rbf_font, const char *str)
+{
+    int width = 0;
+    int max_width = 0;
+    while (*str)
+    {
+        uint32_t codepoint = utf8_next(&str);
+        if (codepoint == '\n')
+        {
+            max_width = MAX(width, max_width);
+            width = 0;
+        }
+        else
+        {
+            width += utf8_char_width(rbf_font, codepoint);
+        }
+    }
+    return MAX(width, max_width);
+}
+
+int rbf_utf8_strlen_clipped(font *rbf_font, const char *str, int max_width)
+{
+    int width = 0;
+    const char *start = str;
+    while (*str)
+    {
+        const char *next = str;
+        uint32_t codepoint = utf8_next(&next);
+        int char_width = utf8_char_width(rbf_font, codepoint);
+        if (width + char_width > max_width) break;
+        width += char_width;
+        str = next;
+    }
+    return str - start;
+}
+
+static int draw_utf8_line(font *rbf_font, int x, int y, const char *str, int fontspec, int max_width)
+{
+    int width = 0;
+    while (*str && *str != '\n')
+    {
+        uint32_t codepoint = utf8_next(&str);
+        int char_width = utf8_char_width(rbf_font, codepoint);
+        if (max_width && width + char_width > max_width) break;
+
+        const struct zh_glyph *glyph = zh_find_glyph(codepoint);
+        width += glyph
+            ? draw_zh_glyph(rbf_font, x + width, y, glyph, fontspec)
+            : rbf_draw_char(rbf_font, x + width, y, codepoint < 0x100 ? codepoint : '?', fontspec);
+    }
+    return width;
+}
+
+int rbf_draw_utf8_string(font *rbf_font, int x, int y, const char *str, int fontspec)
+{
+    int requested_width = FONT_GET_TEXT_WIDTH(fontspec);
+    int result = requested_width ? requested_width : rbf_utf8_str_width(rbf_font, str);
+
+    while (*str)
+    {
+        int content_width = utf8_line_width(rbf_font, str);
+        int line_width = requested_width ? requested_width : content_width;
+        int draw_x = x;
+
+        if ((fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_CENTER)
+            draw_x = x - line_width / 2 + (line_width - content_width) / 2;
+        else if ((fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_RIGHT)
+            draw_x = x - line_width + line_width - content_width;
+
+        if ((fontspec & FONT_ALIGN_FILL) && !(fontspec & SHADOW_MASK))
+        {
+            int fill_x = (fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_CENTER ? x - line_width / 2
+                       : (fontspec & FONT_ALIGN_MASK) == FONT_ALIGN_RIGHT  ? x - line_width
+                       : x;
+            bmp_fill(BG_COLOR(fontspec), fill_x, y, line_width, rbf_font->hdr.height);
+        }
+
+        draw_utf8_line(rbf_font, draw_x, y, str, fontspec, requested_width);
+        while (*str && *str != '\n') str++;
+        if (*str == '\n')
+        {
+            str++;
+            y += rbf_font->hdr.height;
+        }
+    }
+    return result;
 }
 
 
@@ -641,6 +998,8 @@ void _load_fonts()
     if (fonts_loaded)
         return;
     fonts_loaded = 1;
+
+    zh_load_from_card();
 
     int bfnt_status = -1;
 

@@ -1,5 +1,8 @@
 #include "all_features.h"
 
+#undef CONFIG_AUTOBACKUP_ROM
+#define CONFIG_CONSOLE_LOG
+
 #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 #define FEATURE_LV_3RD_PARTY_FLASH
 #define FEATURE_EYEFI_TRICKS

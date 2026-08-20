@@ -1,0 +1,1846 @@
+# Magic Lantern Simplified Chinese translation.
+# Exact display string|translation
+About Magic Lantern|关于 Magic Lantern
+Advanced Bracket|高级包围拍摄
+Advanced settings|高级设置
+Advanced...|高级设置…
+AF/MF warning|自动/手动对焦警告
+ALO warning|自动亮度优化警告
+Allowed actions|允许的操作
+Always|始终
+Always On|始终开启
+Anamorphic|变形宽银幕
+Aperture|光圈
+Audio|音频
+Audio Gain|音频增益
+Audio Meters|音频电平表
+Audio meters|音频电平表
+Audio RemoteShot|声音遥控拍摄
+Auto|自动
+Auto exposure|自动曝光
+Auto exposure on Zoom|变焦时自动曝光
+Auto Mirroring|自动镜像
+Auto-restart movie recording, if it happens to stop.|录像意外停止时自动重启。
+Back to 'beginner' mode.|返回“新手”模式。
+Banding detection|条带检测
+Beep, test tones|蜂鸣与测试音
+Benchmarks|性能测试
+Bit Rate|比特率
+Bitrate Info|比特率信息
+Black Level|黑电平
+Blue|蓝色
+Boost when adjusting WB|调整白平衡时增强
+Bottom-Left|左下
+Bottom-Right|右下
+Bracket focus|对焦包围
+Bracket type|包围类型
+Bright Gray|亮灰色
+Bulb Timer|B 门定时器
+Canon analog ISO|佳能模拟 ISO
+Canon digital ISO|佳能数字 ISO
+Card settings|存储卡设置
+Cartoon Look|卡通效果
+CBR factor|恒定码率系数
+Center|中央
+Center selection|选择中央点
+Change H.264 bitrate. Be careful, recording may stop!|调整 H.264 比特率。注意：录像可能停止！
+Changes FPS. Also disables sound and alters shutter speeds.|更改帧率，同时会禁用声音并改变快门速度。
+Circle of Confusion|弥散圆
+Clear overlays|清除叠加显示
+Clip warning|过曝警告
+Color|颜色
+Color scheme|配色方案
+Color Space|色彩空间
+Color Tone|色调
+Complete user guide|完整用户指南
+Config AutoSave|自动保存配置
+Config|配置
+Config options|配置选项
+Config preset|配置预设
+Constant expo|恒定曝光
+Context help|上下文帮助
+Contrast|反差
+Crop Factor Display|裁切系数显示
+Cropmarks|裁切标记
+Custom REC/STANDBY notifications, visual or audible|自定义录像/待机的视觉或声音提示
+Customize Menus|自定义菜单
+Cyan|青色
+Dark|暗色
+Dark Gray|深灰色
+Dark Green|深绿色
+Dark Red|深红色
+Debug|调试
+Default|默认
+Defishing|鱼眼校正
+Delay|延时
+Delete config|删除配置
+Desired FPS|目标帧率
+Detect Size|检测区域
+Diffraction|衍射
+DigitalZoom Shortcut|数码变焦快捷键
+Disable all modules|禁用所有模块
+Disabled|已禁用
+Display|显示
+Display during exposure|曝光时显示
+Display GUI events (button codes).|显示界面事件（按键代码）。
+Display Shake|显示抖动
+DOF formula|景深公式
+DOF info in LiveView|实时取景中显示景深
+DOF Settings|景深设置
+Double Click|双击
+Dual ISO|双 ISO
+Duration between two shots.|两次拍摄之间的间隔。
+Dynamic Range|动态范围
+Edit mode|编辑模式
+Edit values|编辑数值
+Electronic level|电子水平仪
+Enable Beeps|启用蜂鸣
+Enable beep signal for misc events in ML.|为 ML 的各类事件启用蜂鸣提示。
+Enable/disable ML overlay graphics (zebra, cropmarks...)|启用或禁用 ML 叠加图形（斑马纹、裁切标记等）。
+Equivalent ISO|等效 ISO
+Exact FPS|精确帧率
+Expo|曝光
+Expo. Lock|曝光锁定
+Expo. Override|曝光覆盖
+Expo. Presets|曝光预设
+Exposure duration|曝光时长
+False color|伪色彩
+File Manager|文件管理器
+Flash Delay|闪光延时
+Flash expo comp.|闪光曝光补偿
+Flash Tweaks|闪光灯调整
+Focal len|焦距
+Focus|对焦
+Focus box|对焦框
+Focus box settings|对焦框设置
+Focus confirm|合焦确认
+Focus End Point|对焦终点
+Focus Peak|峰值对焦
+Focus peaking color (fixed or color coding).|峰值对焦颜色（固定或彩色编码）。
+Focus peaking via DIGIC. No CPU usage!|使用 DIGIC 进行峰值对焦，不占用 CPU！
+Focus Settings|对焦设置
+Focus Shortcuts|对焦快捷键
+Focus Stacking|焦点堆栈
+Focus steps / picture|每张对焦步数
+Focus using|对焦控制方式
+Follow Focus|跟焦
+Force HDMI-VGA|强制 HDMI-VGA
+Force LiveView|强制实时取景
+Frames|张数
+Free Memory|可用内存
+FullScreen|全屏
+Games|游戏
+Ghost image|幽灵图像
+Global Draw|全局叠加显示
+Gradual Exposure|渐变曝光
+Grayscale|灰度
+Green|绿色
+GreenScreen|绿幕
+HDR video|HDR 视频
+Help|帮助
+Help files not found|未找到帮助文件
+Histogram|直方图
+Histogram type|直方图类型
+Horizontal selection|水平选择
+Image Fine-tuning|图像微调
+Image position|图像位置
+Image Review|图像回放
+Image review settings|图像回放设置
+Increase SharpContrast|增强锐度与反差
+Input source|输入源
+Internal Temp|内部温度
+Intervalometer|间隔拍摄
+Intervalometer is disabled.|间隔拍摄已禁用。
+Intervalometer Script|间隔拍摄脚本
+ISO Selection|ISO 选择
+ISO shifting|ISO 偏移
+ISO tweaks. Negative gain has better highlight roll-off.|ISO 调整。负增益可获得更平滑的高光过渡。
+Key Shortcuts|按键快捷方式
+Language / Idioma / Langue / Sprache|语言
+Large|大
+Leave Menu|退出菜单
+Lens Info Prefs|镜头信息设置
+Lens info|镜头信息
+Level|级别
+LiveView|实时取景
+LiveView zoom tweaks|实时取景变焦调整
+Load modules after crash|崩溃后加载模块
+Low|低
+Low light|低照度
+Lua scripting|Lua 脚本
+LV brightness|实时取景亮度
+LV button|实时取景按钮
+LV contrast|实时取景反差
+LV crazy colors|实时取景特殊色彩
+LV DIGIC peaking|DIGIC 峰值对焦
+LV display gain|实时取景显示增益
+LV Display Presets|实时取景显示预设
+LV saturation|实时取景饱和度
+Magic Zoom|魔术变焦
+Magenta|洋红色
+Medium|中
+Menu Preferences|菜单设置
+Mirror Lockup|反光镜预升
+Misc key settings|其他按键设置
+ML digital ISO|ML 数字 ISO
+My Menu|我的菜单
+MyMenu|我的菜单
+Mode|模式
+Mode warning|模式警告
+Modules|模块
+Modules debug|模块调试
+Motion Detect|运动检测
+Movie|视频
+Movie crop mode|视频裁切模式
+Movie Logging|视频日志
+Movie Record|视频录制
+Movie Restart|视频自动重启
+Movie Tweaks|视频调整
+Modified|已修改
+Name|名称
+Negative|负片
+Normal|普通
+Number of pics|拍摄张数
+OFF|关闭
+OK|确定
+ON|开启
+Open submenu|打开子菜单
+Optimize for|优化目标
+Orientation|屏幕方向
+Overlay|叠加显示
+Pics at once|连拍张数
+Picture Style|照片风格
+Picture Viewer|图片浏览器
+Play mode actions|回放模式操作
+Play test tone|播放测试音
+Position|位置
+Post Deflicker|后期去闪烁
+Prefs|偏好设置
+Press INFO|按 INFO
+Press MENU|按 MENU
+Press Q / PLAY|按 Q / 回放
+Press SET to choose MyMenu items or hide what you don't use.|按 SET 选择“我的菜单”项目，或隐藏不用的项目。
+Protect Image|保护图像
+Quality warning|画质警告
+Quick Erase|快速删除
+Quick Zoom|快速放大
+QuickReview|快速回放
+Ramp duration|渐变时长
+Ramping speed|渐变速度
+Rate Image|图像评分
+REC key|录像键
+REC key is disabled.|录像键已禁用。
+REC/STBY notify|录像/待机提示
+Recent|最近使用
+Recording|正在录像
+Red|红色
+Require long press|需要长按
+Reset setup|重置设置
+Restore ML defaults|恢复 ML 默认设置
+Rolling shutter|果冻效应
+Run focus stack|开始焦点堆栈
+Saturation|饱和度
+Save config|保存配置
+Save config now|立即保存配置
+Scaling|缩放
+Screen Layout|屏幕布局
+Scripts|脚本
+Screenshot - 10s|10 秒后截图
+Select actions for half-shutter.|选择半按快门时执行的操作。
+SET action|SET 键操作
+SET at startup|启动时按 SET
+Sharpness|锐度
+Shoot|拍摄
+Shoot Preferences|拍摄设置
+Shortcuts (LV only)|快捷键（仅实时取景）
+Show console|显示控制台
+Show GUI events|显示界面事件
+Show in photo mode|在照片模式显示
+Show in PLAY mode|在回放模式显示
+Show tasks|显示任务
+Show which parts of the image are in focus.|显示图像中合焦的区域。
+Shutter|快门
+Shutter Button|快门按钮
+Shutter fine-tuning|快门微调
+Shutter Lock|快门锁定
+Shutter range|快门范围
+Simple|简单
+Size|大小
+Small|小
+Snap Simulation|快照模拟
+Sound|声音
+Sound Record|声音录制
+Speaker Volume|扬声器音量
+Speed|速度
+Spot Position|点测光位置
+Spotmeter|点测光
+Spotmeter Unit|点测光单位
+Start after|延时开始
+Start Delay|开始延时
+Start in MyMenu|从我的菜单启动
+Start only|仅开始
+Start trigger|启动触发方式
+Start/Stop|开始/停止
+Status|状态
+Step Delay|步进延时
+Step Size|步进大小
+Step Wait|步进等待
+Stop after|拍摄后停止
+Stop only|仅停止
+Take a Pic|拍摄一张
+Take a pic every|拍摄间隔
+Take pictures at fixed intervals (for timelapse).|按固定间隔拍摄（用于延时摄影）。
+Test beep sound|测试蜂鸣声
+This feature only works in LiveView.|此功能仅在实时取景中可用。
+This feature only works in movie mode.|此功能仅在视频模式中可用。
+Threshold|阈值
+Time Indicator|时间指示
+Top-Left|左上
+Top-Right|右上
+Trap Focus|陷阱对焦
+Trigger by|触发依据
+Trigger level|触发阈值
+Trigger mode|触发模式
+UpsideDown mode|倒置模式
+Use Autofocus|使用自动对焦
+Use SET button|使用 SET 按钮
+Vectorscope|矢量示波器
+Vertical selection|垂直选择
+Version|版本
+Very high|很高
+Very low|很低
+Video Hacks|视频高级功能
+Vignetting|暗角
+Warning for bad settings|错误设置警告
+Warning message|警告消息
+Waveform|波形图
+WB warning|白平衡警告
+White Balance|白平衡
+Wind Filter|风噪滤波
+Yellow|黄色
+Zebra stripes: show overexposed or underexposed areas.|斑马纹：显示过曝或欠曝区域。
+Zebras|斑马纹
+Zero|零
+Zoom box for checking focus. Can be used while recording.|用于检查对焦的放大框，录像时也可使用。
+Zoom on HalfShutter|半按快门时放大
+Zoom with Focus Ring|使用对焦环放大
+!!! DISABLE THIS OPTION WHEN YOU ARE NOT USING IT !!!  |！！！不用时请关闭此选项！！！  
+(none)|（无）
+-16px / -8px / Normal / +8px / +16px.|-16px / -8px / 正常 / +8px / +16px。
+0 (here)|0（当前位置）
+1 EV / 128 frames|1 EV / 128 帧
+1 EV / 16 frames|1 EV / 16 帧
+1 EV / 256 frames|1 EV / 256 帧
+1 EV / 32 frames|1 EV / 32 帧
+1 EV / 512 frames|1 EV / 512 帧
+1 EV / 64 frames|1 EV / 64 帧
+1 EV / 8 frames|1 EV / 8 帧
+1 EV / 8 frames / 1 EV / 16 frames / 1 EV / 32 frames / 1 EV / 64 frames / |1 EV / 8 帧 / 1 EV / 16 帧 / 1 EV / 32 帧 / 1 EV / 64 帧 / 
+1.0x (default)|1.0x（默认）
+1.0x = Canon default, 0.4x = 30minutes, 1.4x = fast card.|1.0x = 佳能默认，0.4x = 30 分钟，1.4x = 高速卡。
+1:1 displays recorded pixels, 2:1 displays them doubled.|1:1 显示记录像素，2:1 将像素放大一倍。
+2.500 (from 0)|2.500（从 0 起）
+4:3 display,auto|4:3 显示，自动
+4:3 display,auto / 16:10 HDMI,t/b / 16:9  HDMI,t/b / Bottom,under 3:2 / |4:3 显示，自动 / 16:10 HDMI，上下 / 16:9 HDMI，上下 / 底部，3:2 下方 / 
+=> adjust ISO, shutter speed and aperture without large jumps.|=> 调整 ISO、快门和光圈，避免数值大幅跳变。
+A = average, B = instant bitrate, Q = instant QScale.|A = 平均码率，B = 即时码率，Q = 即时 QScale。
+A trick to allow 3rd party flashes to fire in LiveView.|允许第三方闪光灯在实时取景中闪光。
+Absolute Zero Sharpness|绝对零锐度
+Action type|操作类型
+Actual FPS|实际帧率
+Adjust Kelvin white balance and GM/BA WBShift.|调整色温白平衡及绿/洋红、蓝/琥珀偏移。
+Adjust Kelvin white balance.|调整色温白平衡。
+Adjust aperture. También hay displays APEX aperture (Av) in stops.|调整光圈，并以档数显示 APEX 光圈值（Av）。
+Adjust color tone in current picture style.|调整当前照片风格的色调。
+Adjust contrast in current picture style.|调整当前照片风格的反差。
+Adjust dark level, as with 'dcraw -k'. Fixes green shadows.|像“dcraw -k”一样调整暗电平，可修正阴影偏绿。
+Adjust saturation in current picture style.|调整当前照片风格的饱和度。
+Adjust sharpness in current picture style.|调整当前照片风格的锐度。
+Advanced bracketing (expo, flash, DOF). Press shutter once.|高级包围拍摄（曝光、闪光、景深），只需按一次快门。
+Advanced options for experts. Use with care.|供高级用户使用，请谨慎设置。
+Advanced: WBShift, RGB multipliers, Push-button WB...|高级：白平衡偏移、RGB 倍率、快捷白平衡等。
+Also up/down keys/joystick work as +/- rating if zoomed out.|缩小显示时，上下键或摇杆也可增减评分。
+Alternates ISO between frames. Flickers while recording.|逐帧交替 ISO；录像时画面会闪烁。
+Always use LiveView (with manual lens or after lens swap).|始终使用实时取景（手动镜头或更换镜头后）。
+Arkanoid game|打砖块游戏
+Arkanoid game.|打砖块游戏。
+Auto adjust Kelvin + G/M|自动调整色温和绿/洋红偏移
+Auto exposure algorithm.|自动曝光算法。
+Auto-update|自动更新
+Autofocus, number of pics to take at once...|自动对焦、每次拍摄张数等。
+B multiplier|蓝色通道倍率
+BLUE channel multiplier, for custom white balance.|自定义白平衡的蓝色通道倍率。
+Balanced|均衡
+Bit Rate (CBR)|比特率（CBR）
+Bitmap (1/5)|位图（1/5）
+Blue-Amber WBShift; 1 unit = 5 mireks on Kelvin axis.|蓝/琥珀白平衡偏移；1 单位等于色温轴上的 5 微倒度。
+Boost on WB adjust|调整白平衡时增强显示
+Bottom,under 3:2|底部，3:2 下方
+Bottom,under16:9|底部，16:9 下方
+Bypass loading ML|跳过加载 ML
+Can select between Metric and Imperial focus distance units|可选择公制或英制对焦距离单位
+CanonMnu:Hold->PLAY|佳能菜单：保持后进入回放
+Capability|功能
+Cartoonish look obtained by emphasizing the edges.|通过强化边缘获得卡通效果。
+Change current picture style.|更改当前照片风格。
+Changing FPS has side effects - choose what's best for you:|更改帧率有副作用，请选择适合的优化方式：
+Choose a configuration preset and start customize(restart needed).|选择配置预设并开始自定义（需要重启）。
+Choose a configuration preset.|选择配置预设。
+Choose an EV image indicator to display on the histogram.|选择在直方图中显示的 EV 图像指示方式。
+Choose between YUV-based (JPG) or RAW-based histogram.|选择基于 YUV（JPG）或 RAW 的直方图。
+Choose when the picture should be taken:|选择拍摄时机：
+Chose the action type to perform when triggered.|选择触发后执行的操作类型。
+Circle of confusion used for DOF calculations.|用于景深计算的弥散圆直径。
+Clear bitmap overlays from LiveView display.|清除实时取景中的位图叠加层。
+Color scheme for bitmap overlays (ML menús, Canon menus...)|位图叠加层的配色方案（ML 菜单、佳能菜单等）。
+Compare Images|比较图像
+Config auto save, manual save, restore defaults...|配置自动保存、手动保存及恢复默认值等。
+Config optio - SET at startup|配置选项－启动时按 SET
+Configure ML beeps and play test tones (440Hz, 1kHz...)|设置 ML 蜂鸣并播放测试音（440Hz、1kHz 等）。
+Corner correction        |边角校正        
+Correction applied between central area and corners.|在画面中央与边角之间应用校正。
+Correction with a stronger bias towards corners.|对边角应用更强的校正。
+Crazy color effects that may help with white balance.|可辅助判断白平衡的特殊色彩效果。
+Creative Effects|创意效果
+Cropmarks are mostly used in movie mode.|裁切标记主要用于视频模式。
+Cropmarks or custom grids for framing.|用于构图的裁切标记或自定义网格。
+Custom white balance is not active => not used.|未启用自定义白平衡，因此此项无效。
+Darken sharp edges in bright areas.|加深明亮区域中的锐利边缘。
+Default / Dark / Bright Gray / Dark Gray / Dark Red / Dark Green.|默认 / 暗色 / 亮灰 / 深灰 / 深红 / 深绿。
+Default value: 19 for APS-C and 29 for full-frame cameras.|默认值：APS-C 为 19，全画幅为 29。
+Delay between the detected motion and the picture taken.|检测到运动后至拍摄之间的延时。
+Delete files quickly with SET+Erase (be careful!!!)|用 SET+删除键快速删除文件（请务必小心！）
+Desaturate|去饱和
+Diagnostic options for modules.|模块诊断选项。
+Diffraction-aware|考虑衍射
+Diffraction-aware: consider both defocus and diffraction blur.|同时考虑失焦模糊和衍射模糊。
+Disable sharpening completely (below Canon's zero level).|完全关闭锐化（低于佳能的零级锐度）。
+Display the 35mm equiv. focal length including crop factor.|显示包含裁切系数的 35mm 等效焦距。
+Display total CPU usage (percentage).|显示 CPU 总占用率。
+Display warning dots when one color channel is clipped.|任一色彩通道溢出时显示警告点。
+Displays overlay graphics upside-down and flips arrow keys.|倒置叠加图形并反转方向键。
+Displays the tasks started by Canon and Magic Lantern.|显示佳能和 Magic Lantern 启动的任务。
+Do not load ML if you start the camera with SET pressed (default)|按住 SET 开机时不加载 ML（默认）
+Don't click me!|不要点我！
+Dump ROM and RAM|转储 ROM 和 RAM
+Dump all image buffers (LV, HD, RAW) from current video mode.|转储当前视频模式的所有图像缓冲区（LV、HD、RAW）。
+Dump image buffers|转储图像缓冲区
+Duration of FPS ramping (in real-time, not in playback).|帧率渐变时长（实际时间，不是回放时间）。
+EDMAC reverse engineering and diagnostic tools.|EDMAC 逆向工程与诊断工具。
+EDMAC reverse engineering and diagnostic tools.\n\n|EDMAC 逆向工程与诊断工具。\n
+EDmac tools|EDmac 工具
+EF-S18-55mm f/3.5-5.6 IS|EF-S18-55mm f/3.5-5.6 IS
+EFIC chip temperature (somewhere on the mainboard).|EFIC 芯片温度（主板上的某处）。
+ETTR hint|向右曝光提示
+EXP, level=8|曝光，级别=8
+EXP: reacts to exposure changes (large movements).|曝光：检测曝光变化（较大运动）。
+Edge + chroma|边缘＋色度
+Edge Emphasis|边缘增强
+Edge image|边缘图像
+Edit in LiveView|在实时取景中编辑
+Exact FPS (computed). For fine tuning, change timer values.|计算得到的精确帧率；可修改定时器值进行微调。
+Experimental image filters found by digging into DIGIC.|从 DIGIC 中发现的实验性图像滤镜。
+Expo. Lock is disabled.|曝光锁定已禁用。
+Expo. change|曝光变化
+Exposure Adjust|曝光调整
+Exposure Fusion|曝光融合
+Exposure aid: display brightness from a small spot.|曝光辅助：显示小区域的亮度。
+Exposure aid: each brightness level is color-coded.|曝光辅助：用不同颜色标记各亮度级别。
+Exposure aid: shows the distribution of brightness levels.|曝光辅助：显示亮度级别分布。
+Exposure aid: useful for checking overall brightness.|曝光辅助：用于检查整体亮度。
+Exposure simulation.|曝光模拟。
+Extender|增距镜
+Extreme Chroma|极端色度
+Extreme corner correction|强力边角校正
+FPS override|帧率覆盖
+FPS ramping|帧率渐变
+FPS timer A|帧率定时器 A
+FPS timer B|帧率定时器 B
+FPS value for recording. Video will play back at Canon FPS.|录像使用的帧率；视频仍按佳能帧率回放。
+FW default|固件默认
+FW default / CBR / VBR (QScale).|固件默认 / CBR / VBR（QScale）。
+Faithful|可靠设置
+False color palettes for exposure, banding, green screen...|用于曝光、条带检测和绿幕的伪色彩调色板。
+Faster zoom in Play mode, for pixel peeping :)|在回放模式中快速放大，便于像素级检查。
+Filter bias|滤镜偏移
+Fine details|精细细节
+Fine-tune shutter speed in approx 20-microsecond increments.|以约 20 微秒为步长微调快门速度。
+Fine-tune shutter value. Displays APEX Tv or degrees equiv.|微调快门值，并显示 APEX Tv 或等效角度。
+Fine-tune the focus detection algorithm:|微调对焦检测算法：
+Firmware default / CBR (recommended) / VBR (very risky)|固件默认 / CBR（推荐）/ VBR（风险很高）
+Flash exposure compensation, 3rd party flash in LiveView...|闪光曝光补偿、实时取景中的第三方闪光灯等。
+Flash exposure compensation, from -10EV to +3EV.|闪光曝光补偿，范围 -10EV 至 +3EV。
+Focus Distance Units|对焦距离单位
+Focus box / Top-Left / Top-Right / Bottom-Right / Bottom-Left.|对焦框 / 左上 / 右上 / 右下 / 左下。
+Focus peaking vía DIGIC. No CPU usage!|通过 DIGIC 实现峰值对焦，不占用 CPU！
+Focus+ZREC|对焦＋录像变焦
+For LiveView preview only. Does not affect recording.|仅影响实时取景预览，不影响录像。
+For intervalometer, motion detect, trap focus, audio remote.|用于间隔拍摄、运动检测、陷阱对焦和声音遥控。
+For troubleshooting.|用于故障排查。
+Force low resolution (720x480) on HDMI displays.|强制 HDMI 显示使用低分辨率（720x480）。
+Formula for computing the depth of field:|景深计算公式：
+Free memory, shared between ML and Canon firmware.|ML 与佳能固件共享的可用内存。
+Full Z on last pos.|在上次位置完全放大
+Full zoom on AF pt.|在自动对焦点完全放大
+G multiplier|绿色通道倍率
+GREEN channel multiplier, for custom white balance.|自定义白平衡的绿色通道倍率。
+GREEN=shoot, CYAN=srm, BLUE=maybe free, RED=maybe used.|绿色=拍摄内存，青色=SRM，蓝色=可能空闲，红色=可能占用。
+Ghost image is disabled.|幽灵图像已禁用。
+Global Focus|全局对焦
+Grayscale image|灰度图像
+Grayscale recording. Use WB or pic styles for fine tuning.|灰度录像；可用白平衡或照片风格进行微调。
+Green Bars|绿色条
+Green Bars / SplitScreen / SS ZeroCross.|绿色条 / 分屏 / 快门速度过零。
+Green-Magenta white balance shift, for fluorescent lights.|绿/洋红白平衡偏移，适用于荧光灯。
+Half Shutter|半按快门
+HiJello, FastTv|果冻效应较强，快速快门
+High|高
+High values = lower FPS, more jello effect, faster shutter.|数值越高，帧率越低、果冻效应越强、快门越快。
+High values = lower FPS, shutter speed converges to 1/fps.|数值越高，帧率越低，快门速度趋近于 1/帧率。
+Higher values = less sensitive to motion.|数值越高，对运动越不敏感。
+How fast the exposure transitions should be.|曝光过渡速度。
+How many pictures to take at once (for each trigger event).|每次触发连续拍摄的张数。
+How many pixels are considered in focus (percentage).|判定为合焦的像素比例。
+How to show focus confirmation (green bars / split screen).|合焦确认的显示方式（绿色条或分屏）。
+How to trigger the intervalometer start:|间隔拍摄的启动方式：
+ISO -> |ISO -> 
+ISO 0/0,4.0EV|ISO 0/0，4.0EV
+ISO value for one half of the frames.|一半帧使用的 ISO 值。
+ISO value for the other half of the frames.|另一半帧使用的 ISO 值。
+ISO,Tv|ISO、Tv
+If ON, you have to hold half-shutter pressed for 1 second.|开启后，需要持续半按快门 1 秒。
+If RAW data is not available, it will fall back to YUV-based.|RAW 数据不可用时将改用 YUV 数据。
+If enabled, ML settings are saved automatically at shutdown.|启用后，关机时自动保存 ML 设置。
+Image rePlay mode actions|图像回放模式操作
+Image review - Image Review|图像回放－图像回放
+Image viewer that integrates with the file manager.|与文件管理器集成的图像浏览器。
+In M mode, adjust Tv/Av/ISO without changing exposure.|M 模式下调整 Tv、Av 或 ISO，同时保持曝光不变。
+It may change the way you use M mode. Maybe I'm just crazy.|它可能会改变你使用 M 模式的方式。
+Keep console shown after modules were loaded|模块加载后继续显示控制台
+Keep the same exposure (brightness) as with default FPS.|保持与默认帧率相同的曝光亮度。
+L EXT -40Square|左声道 EXT -40 方波
+LED, popup|LED、弹窗
+LED, popup, beep|LED、弹窗、蜂鸣
+LED, popup, beep / LED, popup, rep. beep / LED, popup / popup, beep / |LED、弹窗、蜂鸣 / LED、弹窗、重复蜂鸣 / LED、弹窗 / 弹窗、蜂鸣 / 
+LED, popup, rep. beep|LED、弹窗、重复蜂鸣
+Landscape|风光
+Lens ID|镜头 ID
+Lens: EF-S18-55mm f/3.5-5.6 IS, 0mm f/25.7|镜头：EF-S18-55mm f/3.5-5.6 IS，0mm f/25.7
+Lens: EF-S18-55mm f/3.5-5.6 IS, 0mm f/5.6|镜头：EF-S18-55mm f/3.5-5.6 IS，0mm f/5.6
+Linear|线性
+Linear or logarithmic histogram.|线性或对数直方图。
+LiveView: adjust Kelvin and G-M once (Push-button WB).|实时取景：一次性调整色温和绿/洋红偏移（快捷白平衡）。
+Load ML only if SET is pressed at startup (optional)|仅在开机时按住 SET 才加载 ML（可选）
+Load modules even after camera crashed and you took battery out.|即使相机崩溃并取出过电池，也加载模块。
+Local Focus|局部对焦
+Log|对数
+Low Jello, 180d|低果冻效应，180 度快门
+Low light: at low FPS, use 1/FPS (360 deg) shutter speeds.|低照度：低帧率时使用 1/帧率（360 度）快门。
+Low-level manual exposure controls (bypasses Canon limits).|底层手动曝光控制（绕过佳能限制）。
+Lua scripting.|Lua 脚本。
+LumaFast, over 99%|快速亮度，超过 99%
+ML Translation.|ML 翻译。
+ML/SETTINGS/|ML/SETTINGS/
+MLT Settings|MLT 设置
+MLT Settings - Status|MLT 设置－状态
+MLV Player|MLV 播放器
+Magic Lantern help files could not be found.              |找不到 Magic Lantern 帮助文件。              
+Magic Zoom is disabled.|魔术变焦已禁用。
+Magnification|放大倍率
+Main Clock|主时钟
+Make sure all ML files are installed to your card.        |请确认所有 ML 文件均已安装到存储卡。        
+Makes LiveView usable in complete darkness (photo mode).|使实时取景在全黑环境中仍可用（照片模式）。
+Marshall / SmallHD / 50-55% / 67-72% / Banding detection / GreenScreen.|Marshall / SmallHD / 50-55% / 67-72% / 条带检测 / 绿幕。
+May make the image easier to see from difficult angles.|可让画面在特殊观看角度下更清晰。
+Measurement unit for brightness level(s).|亮度级别的计量单位。
+Memory patches|内存补丁
+Mid-range correction     |中间区域校正     
+Misc  - DigitalZoom Shortcut|其他－数码变焦快捷键
+Misc options related to shortcut keys.|其他快捷键相关选项。
+Module disabled.|模块已禁用。
+Module disabled. Press [Q] for more info.|模块已禁用，按 [Q] 查看详情。
+Module loaded successfully. Press [Q] for more info.|模块加载成功，按 [Q] 查看详情。
+Monochrome|单色
+Movie Restart, Movie Logging, REC/Standby Notify...|视频自动重启、视频日志、录像/待机提示等。
+Movie: DISP + Zoom In toggles between 1x and 3x modes.|视频模式：DISP＋放大键切换 1x 和 3x。
+Negative image. Inverts all colors :)|负片效果，反转所有颜色。
+Normal / High / Very high.|普通 / 高 / 很高。
+Num. of LV display presets. Switch with DISP or from LiveV.|实时取景显示预设数量，可用 DISP 或在实时取景菜单切换。
+Num. of LV display presets. Switch with INFO or from LiveV.|实时取景显示预设数量，可用 INFO 或在实时取景菜单切换。
+Number of pics taken + number of LiveView actuations|已拍照片数＋实时取景启动次数
+Numbers represent the percentage of pixels clipped.|数值表示溢出像素的百分比。
+OFF (1) / 2 / 3 / 4.|关闭（1）/ 2 / 3 / 4。
+OFF / 5:4 (1.25) / 4:3 (1.33) / 7:5 (1.4) / 3:2 (1.5) / 5:3 (1.66) / 9:5 (1.8) / |关闭 / 5:4（1.25）/ 4:3（1.33）/ 7:5（1.4）/ 3:2（1.5）/ 5:3（1.66）/ 9:5（1.8）/ 
+OFF / Av,ISO / ISO,Av.|关闭 / Av、ISO / ISO、Av。
+OFF / Elapsed / Remain.Card / Remain.4GB.|关闭 / 已录时间 / 存储卡剩余 / 4GB 剩余。
+OFF / Exposure Fusion / Compare Images / Timelapse Play / Exposure Adjust.|关闭 / 曝光融合 / 比较图像 / 延时回放 / 曝光调整。
+OFF / LiveView / QuickReview / ON, all modes.|关闭 / 实时取景 / 快速回放 / 开启，所有模式。
+OFF / Mode 1 / Mode 2 / Mode 3.|关闭 / 模式 1 / 模式 2 / 模式 3。
+OFF / ON (fast zoom) / SinglePress -> 100% / Full zoom on AF pt. / |关闭 / 开启（快速放大）/ 单按 -> 100% / 在自动对焦点完全放大 / 
+OFF / Percentage / Busy tasks (ABS) / Busy tasks (REL).|关闭 / 百分比 / 忙碌任务（绝对）/ 忙碌任务（相对）。
+OFF / Press SET / Press DISP.|关闭 / 按 SET / 按 DISP。
+OFF / Rectilinear / Panini.|关闭 / 直线投影 / Panini 投影。
+OFF / Red Crossout / REC/STBY.|关闭 / 红色叉号 / 录像/待机。
+OFF / Slightly sharper / Edge image / Edge + chroma.|关闭 / 轻微锐化 / 边缘图像 / 边缘＋色度。
+OFF / Startup mode / Startup key / Preset 1    / Preset 2    / Preset 3    / |关闭 / 启动模式 / 启动按键 / 预设 1 / 预设 2 / 预设 3 / 
+OFF / Startup mode / Startup key.|关闭 / 启动模式 / 启动按键。
+OFF / Tv,Av / Av,Tv.|关闭 / Tv、Av / Av、Tv。
+OFF / Tv,ISO / ISO,Tv.|关闭 / Tv、ISO / ISO、Tv。
+OFF / other than AF / other than MF.|关闭 / 非自动对焦时 / 非手动对焦时。
+OFF / other than M / other than Av / other than Tv / other than P.|关闭 / 非 M 时 / 非 Av 时 / 非 Tv 时 / 非 P 时。
+OFF / other than RAW / other than fine.|关闭 / 非 RAW 时 / 非精细画质时。
+ON (1s)|开启（1 秒）
+ON (fast zoom)|开启（快速放大）
+ON, 10s|开启，10 秒
+ON, 35mm eq.|开启，35mm 等效
+ON, all modes|开启，所有模式
+ON,0.5,local|开启，0.5，局部
+Only the current preset: ML/SETTINGS/|仅当前预设：ML/SETTINGS/
+Options for PLAY (image review) mode.|回放（图像查看）模式的选项。
+Overlay any image in LiveView. In PLAY mode, press LV btn.|在实时取景中叠加任意图像；回放模式中按 LV 键。
+Palette      |调色板      
+Percent|百分比
+Percent, AFbox|百分比，对焦框
+Percentage of overall brightness level.|整体亮度级别的百分比。
+Portrait|人像
+Position of top/bottom bars, useful for external displays.|顶部/底部栏的位置，适用于外接显示器。
+Position of zoom box (fixed or linked to focus box).|放大框位置（固定或跟随对焦框）。
+Post deflicker sidecar files.|后期去闪烁辅助文件。
+Powersave in LiveView|实时取景节电
+Press DISP|按 DISP
+Press SET|按 SET
+Preview straightened images from fisheye lenses. LV+PLAY.|预览经鱼眼校正的图像。按 LV＋回放。
+Quality factor (-16 = best quality). Try not to use it!|质量系数（-16 为最佳画质），尽量不要使用！
+QuickReview default|快速回放默认值
+Quickly toggle between two expo presets (ISO,Tv,Av,Kelvin).|在两组曝光预设（ISO、Tv、Av、色温）之间快速切换。
+R EXT -40Audio|右声道 EXT -40 音频
+R EXT -40Enable Beeps|右声道 EXT -40 启用蜂鸣
+R multiplier|红色通道倍率
+RAW EV indicator|RAW EV 指示
+RAW HistoBar (MAX)|RAW 直方条（最大值）
+RAW N/A, Log|RAW 不可用，对数
+RAW-based (RGB)|基于 RAW（RGB）
+RED channel multiplier, for custom white balance.|自定义白平衡的红色通道倍率。
+RGB (Percent)|RGB（百分比）
+ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN|ROM0.BIN:F0000000，ROM1.BIN:F8000000，RAM4.BIN
+Rack Focus|焦点移动
+Ramp between overridden FPS and default FPS. Undercrank only.|在覆盖帧率和默认帧率间渐变，仅适用于低帧率拍摄。
+Read-only.|只读。
+Rectilinear|直线投影
+Red / Green / Blue / Cyan / Magenta / Yellow / Global Focus / Local Focus.|红 / 绿 / 蓝 / 青 / 洋红 / 黄 / 全局对焦 / 局部对焦。
+Required to load ML|加载 ML 的必要条件
+SET+Erase|SET＋删除
+Save ML settings to current preset directory.|将 ML 设置保存到当前预设目录。
+Save metadata for each movie, e.g. MVI_1234.LOG|为每段视频保存元数据，例如 MVI_1234.LOG。
+Screen orientation, position fine-tuning...|屏幕方向及位置微调等。
+Screenshot after 10 seconds => VRAMx.PPM.|10 秒后截图并保存为 VRAMx.PPM。
+Second game for Magic Lantern. Try it in LiveView.|Magic Lantern 的第二款游戏，请在实时取景中体验。
+See http://wiki.magiclantern.fm/install for instructions. |安装说明请参阅 http://wiki.magiclantern.fm/install 。
+Serial num|序列号
+Set+MainDial|SET＋主拨盘
+Settings about Depth of Field info displays.|景深信息显示设置。
+Several helpful image actions you can trigger in PLAY mode.|可在回放模式中触发的实用图像操作。
+Shoot wide-open or unscrew lens to avoid aperture flicker.|使用最大光圈拍摄或拧松镜头，以避免光圈闪烁。
+Show CPU usage|显示 CPU 占用率
+Show current lens name (as reported by your lens or adapter).|显示镜头或转接环报告的当前镜头名称。
+Show how many stops you can push the exposure to the right.|显示曝光还能向右提升多少档。
+Show memory addresses patched in Canon code or data areas.|显示佳能代码或数据区中已打补丁的内存地址。
+Shows color distribution as U-V plot. For grading & WB.|以 U-V 图显示色彩分布，用于调色和白平衡。
+Shutter Count|快门次数
+Shutter speed range, when Canon shows 1/30-1/4000.|佳能显示 1/30–1/4000 时的快门速度范围。
+Simple...|简单设置…
+Simple: only consider defocus blur, ignoring diffraction effects.|简单模式：仅考虑失焦模糊，忽略衍射。
+SinglePress -> 100|单按 -> 100
+SinglePress -> 100%|单按 -> 100%
+Size of the area on which motion shall be detected.|运动检测区域的大小。
+Size of zoom box (small / medium / large / full screen).|放大框大小（小 / 中 / 大 / 全屏）。
+Slightly sharper|轻微锐化
+Small / Medium / Large / FullScreen.|小 / 中 / 大 / 全屏。
+Small / Medium / Large.|小 / 中 / 大。
+SplitScreen|分屏
+Spotmeter is disabled.|点测光已禁用。
+Spotmeter position: center or linked to focus box.|点测光位置：中央或跟随对焦框。
+Square|方波
+Standard|标准
+Start recording by pressing shutter halfway. Wired remote.|半按快门开始录像，也可使用有线遥控器。
+Start recording to find out the vertical resolution.|开始录像以检测垂直分辨率。
+Start the intervalometer after X seconds / minutes / hours.|在指定秒、分钟或小时后启动间隔拍摄。
+Start/Stop / Start only / Stop only.|开始/停止 / 仅开始 / 仅停止。
+Startup key|启动按键
+Startup mode|启动模式
+Stop the intervalometer after taking X shots.|拍摄指定张数后停止间隔拍摄。
+Stretches LiveView image vertically, for anamorphic lenses.|为变形宽银幕镜头纵向拉伸实时取景图像。
+Strong edges|强边缘
+Strong edges: looks for edges, works best in low light.|强边缘：检测边缘，在低照度下效果最好。
+Subtle image enhancements via DIGIC register tweaks.|通过调整 DIGIC 寄存器进行细微图像增强。
+Swap U-V|交换 U-V
+Swaps U and V channels (red <--> blue).|交换 U 与 V 通道（红色 <--> 蓝色）。
+Sync FPS with shutter speed, for long exposures in LiveView.|长曝光实时取景时，使帧率与快门速度同步。
+Sync w. Shutter|与快门同步
+Take a picture when subject is moving or exposure changes.|检测到主体运动或曝光变化时拍摄。
+Takes a picture when the subject comes in focus. MF only.|主体合焦时自动拍摄，仅限手动对焦。
+Tetris on your DSLR|在单反相机上玩俄罗斯方块
+The Only Tetris for DSLRs.|专为单反相机打造的俄罗斯方块。
+The camera may turn into a 1DX or it may explode.|相机可能会变成 1DX，也可能会爆炸。
+The screenshot will contain BMP and YUV overlays.|截图将包含 BMP 和 YUV 叠加层。
+This feature works best in LiveView.|此功能在实时取景中效果最佳。
+This restores ML default settings, by deleting all CFG files.|删除所有 CFG 文件并恢复 ML 默认设置。
+This works by lowering ISO => you may get pink highlights.|此功能通过降低 ISO 实现，可能产生粉红色高光。
+Time indicator while recording.|录像时显示时间指示。
+Timelapse Play|延时回放
+Timing generator freq. (READ-ONLY). FPS = F/timerA/timerB.|时序发生器频率（只读）。帧率 = F/定时器A/定时器B。
+Tip: if it gets really dark, also enable FPS override.|提示：画面很暗时可同时启用帧率覆盖。
+Tip: in photo mode, it makes LiveView usable in darkness.|提示：在照片模式中，可让实时取景在黑暗中可用。
+Tip: set this to -1 for a nice vignette effect.|提示：设为 -1 可获得不错的暗角效果。
+To change this setting: Prefs -> Config options|要更改此设置：偏好设置 -> 配置选项
+To start ramping, press INFO or just start recording.|按 INFO 或直接开始录像即可启动渐变。
+Tone Frequency|音调频率
+Tone Waveform|音调波形
+Translation pat|翻译补丁
+Translation patch.|翻译补丁。
+Trigger key(s)|触发按键
+Type of waveform to be generated: square, sine, white noise.|生成的波形类型：方波、正弦波或白噪声。
+Update the overlay whenever you take a picture.|每次拍摄后更新叠加图像。
+Use smooth exposure transitions, by compensating with ISO.|通过 ISO 补偿实现平滑曝光过渡。
+Useful for long exposures, manual lenses, manual video ctl.|适用于长曝光、手动镜头和手动视频控制。
+Vignetting correction or effects.|暗角校正或暗角效果。
+Volume for ML beeps and WAV playback (1-5).|ML 蜂鸣和 WAV 播放音量（1–5）。
+Warn if some of your settings are changed by mistake.|部分设置被意外更改时发出警告。
+Warn if you change the picture quality to something else.|画质被改为其他设置时发出警告。
+Warn if you disable AWB by mistake.|意外关闭自动白平衡时发出警告。
+Warn if you enable ALO by mistake.|意外开启自动亮度优化时发出警告。
+Warn if you turn the mode dial to some other position.|模式转盘被转到其他位置时发出警告。
+Warn on Manual / Automatic Focus|手动/自动对焦警告
+Warn type, LED, Messagebox, Beep|警告方式：LED、消息框、蜂鸣
+When you change Av, ML adjusts Tv and ISO to keep exposure.|更改 Av 时，ML 调整 Tv 和 ISO 以保持曝光。
+When you change ISO, ML adjusts Tv and Av to keep exposure.|更改 ISO 时，ML 调整 Tv 和 Av 以保持曝光。
+When you change Tv, ML adjusts Av and ISO to keep exposure.|更改 Tv 时，ML 调整 Av 和 ISO 以保持曝光。
+When you exit ML menu, or at camera startup.|退出 ML 菜单或相机启动时。
+When you set "ImageReview: Hold", it will go to Play mode.|将“图像回放”设为“保持”时，将进入回放模式。
+WhenIdle|空闲时
+With current settings, motion detect only works in LiveView.|当前设置下，运动检测仅在实时取景中有效。
+YUV-based, Luma|基于 YUV，亮度
+YUV-based, RGB|基于 YUV，RGB
+You can draw your own cropmarks in Paint.|可以使用绘图软件制作自己的裁切标记。
+You can fine-tune this, but don't expect miracles.|可以微调，但不要期待奇迹。
+You can use a different picture style when recording.|录像时可使用不同的照片风格。
+You may get around 100000.|可能获得约 100000。
+You may use the LiveView button to protect or rate images.|可使用实时取景按钮保护图像或评分。
+Your lens does not report focus distance.|镜头未报告对焦距离。
+Zero / Very low / Low / Normal / High / Very high / Auto.|零 / 很低 / 低 / 普通 / 高 / 很高 / 自动。
+Zoom when recording / trigger from focus ring / Zoom button|录像时放大 / 对焦环触发 / 放大按钮
+Zoom.REC / Focus+ZREC / ZoomIn (+) / Always On.|录像变焦 / 对焦＋录像变焦 / 放大（＋）/ 始终开启。
+[GLOBAL] If you hold the SET button pressed at camera startup:|[全局] 相机启动时按住 SET 按钮：
+[PHOTO] Set picture quality to RAW in Canon menu.|[照片] 请在佳能菜单中将画质设为 RAW。
+[Q]: fix here rack end point. SET+L/R: start point.|[Q]：在此设定焦点移动终点。SET＋左/右：设定起点。
+custom modes|自定义模式
+ft/in|英尺/英寸
+other than AF|非自动对焦时
+other than AWB|非自动白平衡时
+other than Av|非 Av 时
+other than M|非 M 时
+other than MF|非手动对焦时
+other than OFF|非关闭时
+other than P|非 P 时
+other than RAW|非 RAW 时
+other than Tv|非 Tv 时
+other than fine|非精细画质时
+popup only|仅弹窗
+popup, beep|弹窗、蜂鸣
+popup, rep. beep|弹窗、重复蜂鸣
+rep. popup|重复弹窗
+(empty)|（空）
+... like this :)|…像这样
+2-second delay|2 秒延时
+30-minute timer|30 分钟定时器
+3rd p. flash LV|第三方闪光灯实时取景
+AF/MF|自动/手动对焦
+AGC|自动增益控制
+ALO/HTP|自动亮度优化/高光色调优先
+AUTOEXEC.BIN|AUTOEXEC.BIN
+AV curve|光圈曲线
+AV range|光圈范围
+Adjust Aperture|调整光圈
+Adjust ISO|调整 ISO
+Adjust Shutter|调整快门
+AllocateMemory|分配内存
+Allocated RAM|已分配内存
+Allow beeps|允许蜂鸣
+Allow clipping|允许溢出
+Analog gain|模拟增益
+Aperture |光圈 
+Arkanoid|打砖块
+Arrow/SET shortcuts|方向键/SET 快捷键
+Aspect ratio|画面比例
+Audio delay|音频延时
+Auto ETTR|自动向右曝光
+Auto adjust Kelvin|自动调整色温
+Autorun|自动运行
+Av  -> |Av  -> 
+Battery|电池
+Bitmap|位图
+Browse|浏览
+BuffWarnLevel|缓冲区警告级别
+Build|构建版本
+Bulb Duration|B 门时长
+Card warm-up|存储卡预热
+Clear Keyframes|清除关键帧
+Clock|时钟
+Copy rack focus range|复制焦点移动范围
+Copyright|版权
+Create Keyframe|创建关键帧
+Custom file prefix|自定义文件前缀
+DC filter|直流滤波器
+Data format|数据格式
+Date|日期
+Deflicker percentile|去闪烁百分位
+Deflicker target level|去闪烁目标亮度
+Digital Gain|数字增益
+Digital dolly|数字移动拍摄
+Dim display|调暗显示屏
+Disp preset|显示预设
+Dynamic range gained|动态范围增益
+EC|曝光补偿
+EC curve|曝光补偿曲线
+EC range|曝光补偿范围
+EV increment|EV 增量
+EV indic|EV 指示
+Edit Script|编辑脚本
+Enable sound|启用声音
+Enable while recording|录像时启用
+Enabled|已启用
+Every other frame|每隔一帧
+ExpSim|曝光模拟
+Exposure Compensation|曝光补偿
+Exposure target|曝光目标
+External Source|外部信号源
+FPS|帧率
+File Format|文件格式
+File name|文件名
+Flash / No flash|闪光 / 不闪光
+Focus Patterns|对焦点模式
+Focus dist|对焦距离
+Free space|可用空间
+GB|GB
+H.264 proxy|H.264 代理视频
+HDR|HDR
+HPF2 Cutoff Hz|二阶高通截止频率
+Handheld Delay|手持延时
+Handheld Shutter|手持快门
+Headphone Mon.|耳机监听
+Headphone Volume|耳机音量
+High Pass filter|高通滤波器
+Highlight ignore|忽略高光
+HistoBar|直方条
+IS|防抖
+ISO |ISO 
+ISO curve|ISO 曲线
+ISO range|ISO 范围
+ISO val|ISO 值
+ISO/Kelvin|ISO/色温
+ISO|ISO
+ISO A|ISO A
+ISO B|ISO B
+Image file naming|图像文件命名
+Image file number|图像文件编号
+Image file prefix|图像文件前缀
+Image folder number|图像文件夹编号
+Interval Time|间隔时间
+Kelvin|色温
+Keyframe Time|关键帧时间
+LCD Bright/Saturation|LCD 亮度/饱和度
+LV Display|实时取景显示
+Left Digital Gain|左声道数字增益
+Left Digital Gain |左声道数字增益 
+Left/Right dir|左右键方向
+Lens|镜头
+Lens aperture|镜头光圈
+Link to Canon shutter|关联佳能快门
+Link to Dual ISO|关联双 ISO
+List Keyframes|列出关键帧
+Loop After|循环起点
+ML Digital ISO|ML 数字 ISO
+MLU|反光镜预升
+MLU mode|反光镜预升模式
+MVI number|视频文件编号
+Method|方式
+Mic Boost|麦克风增强
+Midtone SNR limit|中间调信噪比限制
+Midtone overlapping|中间调重叠
+Module|模块
+Module info|模块信息
+NO LENS NAME|无镜头名称
+New Keyframe...|新建关键帧…
+Normal MLU Delay|普通反光镜预升延时
+Num. pics behind|后方拍摄张数
+Num. pics in front|前方拍摄张数
+Overexposure|过曝
+Override audio settings|覆盖音频设置
+Palette|调色板
+Pic Quality|照片画质
+Pic.Style|照片风格
+Pics|照片数
+Playback|回放
+Post scripts|后处理脚本
+Pre-record|预录
+Press |按 
+Preview|预览
+QScale|QScale
+RAW video|RAW 视频
+REC-PicStyle|录像照片风格
+Ramping options|渐变选项
+Raw zebra underexposure|RAW 斑马纹欠曝
+Rec trigger|录像触发方式
+Rec. Status|录像状态
+Record|录制
+Record Digital Volume |录音数字音量 
+Record Effect Mode|录音效果模式
+Recovery ISO|恢复 ISO
+Resolution|分辨率
+Right Digital Gain|右声道数字增益
+RscMgr|资源管理器
+Run Script|运行脚本
+SET / |SET / 
+SRM job total|SRM 作业总内存
+Same TV curve|相同快门曲线
+Sampling rate|采样率
+Save Keyframes|保存关键帧
+Sec|秒
+Sequence|顺序
+Shadow SNR limit|阴影信噪比限制
+Shortcut keys|快捷键
+Show EDMAC|显示 EDMAC
+Show debug info|显示调试信息
+Show graph|显示图表
+Show hidden modules|显示隐藏模块
+Show metered areas|显示测光区域
+Shutter |快门 
+Shutter/Aperture|快门/光圈
+Sidecar file type|辅助文件类型
+Silent Mode|静音模式
+Silent Picture|静音拍摄
+Slit-Scan Mode|狭缝扫描模式
+Slowest shutter|最慢快门
+Small hacks|小型调整
+Snap points|吸附点
+Sound recording|声音录制
+Space|空间
+Sticky DOF Preview|保持景深预览
+Sticky HalfShutter|保持半按快门
+Sync beep|同步蜂鸣
+TV minimum|最低快门
+Task list|任务列表
+Temp|温度
+Temperature|温度
+Time|时间
+Time indicator|时间指示
+Trace output|跟踪输出
+Trigger Mode|触发模式
+Trigger level (dB)|触发阈值（dB）
+Turn off GlobalDraw|关闭全局叠加显示
+Turn off LCD|关闭 LCD
+Tv  -> |Tv  -> 
+UV scaling|UV 缩放
+Underexposure|欠曝
+Up/Down dir|上下键方向
+Use Global Time|使用全局时间
+Use RAW zebras|使用 RAW 斑马纹
+Use SRM memory|使用 SRM 内存
+Use in LV|在实时取景中使用
+Use shortcut key|使用快捷键
+WBShift B/A|白平衡偏移 蓝/琥珀
+WBShift G/M|白平衡偏移 绿/洋红
+Waveform Size|波形图大小
+When recording|录像时
+Zoom In|放大
+Zoom x1|1 倍变焦
+Zoom x10|10 倍变焦
+Zoom x5|5 倍变焦
+aperture|光圈
+binary string|二进制字符串
+dist|距离
+focal|焦距
+malloc|内存分配
+menu_icons|菜单图标
+mode|模式
+shoot contig|拍摄连续内存
+shoot total|拍摄总内存
+shoot_malloc|拍摄内存分配
+shutter|快门
+srm_malloc|SRM 内存分配
+stack space|栈空间
+time min|分钟
++16px|+16 像素
++8px|+8 像素
+-16px|-16 像素
+-8px|-8 像素
+0 (Grayscale)|0（灰度）
+0 EV|0 EV
+0 dB|0 dB
+1 EV|1 EV
+1 kHz|1 kHz
+10 dB|10 dB
+10min|10 分钟
+110 Hz (A2)|110 Hz（A2）
+12 kHz|12 kHz
+15s|15 秒
+1760 Hz (A6)|1760 Hz（A6）
+1min|1 分钟
+1s|1 秒
+1x, 3x|1x、3x
+2 EV|2 EV
+2 kHz|2 kHz
+20 dB|20 dB
+20min|20 分钟
+220 Hz (A3)|220 Hz（A3）
+262 Hz (Do)|262 Hz（中央 C）
+294 Hz (Re)|294 Hz（D）
+2min|2 分钟
+2s|2 秒
+2x|2x
+3 EV|3 EV
+3 dB|3 dB
+30min|30 分钟
+30s|30 秒
+330 Hz (Mi)|330 Hz（E）
+349 Hz (Fa)|349 Hz（F）
+3520 Hz (A7)|3520 Hz（A7）
+392 Hz (Sol)|392 Hz（G）
+3x...10x|3x…10x
+4 EV|4 EV
+440 Hz (La-A4)|440 Hz（A4）
+494 Hz (Si)|494 Hz（B）
+4x|4x
+5 kHz|5 kHz
+55 Hz (A1)|55 Hz（A1）
+5min|5 分钟
+5s|5 秒
+6 dB|6 dB
+880 Hz (A5)|880 Hz（A5）
+Allow|允许
+Auto int/ext|自动内部/外部
+Auto-Hide|自动隐藏
+Balanced (N/A)|均衡（不可用）
+Beep, start/stop|蜂鸣，开始/停止
+CBR|恒定码率
+Center (OFF)|中央（关闭）
+Center + 8 pts|中央＋8 点
+Center/T/R/B/L|中央/上/右/下/左
+Center/TL/TR/BR/BL|中央/左上/右上/右下/左下
+Center/Top/Right|中央/上/右
+Check|检查
+Continuous|连续
+Disable|禁用
+Don't allow|不允许
+Elapsed|已录时间
+External stereo|外部立体声
+Fast|快速
+Focus Ring|对焦环
+HalfShutter|半按快门
+Hide|隐藏
+High FPS|高帧率
+High Jello|强果冻效应
+Hold AF button|按住自动对焦按钮
+Internal mic|内置麦克风
+L/R & Set+Dial|左/右＋SET＋拨盘
+L:int R:balanced|左：内置，右：均衡
+L:int R:ext|左：内置，右：外部
+Left/Right|左/右
+Luma|亮度
+Luma Fast|快速亮度
+Mirror|镜像
+Mode 1|模式 1
+Mode 2|模式 2
+Mode 3|模式 3
+Neutral|中性
+Normal (OFF)|普通（关闭）
+OFF (1)|关闭（1）
+Off|关闭
+On|开启
+Override|覆盖
+Panini|Panini 投影
+Percentage|百分比
+Photo only|仅照片
+Press PLAY|按回放键
+RAW (EV)|RAW（EV）
+REC/STBY|录像/待机
+RGB|RGB
+RGB (HTML)|RGB（HTML）
+Raw|RAW
+Red Crossout|红色叉号
+Remain.4GB|4GB 剩余
+Remain.Card|存储卡剩余
+Reverse|反向
+SS ZeroCross|快门速度过零
+Show|显示
+Sine|正弦波
+Take a pic|拍摄一张
+Toggle|切换
+UserDef1|用户定义 1
+UserDef2|用户定义 2
+UserDef3|用户定义 3
+VBR|可变码率
+VBR (QScale)|可变码率（QScale）
+White Noise|白噪声
+Zoom.REC|录像变焦
+ZoomIn (+)|放大（＋）
+disable|禁用
+normal|普通
+reverse|反向
+x++|x++
+Adjust and fine-tune ISO. Also displays APEX Sv value.|调整并微调 ISO，同时显示 APEX Sv 值。
+Adjust aperture. Also displays APEX aperture (Av) in stops.|调整光圈，同时以档数显示 APEX 光圈值（Av）。
+Advanced intervalometer ramping options.|高级间隔拍摄渐变选项。
+Allocate memory from SRM job buffers (normally used for still capture).|从 SRM 作业缓冲区分配内存（通常用于照片拍摄）。
+Also use ISO as bracket variable. Range: 100 - max AutoISO.|同时将 ISO 作为包围变量，范围 100 至自动 ISO 上限。
+Alternate ISO for every 2 sensor scan lines.|每两条传感器扫描线交替一次 ISO。
+Amount of jello effect. Multiply "|果冻效应程度。乘以“
+Analog ISO component (ISO at which the sensor is driven).|模拟 ISO 分量（传感器实际驱动 ISO）。
+Analog mic boost.|麦克风模拟增益。
+At what shutter speeds you want to use handheld MLU.|使用手持反光镜预升的快门速度范围。
+Audio input: internal / external / both / auto.|音频输入：内置 / 外部 / 两者 / 自动。
+Auto compensate minimum ISO & minimum AV & EC changes.|自动补偿最低 ISO、最小光圈和曝光补偿变化。
+Auto expose to the right when you shoot RAW.|拍摄 RAW 时自动向右曝光。
+Automatic Gain Control - turn it off :)|自动增益控制——建议关闭。
+Automatic exposure algorithm based on predefined curves.|基于预设曲线的自动曝光算法。
+Beeps on recording start for better sync.|录像开始时蜂鸣，以便后期同步。
+Bracketing sequence order / type. Zero is always first.|包围拍摄的顺序和类型；零值始终先拍。
+Canon's digital ISO component. Strongly recommended: 0.|佳能数字 ISO 分量，强烈建议设为 0。
+Change file prefix for dual ISO photos (e.g. DUAL0001.CR2).|更改双 ISO 照片的文件前缀，例如 DUAL0001.CR2。
+Changes duration of the bulb timer|更改 B 门定时器时长
+Changes the Kelvin white balance|更改色温白平衡
+Changes the interval between shots|更改拍摄间隔
+Choose functions for arrows keys. Toggle w. |选择方向键功能。切换方式：
+Choose mode :Notch,EQ,Notch/EQ,Enhance [12],Loudness.|选择模式：陷波、均衡、陷波/均衡、增强、响度。
+Choose patterns outside ML menu, display OFF, arrows+SET.|在 ML 菜单外且显示关闭时，用方向键＋SET 选择对焦点模式。
+Choose slitscan mode:|选择狭缝扫描模式：
+Choose the output format (bit depth, compression) for the raw stream:|选择 RAW 数据流的输出格式（位深、压缩）：
+Choose the silent picture mode:|选择静音拍摄模式：
+Choose the variables to bracket:|选择包围拍摄变量：
+Choose what color channels are allowed to be clipped.|选择允许溢出的色彩通道。
+Choose when mirror lock-up should be active:|选择反光镜预升的启用时机：
+Choose when to capture the image:|选择图像捕获时机：
+Clap your hands or pop a balloon to take a picture.|拍手或戳破气球即可拍照。
+Clears all keyframes.|清除所有关键帧。
+Color scheme for bitmap overlays (ML menus, Canon menus...)|位图叠加层的配色方案（ML 菜单、佳能菜单等）。
+Create a new keyframe from the current camera settings|根据当前相机设置创建新关键帧
+Create sidecar files with exposure compensation,|创建包含曝光补偿信息的辅助文件，
+Custom AF patterns (photo mode only). Ported from 400plus.|自定义自动对焦点模式（仅照片模式），移植自 400plus。
+Custom image file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).|自定义图像文件编号，例如 IMG_1234.JPG -> IMG_5678.JPG。
+Custom image file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).|自定义图像文件前缀，例如 IMG_1234.JPG -> ABCD1234.JPG。
+Custom image folder num. You must take a picture to apply this setting.|自定义图像文件夹编号；必须拍摄一张照片才能应用。
+Customize image file naming for still pictures. Experimental.|自定义照片文件命名，实验性功能。
+Delay before starting the exposure.|开始曝光前的延时。
+Delay between mirror and shutter movement.|反光镜动作与快门动作之间的延时。
+Delay between two successive focus commands.|两次连续对焦命令之间的延时。
+Delay the audio that many frames. (experimental)|将音频延迟指定帧数（实验性）。
+Digital Volume and R-L gain|数字音量和左右声道增益
+Digital gain (LEFT). Any nonzero value reduces quality.|左声道数字增益；任何非零值都会降低质量。
+Digital gain (RIGHT). Any nonzero value reduces quality.|右声道数字增益；任何非零值都会降低质量。
+Dim LCD display in LiveView when idle, to save power.|实时取景空闲时调暗 LCD 以节省电量。
+Disable x10 zoom in LiveView.|禁用实时取景 10 倍变焦。
+Disable x5 or x10, boost contrast/sharpness...|禁用 5 倍或 10 倍变焦、增强反差和锐度等。
+Disable x5 zoom in LiveView.|禁用实时取景 5 倍变焦。
+Display + LiveView orientation: Normal / Reverse / Mirror.|显示屏及实时取景方向：普通 / 反向 / 镜像。
+Display DOF above Focus distance, in LiveView.|在实时取景的对焦距离上方显示景深。
+Display LiveView image in grayscale.|以灰度显示实时取景图像。
+Displays a graph of the current buffer usage and expected frames.|显示当前缓冲区占用和预计可录帧数图表。
+Either use a key combination and/or just an easier single keystroke.|可使用组合键，也可使用更简便的单键。
+Enable advanced intervalometer ramping|启用高级间隔拍摄渐变
+Enable zoom when you hold the shutter halfway pressed.|持续半按快门时启用变焦。
+Enables functions for SET when you use arrow shortcuts.|使用方向键快捷方式时启用 SET 键功能。
+Exposure compensation.|曝光补偿。
+Exposure difference between two frames.|两帧之间的曝光差。
+Exposure target for ETTR. Recommended: -0.5 or -1 EV.|向右曝光的目标值，推荐 -0.5 或 -1 EV。
+File format to save the image as:|图像保存格式：
+Focus direction for Left and Right keys.|左右键对应的对焦方向。
+Focus direction for Up and Down keys.|上下键对应的对焦方向。
+Focus with arrow keys. MENU while REC = save focus point.|使用方向键对焦；录像时按 MENU 保存焦点。
+For camera nerds.|供相机技术爱好者使用。
+For intervalometer, audio remote shot and motion detect.|用于间隔拍摄、声音遥控拍摄和运动检测。
+For very long exposures (several minutes).|适用于数分钟的超长曝光。
+Free memory available as stack space for user tasks.|可作为用户任务栈空间使用的空闲内存。
+Free memory from SRM_AllocateMemoryResourceFor1stJob.|由 SRM_AllocateMemoryResourceFor1stJob 提供的空闲内存。
+Frequency for ML beep and test tones (Hz).|ML 蜂鸣和测试音的频率（Hz）。
+Gain applied to both inputs in analog domain.|在模拟域同时应用于两个输入的增益。
+Hack to adjust slowest shutter from main dial.|用主拨盘调整最慢快门的功能。
+High pass filter for wind noise reduction.|用于降低风噪的高通滤波器。
+High pass filter for wind noise reduction. ML26121A.pdf p77|用于降低风噪的高通滤波器，参见 ML26121A.pdf 第 77 页。
+How many bright pixels are allowed above the target level.|允许超过目标亮度的高光像素数量。
+ISO equivalent (analog + digital components).|等效 ISO（模拟分量＋数字分量）。
+ISO for half of the scanlines (usually to recover shadows).|一半扫描线使用的 ISO，通常用于恢复阴影。
+If modules have .hid files, show them anyway. Requires restart.|即使模块有 .hid 文件也显示；需要重启。
+Include current Aperture in Keyframe|在关键帧中包含当前光圈
+Include current ISO in Keyframe|在关键帧中包含当前 ISO
+Include current Shutter in Keyframe|在关键帧中包含当前快门
+Increase sharpness and contrast when you zoom in LiveView.|实时取景放大时增强锐度和反差。
+LEFT/RIGHT: ISO. UP/DN: Kelvin white balance. SET: PushWB.|左/右：ISO；上/下：色温；SET：快捷白平衡。
+LEFT/RIGHT: LCD bright. UP/DN: LCD saturation. SET: reset.|左/右：LCD 亮度；上/下：LCD 饱和度；SET：重置。
+LEFT/RIGHT: Shutter. UP/DN: Aperture.  SET: 180d shutter.|左/右：快门；上/下：光圈；SET：180 度快门。
+LEFT/RIGHT: input gain. UP/DOWN: output gain. SET: Input.|左/右：输入增益；上/下：输出增益；SET：输入源。
+Largest contiguous block from shoot memory.|拍摄内存中最大的连续内存块。
+Largest fragmented block from shoot memory.|拍摄内存中最大的非连续内存块。
+Let ETTR change DualISO settings so you get the SNR values|允许向右曝光更改双 ISO 设置以获得信噪比数值
+Lists all keyframes|列出所有关键帧
+Load this script in the text editor (EDITOR.LUA).|在文本编辑器（EDITOR.LUA）中打开此脚本。
+Lock shutter value in movie mode (change from Expo only).|锁定视频模式快门值（只能从曝光菜单更改）。
+Loops keyframe sequence after x frames|指定帧数后循环关键帧序列
+Luma: red/blue. RGB: show color of the clipped channel(s).|亮度：红/蓝；RGB：显示溢出通道的颜色。
+ML will pause CPU-intensive graphics if buffer gets full.|缓冲区将满时，ML 会暂停占用 CPU 较高的图形功能。
+MLU delay used with intervalometer, bracketing etc.|间隔拍摄、包围拍摄等使用的反光镜预升延时。
+MLU tricks: hand-held or self-timer modes.|反光镜预升技巧：手持或自拍模式。
+Main dial changes curve offset. Left & right sets EV steps per BV.|主拨盘更改曲线偏移；左右键设置每 BV 的 EV 步长。
+Make status beeps (1 = OK, 2 = need more pictures, 3 = error).|状态蜂鸣：1 声=完成，2 声=需要更多照片，3 声=错误。
+Makes the DOF preview button sticky (press to toggle).|使景深预览按钮保持状态（按下切换）。
+Makes the half-shutter button sticky (press to toggle).|使半按快门保持状态（按下切换）。
+Memory reserved statically at startup for ML binary.|启动时为 ML 程序静态保留的内存。
+Monitoring via A-V jack. Disable if you use a SD display.|通过 A/V 接口监听；使用标清显示器时请关闭。
+Move the focus box faster (in LiveView).|在实时取景中更快移动对焦框。
+Num. of LV display presets. Switch with |实时取景显示预设数量。切换键：
+Number of bracketed shots. Can be computed automatically.|包围拍摄张数，可自动计算。
+Number of focus steps between two pictures.|两张照片之间的对焦步数。
+Number of seconds before starting focus operation.|开始对焦操作前等待的秒数。
+Number of shots behind current focus point.|当前焦点后方的拍摄张数。
+Number of shots in front of current focus point.|当前焦点前方的拍摄张数。
+Options for reducing power consumption during idle times.|空闲时降低功耗的选项。
+Output volume for audio monitoring (headphones only).|音频监听输出音量（仅耳机）。
+Overexposure threshold.|过曝阈值。
+Override audio setting by ML|由 ML 覆盖音频设置
+Picture taken when sound level becomes X dB above average.|声音高于平均值 X dB 时拍摄。
+Play a 5-second test tone with current settings.|用当前设置播放 5 秒测试音。
+Play a short beep which will be used for ML events.|播放 ML 事件所使用的短蜂鸣声。
+Play back the last raw video clip.|回放最近一段 RAW 视频。
+Plots the EDMAC read/write pointers within the source raw buffer.|绘制源 RAW 缓冲区内的 EDMAC 读写指针。
+Post-processing scripts for bracketing and focus stacking.|用于包围拍摄和焦点堆栈的后处理脚本。
+Powersave always works during standby; optionally also while recording.|待机时始终节电，也可选择在录像时节电。
+Pre-records a few seconds of video into memory, discarding old frames.|将数秒视频预录到内存，并不断丢弃旧帧。
+Press SET for rack focus, or PLAY to also start recording.|按 SET 执行焦点移动；按回放键则同时开始录像。
+Press SET to load/run this script.|按 SET 加载或运行此脚本。
+Prevent Canon firmware from turning off LiveView after 30 minutes.|防止佳能固件在 30 分钟后关闭实时取景。
+Prevents display mirroring, which may reverse ML texts.|防止显示镜像，以免 ML 文字反转。
+RAW zebra underexposure threshold|RAW 斑马纹欠曝阈值
+Raw video preview (long half-shutter press to override):|RAW 视频预览（长按半快门可临时覆盖）：
+Record Digital Volume. |录音数字音量。 
+Record RAW video (MLV format, no sound, basic metadata).|录制 RAW 视频（MLV 格式、无声音、基础元数据）。
+Record RAW video. Press SET to start.|录制 RAW 视频，按 SET 开始。
+Record a H.264 video at the same time.|同时录制 H.264 视频。
+Run the focus stacking sequence.|运行焦点堆栈序列。
+Save current keyframes to file.|将当前关键帧保存到文件。
+Scaling for input signal (useful with flat picture styles).|输入信号缩放，适用于低反差照片风格。
+Screenshot after 10 seconds => VRAMx.BMP.|10 秒后截图并保存为 VRAMx.BMP。
+Scripts for sorting intervalometer sequences.|用于整理间隔拍摄序列的脚本。
+Seconds between stack segments to let flashes recycle.|堆栈分段之间等待的秒数，以便闪光灯回电。
+Select a center-based AF pattern with LEFT and RIGHT keys.|用左右键选择以中央点为基础的对焦点模式。
+Select a horizontal AF pattern with LEFT and RIGHT keys.|用左右键选择水平对焦点模式。
+Select a vertical AF pattern with LEFT and RIGHT keys.|用左右键选择垂直对焦点模式。
+Select whether this script will be loaded at camera startup.|选择是否在相机启动时加载此脚本。
+Set keyframes by global time (time of day)|按全局时间（当天时间）设置关键帧
+Set minimum shutter value.|设置最低快门值。
+Set the cut off frequency for noise reduction|设置降噪滤波的截止频率
+Sets up stack focus to use the same range as rack focus.|让焦点堆栈使用与焦点移动相同的范围。
+Shoot one image with the hack, one without.|交替拍摄一张启用功能、一张不启用功能的图像。
+Shortcut key for enabling powersave modes right away.|立即启用节电模式的快捷键。
+Show current lens ID. Should match exiftool TEST.CR2 -LensType -b.|显示当前镜头 ID，应与 exiftool TEST.CR2 -LensType -b 一致。
+Show current lens capability bits.|显示当前镜头功能位。
+Show current lens extender information byte.|显示当前镜头增距镜信息字节。
+Show current lens focal length.|显示当前镜头焦距。
+Show current lens serial number. Not all cameras report this.|显示当前镜头序列号，并非所有相机都会报告。
+Show current lens version string.|显示当前镜头版本字符串。
+Show where the white point and the SNR levels are metered|显示白点和信噪比级别的测量区域
+Show/hide script console.|显示或隐藏脚本控制台。
+Sidecar file format, for deflicker metadata.|去闪烁元数据辅助文件的格式。
+Simulate minimum aperture value.|模拟最小光圈值。
+Slow down Canon GUI, disable auto exposure, white balance...|减慢佳能界面、禁用自动曝光和自动白平衡等。
+Slowest shutter speed for ETTR (longest exposure time).|向右曝光使用的最慢快门（最长曝光时间）。
+Smooth panning of the recording window (software dolly).|平滑移动录像窗口（软件轨道移动）。
+Snap the focus box to preset points (press CENTER key)|将对焦框吸附到预设点（按中央键）
+Sound recording options provided by mlv_snd.|由 mlv_snd 提供的声音录制选项。
+Step size for focus commands (same units as in EOS Utility)|对焦命令步长（与 EOS Utility 使用相同单位）
+Stop underexposing when at least 5% of the image gets|当至少 5% 的画面达到目标时停止欠曝
+Stop underexposing when at least half of the image gets|当至少一半画面达到目标时停止欠曝
+Take odd pictures with flash, even pictures without flash.|奇数张使用闪光，偶数张不使用闪光。
+Take pics in LiveView without moving the shutter mechanism.|在实时取景中拍照，不动作机械快门。
+Takes pictures at different focus points.|在不同焦点位置拍摄照片。
+Task info: ID, name, priority, wait_id, mem, state.|任务信息：ID、名称、优先级、等待 ID、内存、状态。
+The focus offset in steps|以步数表示的焦点偏移
+The frame at which to apply this keyframe|应用此关键帧的帧号
+Total memory allocated by ML. Press SET for detailed info.|ML 分配的总内存，按 SET 查看详情。
+Tuning parameters and prefs for rack/stack/follow focus.|焦点移动、焦点堆栈和跟焦的参数及设置。
+Turn off GlobalDraw when idle, to save some CPU cycles.|空闲时关闭全局叠加显示以降低 CPU 占用。
+Turn off display. Will also pause LiveView if not recording.|关闭显示屏；未录像时还会暂停实时取景。
+Turn the screen on/off while taking bulb exposure.|B 门曝光时开启或关闭屏幕。
+Tweaks for LiveView focus box: move faster, snap to points.|实时取景对焦框调整：快速移动、吸附到预设点。
+Underexposure threshold.|欠曝阈值。
+Use RAW zebras if possible.|尽可能使用 RAW 斑马纹。
+Use external trigger to start/pause recording within a video clip.|使用外部触发器在当前视频片段内开始或暂停录像。
+Use left & right for minimum. Main dial for maximum.|左右键调整最小值，主拨盘调整最大值。
+Use this module with an external intervalometer|将此模块与外部间隔定时器配合使用
+Wait for 'focus done' signal before sending next command.|等待“对焦完成”信号后再发送下一条命令。
+Waveform size: Small / Large / FullScreen.|波形图大小：小 / 大 / 全屏。
+When should the exposure be adjusted for ETTR:|向右曝光应在何时调整曝光：
+When you press halfshutter exposure will be set.|半按快门时设置曝光。
+Where to meter for deflicking. Recommended: 50% (median).|去闪烁测光位置，推荐 50%（中位数）。
+Where to place the exposure level for processed pics|处理后照片的目标曝光级别
+Write a large file on the card at camera startup.|相机启动时在存储卡上写入大文件。
+You can hide the focus box (the little white rectangle).|可以隐藏对焦框（白色小矩形）。
+You can hide zebras when recording.|录像时可隐藏斑马纹。
+You can take virtual (fake) pictures just for testing.|可拍摄虚拟照片用于测试。
+You may also have cropmarks in Playback mode.|回放模式中也可显示裁切标记。
+Zoom when you turn the focus ring (only some Canon lenses).|转动对焦环时放大（仅部分佳能镜头）。
+[READ-ONLY] How much more DR you get with current settings|[只读] 当前设置增加的动态范围
+[READ-ONLY] How much of midtones will get better resolution|[只读] 中间调分辨率提升程度
+[mlv_snd] Enable log file tracing. Needs camera restart.|[mlv_snd] 启用日志跟踪，需要重启相机。
+[mlv_snd] Enable sound recording for MLV.|[mlv_snd] 为 MLV 启用声音录制。
+[mlv_snd] Select your sampling rate.|[mlv_snd] 选择采样率。
+first-order high pass filter for DC cut|用于直流隔离的一阶高通滤波器
+second-order high pass filter for noise cut|用于降噪的二阶高通滤波器
+Boost on WB: increase saturation when you are adjusting WB.|调整白平衡时增强显示：提高饱和度以便观察。
+ \n \n \n \n \nBoost on WB: increase saturation when you are adjusting WB.| \n \n \n \n \n调整白平衡时增强显示：提高饱和度以便观察。
+Display the dynamic range at current ISO, from noise stdev.\nShow how many stops you can push the exposure to the right.\n|根据噪声标准差显示当前 ISO 的动态范围。\n显示曝光还能向右提升多少档。\n
+ \nDisplay the dynamic range at current ISO, from noise stdev.\nShow how many stops you can push the exposure to the right.\n| \n根据噪声标准差显示当前 ISO 的动态范围。\n显示曝光还能向右提升多少档。\n
+Full: try ISO bracket first. If out of range, use main var.\nHalf: Bracket with both ISO (50%) and main variable (50%).\n|完整：优先使用 ISO 包围，超出范围后使用主变量。\n一半：同时使用 ISO（50%）和主变量（50%）包围。\n
+ \nFull: try ISO bracket first. If out of range, use main var.\nHalf: Bracket with both ISO (50%) and main variable (50%).\n| \n完整：优先使用 ISO 包围，超出范围后使用主变量。\n一半：同时使用 ISO（50%）和主变量（50%）包围。\n
+(in EVs above the noise floor)|（高于噪声底的 EV 数）
+(upper theoretical limit, estimated from DxO measurements)|（根据 DxO 测量估算的理论上限）
+(what exactly is considered highlight, midtone and shadow).|（高光、中间调和阴影的具体划分）。
+* Computed time inacurate if ramping interval time|* 使用渐变间隔时，计算时间可能不准确
+14-bit: native uncompressed format used in Canon firmware.\n12-bit: uncompressed, 2 LSB trimmed (nearly lossless on current sensor).\n10-bit: uncompressed, 4 LSB trimmed (small loss of detail in shadows).\n14-bit compressed with Canon's Lossless JPEG. Recommended ISO < 100.\nSignal divided by 4 before compression. Recommended ISO 100-1600.\nSignal divided by 8/16/32/64 before compression, depending on ISO.\n|14 位：佳能固件使用的原生无压缩格式。\n12 位：无压缩，裁去 2 个最低有效位（当前传感器上近乎无损）。\n10 位：无压缩，裁去 4 个最低有效位（阴影细节略有损失）。\n14 位佳能无损 JPEG 压缩，建议 ISO 低于 100。\n压缩前信号除以 4，建议 ISO 100–1600。\n依 ISO 而定，压缩前信号除以 8/16/32/64。\n
+Advanced: digital ISO tweaks, HTP, ISO 50, ISO 800.000...|高级：数字 ISO 调整、高光色调优先、ISO 50、ISO 800000 等。
+After release you previos exposure will be restored.|松开后将恢复之前的曝光。
+Always ON: just the Canon mode, press shutter twice.\nSelf-Timer: MLU setting will be linked to Canon self-timer.\nHandheld: trick to reduce camera shake. Press shutter once.|始终开启：使用佳能模式，按两次快门。\n自拍：反光镜预升设置关联佳能自拍定时器。\n手持：减少相机震动，按一次快门。
+Always ON: when you take a pic, or continuously in LiveView\nAuto Snap: after u take a pic,trigger another pic if needed\nPress SET: meter for ETTR when you press SET (LiveView)\nHalfS DblClick: meter for ETTR when pressing halfshutter 2x\n|始终开启：拍照时或实时取景中持续测光\n自动拍摄：拍照后按需再触发一次拍摄\n按 SET：实时取景中按 SET 进行向右曝光测光\n双击半按：连续两次半按快门进行向右曝光测光\n
+Auto: ML chooses what's best for each video mode\nPlain old LiveView (color and real-time). Framing is not always correct.\nSlow (not real-time) and low-resolution, but has correct framing.\nFreeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n|自动：ML 为各视频模式选择最佳方式\n普通实时取景：彩色且实时，但构图不一定准确。\n慢速：非实时且分辨率低，但构图准确。\n冻结实时取景以提高速度；全局叠加开启时使用构图预览。\n
+Be careful, won't take pics if it can't autofocus.|注意：无法自动对焦时不会拍照。
+Can be absolute or relative to primary ISO from Canon menu.|可设为绝对值，或相对于佳能菜单中的主 ISO。
+DCIM/100CANON/IMG_1234.JPG -> DCIM/123CANON/IMG_1234.JPG|DCIM/100CANON/IMG_1234.JPG -> DCIM/123CANON/IMG_1234.JPG
+DNG is slow, but needs no extra post-processing.\nMLV is fast, and will group all frames into a single video file.\nLossless DNG is fast and uses CR2 compression routines (experimental).\n|DNG 较慢，但无需额外后处理。\nMLV 较快，并将所有帧保存在单个视频文件中。\n无损 DNG 较快，使用 CR2 压缩程序（实验性）。\n
+Disabled (press REC as usual).\nPress half-shutter to start/pause recording within the current clip.\nPress and hold the shutter halfway to record (e.g. for short events).\nHalf-shutter to save only the pre-recorded frames (at least 1 frame).\n|禁用（照常按录像键）。\n半按快门可在当前片段内开始或暂停录像。\n持续半按快门进行录像，适合短事件。\n半按快门仅保存预录帧（至少一帧）。\n
+Do not load ML if you start the camera with SET pressed (default)\nLoad ML only if SET is pressed at startup (optional)|按住 SET 开机时不加载 ML（默认）\n仅在按住 SET 开机时加载 ML（可选）
+EV below overexposure.|低于过曝点的 EV 数。
+EXP: reacts to exposure changes (large movements).\nDIF: detects smaller movements that do not change exposure.\nSTDY: take pic if there's little or no motion (cam steady).|曝光：检测曝光变化（较大运动）。\n差异：检测不改变曝光的较小运动。\n稳定：运动很小或无运动时拍摄（相机稳定）。
+Examples: IMG_1234.JPG -> ABCD1234.JPG, IMG_1234.JPG -> IMG_0001.JPG.|示例：IMG_1234.JPG -> ABCD1234.JPG，IMG_1234.JPG -> IMG_0001.JPG。
+Expo bracket. M: changes shutter. Others: changes AEcomp.\nFlash bracket: change flash exposure compensation.\nDOF bracket: keep exposure constant, change Av/Tv ratio.|曝光包围：M 模式更改快门，其他模式更改曝光补偿。\n闪光包围：更改闪光曝光补偿。\n景深包围：保持曝光不变，更改 Av/Tv 比例。
+For LiveView preview only. Does not affect recording.\nSwap U-V: reverses red and blue components\nExtreme Chroma: highly saturated image showing WB direction\n|仅用于实时取景预览，不影响录像。\n交换 U-V：反转红色和蓝色分量。\n极端色度：用高饱和图像显示白平衡偏移方向。\n
+For best performance, record H.264 on SD and RAW on CF.|为获得最佳性能，请将 H.264 录到 SD 卡、RAW 录到 CF 卡。
+Highlights/shadows will be half res, with aliasing/moire.|高光和阴影分辨率减半，并可能出现锯齿或摩尔纹。
+If green (RD) is always above red (WR), it's safe to use single-buffering.|如果绿色读指针始终领先红色写指针，则可安全使用单缓冲。
+LED will blink every 10s. WARNING: this limit is there for good reason!|LED 每 10 秒闪烁一次。警告：此限制有充分理由，请勿忽视！
+Make sure that it corresponds to your extended ISO settings.|请确保它与扩展 ISO 设置一致。
+Might conflict with Dual ISO prefixes (to be tested).|可能与双 ISO 文件前缀冲突，仍需测试。
+Note: this will not remove the saved sequence.|注意：这不会删除已保存的序列。
+On some lenses, this may be reversed.|部分镜头上的方向可能相反。
+Only used if you start bracketing by pressing the shutter.|仅在按快门启动包围拍摄时使用。
+Other ML features may use the options below (e.g. intervalometer in LV).|其他 ML 功能也可能使用以下选项，例如实时取景间隔拍摄。
+Percentage of overall brightness level.\n8 bit RGB level.\nHTML like color codes.\nNegative value from clipping, in EV (RAW).\nRGB color in Percentage.\n|整体亮度级别的百分比。\n8 位 RGB 数值。\n类似 HTML 的颜色代码。\n距溢出点的负 EV 值（RAW）。\n以百分比表示的 RGB 颜色。\n
+Press LiveView to start recording.|按实时取景键开始录像。
+Press REC twice: 1 - to start pre-recording, 2 - for normal recording.|按两次录像键：第一次开始预录，第二次开始正常录像。
+Press SET for detailed info.|按 SET 查看详细信息。
+Read-only. Lenses from different manufacturers may have the same ID.|只读；不同厂商的镜头可能使用相同 ID。
+Read-only. Should match exiftool TEST.CR2 -LensSerialNumber .|只读；应与 exiftool TEST.CR2 -LensSerialNumber 一致。
+Read-only. Zoom lenses are only updated in LiveView.|只读；变焦镜头信息仅在实时取景中更新。
+Scan from top to bottom as picture is taken.\nScan from bottom to top.\nScan from left to right.\nScan from right to left.\nKeep scan line in middle of frame, horizontally.\n|拍摄时从上向下扫描。\n从下向上扫描。\n从左向右扫描。\n从右向左扫描。\n扫描线水平保持在画面中央。\n
+Side effect: will show BUSY on the screen and might affect other functions.|副作用：屏幕会显示 BUSY，并可能影响其他功能。
+Simple: only consider defocus blur, ignoring diffraction effects.\nDiffraction-aware: consider both defocus and diffraction blur.\n|简单：仅考虑失焦模糊，忽略衍射。\n考虑衍射：同时考虑失焦和衍射模糊。\n
+Some cards seem to get a bit faster after this.|部分存储卡经过预热后速度会略有提升。
+Start image capture on half-shutter press (quick).\nStart image capture on half-shutter release (end trigger).\nStart image capture 2 seconds after half-shutter release.\n|半按快门时开始捕获（快速）。\n松开半按快门时开始捕获（末端触发）。\n松开半按快门 2 秒后开始捕获。\n
+Strong edges: looks for edges, works best in low light.\nBalanced: tries to cover both strong edges and fine details.\nFine details: looks for microcontrast. Needs lots of light.\n|强边缘：检测边缘，低照度下效果最佳。\n均衡：兼顾强边缘和精细细节。\n精细细节：检测微反差，需要充足光线。\n
+Take a silent picture when you press the shutter halfway.\nTake pictures until memory gets full, then save to card.\nTake pictures continuously, save the last few pics to card.\nTake pictures continuously, save the images with best focus.\nDistorted pictures for funky effects.\nFull-resolution pictures (limited to long exposures).\nFull-resolution pictures (LiveView snapshots, with crop_rec).\n|半按快门时进行静音拍摄。\n连续拍摄至内存装满，然后保存到卡。\n连续拍摄，只将最后几张保存到卡。\n连续拍摄，只保存对焦最清晰的图像。\n拍摄变形图像以获得特殊效果。\n全分辨率拍摄（仅限长曝光）。\n全分辨率拍摄（实时取景快照，需 crop_rec）。\n
+Take darker images.\nTake dark, bright, even darker, even brigther images, in that order\nTake brighter images.\n|拍摄较暗图像。\n依次拍摄暗、亮、更暗、更亮的图像。\n拍摄较亮图像。\n
+This feature only works as long as you don't trigger autofocus.|此功能仅在不触发自动对焦时有效。
+This sequence will be auto-loaded at startup.|此序列将在启动时自动加载。
+Tip: it prevents you from changing it by mistake.|提示：可防止误改此设置。
+Tip: press MENU to interrupt the stacking sequence.|提示：按 MENU 可中止堆栈序列。
+To start ramping, press |要启动渐变，请按 
+To trigger, hold shutter pressed halfway for 1 second.|持续半按快门 1 秒即可触发。
+Try 75% if you get black borders (e.g. Samyang 8mm on 5D).|如出现黑边，请尝试 75%（例如 5D 上的三阳 8mm）。
+Use arrow keys (joystick) to move the window.|使用方向键或摇杆移动窗口。
+Use this to allow spec(ta)cular highlights to be clipped.|允许镜面高光溢出。
+When you exit ML menu, or at camera startup.\nOn half-shutter press.\nAfter you take the first picture.|退出 ML 菜单或相机启动时。\n半按快门时。\n拍摄第一张照片后。
+Will not sync properly in burst mode or when taking pics quickly.|连拍或快速拍照时可能无法正确同步。
+With some clever post, you get less shadow noise (more DR).|经过适当后期处理，可降低阴影噪声并获得更高动态范围。
+You have to press halfshutter for a while.|需要持续半按快门一段时间。
+You should clear all keyframes when switching this setting|切换此设置时应清除所有关键帧
+You will need to restart the camera for the changes to take effect.|需要重启相机才能使更改生效。
+in mids & shadows. It will disable dual ISO if not needed.|中间调和阴影；不需要时会关闭双 ISO。
+noisier than selected SNR => will clip more highlights.|噪声高于所选信噪比时，将允许更多高光溢出。
+%d frames|%d 帧
+%d sec|%d 秒
+%d-bit lossless|%d 位无损
+(%d pics)|（%d 张）
+(dB)|（dB）
+(no lens)|（无镜头）
+(nonexistent)|（不存在）
+1 frame|1 帧
+Autodetect|自动检测
+BULB|B 门
+Best Shots|最佳照片
+Burst|连拍
+Clip warning  : %s|溢出警告：%s
+DISP %d|显示预设 %d
+DR+%d.%d|动态范围＋%d.%d
+End Trigger|末端触发
+FAILED|失败
+FW default%s|固件默认%s
+Full-res|全分辨率
+Full-res LV|全分辨率实时取景
+N/A|不可用
+No|否
+None|无
+OFF, will not load|关闭，不会加载
+ON, %dx%d|开启，%dx%d
+ON, %s|开启，%s
+ON, 2x|开启，2x
+ON, dx=%d, dy=%d|开启，水平=%d，垂直=%d
+ON, level=%d|开启，级别=%d
+ON, will load|开启，将会加载
+Press SET to confirm|按 SET 确认
+RAW RGB|RAW RGB
+REC:%s|录像：%s
+Restart|重启
+Roll.sh.%d%%|果冻效应 %d%%
+Slit-Scan|狭缝扫描
+Take pic|拍摄
+Type: %s|类型：%s
+Undo|撤销
+like crazy|疯狂模式
+max %d.%d|最大 %d.%d
+this lens |此镜头 
+%s unnecessary and may cause excessive shutter wear.|%s 不必要，并可能导致快门过度磨损。
+%s. Press %s for more info.|%s。按 %s 查看详情。
+AGC is enabled|自动增益控制已启用
+AGC is enabled.|自动增益控制已启用。
+Adjust shutter speed from top scrollwheel, outside menu.|在菜单外使用顶部拨盘调整快门速度。
+Also useful to trigger off of motion or trap focus|也可用于运动检测或陷阱对焦触发
+Assign AF button to half-shutter from CFn!|请在自定义功能中将自动对焦按钮分配给半按快门！
+Auto ETTR Does not work in LV on this camera.|此相机的自动向右曝光无法在实时取景中工作。
+Auto ETTR only works in M, BULB and RAW MOVIE modes.|自动向右曝光仅适用于 M、B 门和 RAW 视频模式。
+Auto ETTR requires manual ISO.|自动向右曝光需要手动 ISO。
+Auto ETTR: enable image review from Canon menu.|自动向右曝光：请在佳能菜单中启用图像回放。
+Auto ISO => cannot estimate dynamic range.|自动 ISO：无法估算动态范围。
+Autofocus and bracketing don't mix.|自动对焦与包围拍摄不能同时使用。
+Be careful, bitrate is not constant, recording may stop.|注意：比特率不恒定，录像可能停止。
+Be careful, high bitrates and sound recording don't mix.|注意：高比特率与声音录制不能同时使用。
+Be careful, image quality may be bad.|注意：图像质量可能较差。
+Be careful, recording may stop.|注意：录像可能停止。
+Beeps disabled to prevent interference with audio recording.|为避免干扰声音录制，蜂鸣已禁用。
+Bitrate may vary a lot (several orders of magnitude!)|比特率可能大幅变化（相差数个数量级）。
+Both ISOs are identical, nothing to do.|两个 ISO 相同，无需处理。
+Bulb timer only works in BULB mode|B 门定时器仅在 B 门模式中有效
+CBR mode inactive => CBR setting not used.|CBR 模式未启用，CBR 设置无效。
+Cache is locked down (not exactly clean).|缓存已锁定（状态不完全干净）。
+Check auto power off setting (currently %ds).|请检查自动关机设置（当前 %d 秒）。
+Consider using a less aggressive setting (e.g. 100/800).|建议使用较温和的设置，例如 100/800。
+Cropmarks are configured only for movie mode|裁切标记仅针对视频模式配置
+Disable autofocus.|请关闭自动对焦。
+Disable image stabilization.|请关闭图像防抖。
+Does not work on external monitors.|无法在外接显示器上工作。
+Dual ISO does not work in movie mode on your camera.|此相机的视频模式不支持双 ISO。
+Enable RAW video first.|请先启用 RAW 视频。
+Enable image review from Canon menu.|请在佳能菜单中启用图像回放。
+Extended WB values are only applied to movies, not photos.|扩展白平衡值仅应用于视频，不应用于照片。
+FPS ramping disabled.|帧率渐变已禁用。
+FPS value is computed from photo shutter speed.|帧率值根据照片快门速度计算。
+Flash is automatic, can't adjust.|闪光灯处于自动模式，无法调整。
+Focus peaking with grayscale preview is enabled.|已启用带灰度预览的峰值对焦。
+Focus stacking not configured.|焦点堆栈尚未配置。
+For best performance, record H.264 on SD. RAW is always saved on CF.|为获得最佳性能，请将 H.264 录到 SD 卡；RAW 始终保存到 CF 卡。
+For long exposures, enable bulb timer (maybe also intervalometer).|长曝光请启用 B 门定时器，也可同时启用间隔拍摄。
+Frame size not multiple of 512 bytes!|帧大小不是 512 字节的整数倍！
+Framing in H.264 is not accurate in modes with higher vertical resolution.|高垂直分辨率模式中的 H.264 构图不准确。
+Full-res LV requires the crop_rec module loaded.|全分辨率实时取景需要加载 crop_rec 模块。
+Full-res pictures only work in Manual (M) photo mode.|全分辨率照片仅适用于手动（M）照片模式。
+Full-screen Magic Zoom does not work in crop mode|全屏魔术变焦无法在裁切模式中使用
+Half-shutter trigger uses pre-recording internally.|半按快门触发在内部使用预录功能。
+Has no effect when trigger is set to take a pic|触发方式设为拍照时此项无效
+Headphone monitoring is disabled|耳机监听已禁用
+I hope I get to rated lifespan (rated lifespan %d).|希望能达到额定寿命（额定寿命 %d）。
+In LiveView, this requires ExpSim enabled.|实时取景中需要启用曝光模拟。
+Lets break Guiness World Records (rated lifespan %d).|挑战吉尼斯世界纪录（额定寿命 %d）。
+Lifespans are for wimps (rated lifespan %d).|无视额定寿命（额定寿命 %d）。
+Long exposure tools may use bulb timer value, even if BT is disabled.|即使 B 门定时器已关闭，长曝光工具仍可能使用其设定值。
+Lossless 8...12-bit not working in video modes with increased resolution.|8–12 位无损格式无法在提升分辨率的视频模式中工作。
+ML uses too much memory!!|ML 使用了过多内存！
+Magic Zoom does not work in HDMI 1080i.|魔术变焦无法在 HDMI 1080i 中使用。
+Magic Zoom does not work well in current video mode|魔术变焦在当前视频模式中效果不佳
+Magic Zoom does not work with SD monitors|魔术变焦无法在标清显示器上使用
+Magic Zoom is not available in this mode|当前模式无法使用魔术变焦
+Max region: %s.|最大区域：%s。
+Memcheck overhead: %d.%d%%.|内存检查开销：%d.%d%%。
+No burst bracketing series, please.|请勿使用连拍包围序列。
+No dynamic range info available.|没有可用的动态范围信息。
+Not compatible with HDR bracketing.|与 HDR 包围拍摄不兼容。
+Not compatible with HDR bracketing. Use trigger mode SET.|与 HDR 包围拍摄不兼容，请使用 SET 触发模式。
+Not compatible with x5 zoom.|与 5 倍变焦不兼容。
+Not enough space for %d shots (only for %d).|空间不足以拍摄 %d 张（只能拍 %d 张）。
+Not fully compatible with continuous drive.|与连续拍摄模式不完全兼容。
+Not used for RAW zebras.|RAW 斑马纹不使用此项。
+Not working in video modes with broken preview.|无法在预览异常的视频模式中工作。
+Now you got under 10Hz, but meter is wrong value signed|当前已低于 10Hz，但电平表符号值不正确
+Only works when 'Auto power off' is disabled in Canon menu.|仅在佳能菜单关闭“自动关机”时有效。
+Patch %x overwritten (expected %x, got %x).|补丁 %x 被覆盖（预期 %x，实际 %x）。
+Photo RAW data not available, try in LiveView.|照片 RAW 数据不可用，请尝试实时取景。
+Photo RAW data not available.|照片 RAW 数据不可用。
+Please load the IME modules (ime_base.mo and one ime_*.mo)|请加载输入法模块（ime_base.mo 和一个 ime_*.mo）
+Please restart your camera to apply the changes.|请重启相机以应用更改。
+Please take a picture to apply the changes.|请拍摄一张照片以应用更改。
+Please wait for Lua to finish loading...|请等待 Lua 加载完成…
+Press shutter halfway and be careful (tricky feature).|请小心半按快门（此功能较特殊）。
+Record a video clip first.|请先录制一段视频。
+Restart your camera to complete the process.|请重启相机以完成操作。
+Restart your camera.|请重启相机。
+Running in background. Complex script%s%s%s%s%s.|正在后台运行。复杂脚本%s%s%s%s%s。
+Running in background. Menu: %s -> %s.|正在后台运行。菜单：%s -> %s。
+Script is running.|脚本正在运行。
+Shutter speed is automatic - cannot adjust manually.|快门速度为自动，无法手动调整。
+Shutter speed: 1/%d -> 1/%d (%s%d units)|快门速度：1/%d -> 1/%d（%s%d 单位）
+Shutter speed: 1/%d.%03d -> 1/%d.%03d (%s%d units)|快门速度：1/%d.%03d -> 1/%d.%03d（%s%d 单位）
+Slowest shutter will be limited by interval time minus 2 seconds.|最慢快门受限于间隔时间减 2 秒。
+Sound recording must be disabled from Canon menu.|必须在佳能菜单中关闭声音录制。
+The 'Balanced' option is not working|“均衡”选项当前不可用
+This allocator does not implement get_max_region.|此内存分配器未实现 get_max_region。
+This feature does not work in BULB mode (use Bulb Duration)|此功能无法在 B 门模式中使用（请使用 B 门时长）
+This feature does not work with HDR bracketing.|此功能无法与 HDR 包围拍摄同时使用。
+This feature does not work with global time keyframes|此功能无法与全局时间关键帧同时使用
+This feature only works in BULB mode|此功能仅在 B 门模式中有效
+This is only an upper limit for the bitrate.|这只是比特率上限。
+This keyframe already exists, will be overwritten|此关键帧已存在，将被覆盖
+This module will be loaded at next reboot.|此模块将在下次重启时加载。
+This module will no longer be loaded at next reboot.|此模块下次重启时将不再加载。
+This script will autorun on next boot.|此脚本将在下次启动时自动运行。
+Timelapse: %dh%02dm, %d shots, %d fps => %02dm%02ds.|延时摄影：%d时%02d分，%d 张，%d 帧率 => %02d分%02d秒。
+To use the MLV file format, you must load the mlv_rec module.|要使用 MLV 格式，必须加载 mlv_rec 模块。
+Too much for this lil' cam... both defishing and anamorphic|同时使用鱼眼校正和变形宽银幕超出相机能力
+Trap focus outside LiveView requires a chipped lens|实时取景外使用陷阱对焦需要带芯片的镜头
+Trying to guess how much RAM we have...|正在检测可用内存大小…
+Turn off Canon bracketing (AEB)!|请关闭佳能自动包围曝光（AEB）！
+Use M mode to avoid exposure flicker.|使用 M 模式以避免曝光闪烁。
+Use manual white balance to avoid WB flicker.|使用手动白平衡以避免白平衡闪烁。
+Use slow shutter speeds to avoid shutter flicker.|使用较慢快门以避免快门闪烁。
+Using %d.%ds (%d frames) out of %d.%ds (%d frames) for pre-recording.|预录使用 %d.%d 秒（%d 帧），总计 %d.%d 秒（%d 帧）。
+VBR mode inactive => QScale setting not used.|VBR 模式未启用，QScale 设置无效。
+Will use Histobar in LiveView, RAW histogram after taking a pic.|实时取景使用直方条，拍照后使用 RAW 直方图。
+Will use RAW RGB zebras %safter taking a pic.|拍照后%s使用 RAW RGB 斑马纹。
+Will use RAW histogram in LiveView and after taking a pic.|实时取景和拍照后均使用 RAW 直方图。
+Would be nice to have at least %s free here.|此处最好至少保留 %s 空闲空间。
+You may get around %d.|可能达到约 %d。
+You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw/' *|必须将 *.UFR 重命名为 *.ufraw：rename 's/UFR$/ufraw/' *
+You need to disable gradual exposure.|需要关闭渐变曝光。
+You need to load the mlv_play module.|需要加载 mlv_play 模块。
+ Intervalometer: waiting for %s...\n| 间隔拍摄：等待 %s…\n
+ Taking picture in %d.%ds   | 将在 %d.%d 秒后拍摄   
+!!! Auto exposure !!!\nSet 'Movie Exposure -> Manual' from Canon menu|！！！自动曝光！！！\n请在佳能菜单中将“视频曝光”设为“手动”
+%d images  |%d 张图像  
+%s not found|找不到 %s
+%s not loaded|%s 未加载
+%s: %d MiB, %d frames|%s：%d MiB，%d 帧
+%s: PARSE ERROR:\nlen=%d,%d\nstring='%s'|%s：解析错误：\n长度=%d,%d\n字符串='%s'
+(Press any camera button to enter ML settings)|（按相机上的任意按钮进入 ML 设置）
+(failed inSuite)|（inSuite 失败）
+(format not supported)|（不支持此格式）
+(no decompression on this model)|（此机型不支持解压）
+(take pic or release half-shutter)|（拍照或松开半按快门）
+180deg|180 度
+404 Undocumented Feature|404 未记录的功能
+After all, we are programmers, not tech writers.|毕竟我们是程序员，不是技术文档作者。
+Allocated memory|已分配内存
+Average exposure: %3d    New exposure: %3d   |平均曝光：%3d    新曝光：%3d   
+Battery: %d%%, %dh%02dm, %d%%/h|电池：%d%%，%d时%02d分，%d%%/小时
+Be careful using it for production work.      |用于正式拍摄时请务必谨慎。      
+Buffer error|缓冲区错误
+Buffer: %d frames (%d%%)|缓冲区：%d 帧（%d%%）
+Built on %s by %s.|构建日期：%s，构建者：%s。
+Busy...|处理中…
+But... you can simply try it and see what it does.|不过，你可以直接试试看它的作用。
+CONFIG PARSE ERROR|配置解析错误
+Callbacks:|回调：
+Captured in %d ms.|捕获耗时 %d 毫秒。
+Capturing frame %d...|正在捕获第 %d 帧…
+Could not load help page %s.|无法加载帮助页面 %s。
+DNG save error (card full?)|DNG 保存错误（存储卡已满？）
+DOF Far:    %s|景深远端：%s
+DOF Near:   %s|景深近端：%s
+DONE|完成
+Data corruption at slot %d, frame %d, err %d |数据损坏：槽位 %d，帧 %d，错误 %d 
+Display preset: %d|显示预设：%d
+Done, press shutter half-way to exit.|完成，半按快门退出。
+Early stop (%d). Should have recorded a few more frames.|提前停止（%d），本应再录制几帧。
+Enjoy!|祝你使用愉快！
+Error viewing %s|查看 %s 时出错
+Error: GUID within the file chunks mismatch!|错误：文件块中的 GUID 不一致！
+Failed to allocate BVRAM mirror|无法分配 BVRAM 镜像
+File #%d ends prematurely, %d bytes read|文件 #%d 意外结束，已读取 %d 字节
+File create error|创建文件失败
+File ends prematurely during LENS|文件在 LENS 块中意外结束
+File ends prematurely during MLVI|文件在 MLVI 块中意外结束
+File ends prematurely during RAWI|文件在 RAWI 块中意外结束
+File ends prematurely during RTCI|文件在 RTCI 块中意外结束
+File ends prematurely during VIDF|文件在 VIDF 块中意外结束
+File ends prematurely during VIDF raw data|文件在 VIDF RAW 数据中意外结束
+File ends prematurely during WAVI|文件在 WAVI 块中意外结束
+File ends prematurely during block header|文件在块头中意外结束
+File position mismatch. Read %d|文件位置不匹配，读取位置 %d
+File write error (card full?)|文件写入错误（存储卡已满？）
+Flushing buffers... %d frames left  |正在清空缓冲区…剩余 %d 帧  
+Focus dist: %s|对焦距离：%s
+Focus: %d%% |对焦：%d%% 
+Focusing...|正在对焦…
+Footer format mismatch|文件尾格式不匹配
+Frame incomplete at slot %d, frame %d |帧不完整：槽位 %d，帧 %d 
+Frame order error: slot %d, frame %d, expected %d |帧顺序错误：槽位 %d，帧 %d，预期 %d 
+Half-shutter pressed...|已半按快门…
+Half-shutter...|请半按快门…
+Hold on...|请稍候…
+Hyperfocal: %s|超焦距：%s
+Index error:|索引错误：
+Information:|信息：
+Input|输入
+Invalid MLV:|无效的 MLV：
+Invalid RAW:|无效的 RAW：
+Invalid header size: %d bytes at 0x%08X|无效的文件头大小：%d 字节，位置 0x%08X
+LOAD ERROR %d:%s   |加载错误 %d：%s   
+Last update: %s|最后更新：%s
+Lens: %s, %dmm f/%d.%d|镜头：%s，%dmm f/%d.%d
+Lens: manual (without chip).|镜头：手动镜头（无芯片）。
+Locking|正在锁定
+Long half-shutter will take another picture.|持续半按快门将再拍一张照片。
+Lossless compression error: %d|无损压缩错误：%d
+Magic Lantern|Magic Lantern
+Memory error|内存错误
+More info after you load this module.|加载此模块后可查看更多信息。
+Motion level: %d   |运动级别：%d   
+Movie recording stopped automagically         |视频录制已自动停止         
+Not a CHDK DNG|不是 CHDK DNG 文件
+Nothing saved, card full maybe.|没有保存任何内容，存储卡可能已满。
+Out of memory|内存不足
+Over :%3d.%02d%%\nUnder:%3d.%02d%%|过曝：%3d.%02d%%\n欠曝：%3d.%02d%%
+Overlay error.   |叠加层错误。   
+Overlay saved.   |叠加层已保存。   
+Please record a movie first.|请先录制一段视频。
+Please report all bugs at www.magiclantern.fm.|请在 www.magiclantern.fm 报告问题。
+Preparing...|正在准备…
+Preparing:|正在准备：
+PushWB|快捷白平衡
+Queue overflow|队列溢出
+Raw error|RAW 错误
+Raw error, falling back to YUV overlays|RAW 错误，改用 YUV 叠加层
+Remaining: %d|剩余：%d
+Reset|重置
+SD monitors NOT fully supported!\nRGB tools and MZoom won't work. |尚未完整支持标清显示器！\nRGB 工具和魔术变焦无法工作。 
+STBY|待机
+Saved %d x %d (%d ms, %d MiB/s).   |已保存 %d x %d（%d 毫秒，%d MiB/s）。   
+Saving %d x %d...|正在保存 %d x %d…
+Saving canceled.|已取消保存。
+Saving image %d of %d (%dx%d)...|正在保存第 %d/%d 张图像（%dx%d）…
+Saving overlay...|正在保存叠加层…
+Scrollwheel: %s|拨盘：%s
+Skipped %d frames|跳过 %d 帧
+Slit-scan: %d%%...|狭缝扫描：%d%%…
+Slot %d: frame %d not saved |槽位 %d：帧 %d 未保存 
+Slot check error|槽位检查错误
+Thanks!|谢谢！
+Then, write a short paragraph to describe it,|然后写一小段文字说明它，
+This feature is probably not yet documented.|此功能可能尚未编写文档。
+This is a development snapshot for testing purposes.|这是用于测试的开发快照。
+Too many fonts|字体数量过多
+Too many prop handlers|属性处理器数量过多
+Waiting for IS...|正在等待图像防抖…
+Warning: output truncated (%s)|警告：输出已截断（%s）
+Writing ROM0|正在写入 ROM0
+Writing ROM1|正在写入 ROM1
+YUV buffer was not initialized.\nPlease take a picture or go to LiveView.|YUV 缓冲区尚未初始化。\n请拍摄一张照片或进入实时取景。
+allocation failed|内存分配失败
+and we will include it in the user guide.|我们会将它加入用户指南。
+buffer empty|缓冲区为空
+failed to alloc mlv_play_decomp_buf|无法分配 mlv_play 解压缓冲区
+failed to load chunks|无法加载文件块
+reading failed|读取失败
+reading failed again|再次读取失败
+Magic Lantern version: %s\nGit commit: %s\nBuilt on %s by %s.|Magic Lantern 版本：%s\nGit 提交：%s\n构建日期：%s，构建者：%s。
+# Development and module information strings
+Allocate 10MB of RAM|分配 10MB 内存
+AllocateMemory 1MB|用 AllocateMemory 分配 1MB
+Buffer R/W benchmark (5 min)|缓冲区读写测试（5 分钟）
+Buffer write benchmark (inf)|缓冲区写入测试（无限）
+CF+SD write benchmark (1 min)|CF＋SD 写入测试（1 分钟）
+Cache benchmark (RAM)|缓存测试（RAM）
+Cache benchmark (RAM, no cache)|缓存测试（RAM，不使用缓存）
+Cache benchmark (ROM)|缓存测试（ROM）
+Card Benchmarks|存储卡性能测试
+Create a stuck task|创建卡死任务
+Decimal -10..10|十进制 -10..10
+Decimal -5..5|十进制 -5..5
+Decimal -50..500|十进制 -50..500
+Decimal -9..9|十进制 -9..9
+Decimal 0..10|十进制 0..10
+Decimal 0..100|十进制 0..100
+Decimal 0..15|十进制 0..15
+Decimal 0..5|十进制 0..5
+Decimal 0..99|十进制 0..99
+Decimal 1..10000000|十进制 1..10000000
+Decimal 10..20|十进制 10..20
+Decimal 25..150|十进制 25..150
+Division by zero|除以零
+EDMAC display|EDMAC 显示测试
+EDMAC model test|EDMAC 模型测试
+EDMAC screen test (infinite)|EDMAC 屏幕测试（无限）
+EDMAC tools|EDMAC 工具
+Fault emulation|故障模拟
+Find free EDMAC channels|查找空闲 EDMAC 通道
+Focus peaking benchmark (30s)|峰值对焦性能测试（30 秒）
+Freeze the GUI task|冻结界面任务
+Hex 0..1FF|十六进制 0..1FF
+Hex 0..3FF|十六进制 0..3FF
+Hex 0..7|十六进制 0..7
+Hex 0..F|十六进制 0..F
+Hex 0..FF|十六进制 0..FF
+Hex 0..FFFFFFFF|十六进制 0..FFFFFFFF
+Hex 100..3FF|十六进制 100..3FF
+Info screen test (infinite)|信息屏幕测试（无限）
+Lock-up the ARM CPU|锁死 ARM CPU
+Log EDMAC activity|记录 EDMAC 活动
+Log every|记录间隔
+Memcpy benchmark (20s)|内存复制测试（20 秒）
+Memory Benchmarks|内存性能测试
+Memory benchmark (1 min)|内存性能测试（1 分钟）
+Memory leak test (1 minute)|内存泄漏测试（1 分钟）
+Menu backend test (infinite)|菜单后端测试（无限）
+Menu benchmark (10s)|菜单性能测试（10 秒）
+Menu edit tests|菜单编辑测试
+Misc Benchmarks|其他性能测试
+Null pointer test (quick)|空指针测试（快速）
+Quick R/W benchmark (1 min)|快速读写测试（1 分钟）
+Quick test (around 15 min)|快速测试（约 15 分钟）
+RPC reliability test (infinite)|RPC 可靠性测试（无限）
+Random tests (infinite loop)|随机测试（无限循环）
+Rectangle test (infinite)|矩形测试（无限）
+Redraw test (infinite)|重绘测试（无限）
+SRM memory test (5 minutes)|SRM 内存测试（5 分钟）
+Self tests|自检
+Show EDMAC channels|显示 EDMAC 通道
+Small-block malloc test (quick)|小内存块分配测试（快速）
+Start logging|开始记录
+Stubs API test|桩 API 测试
+Thread safety test|线程安全测试
+Time 0..10s|时间 0..10 秒
+Time 0..1h|时间 0..1 小时
+Time 0..1m|时间 0..1 分钟
+Time 0..24h|时间 0..24 小时
+Time 0..500ms|时间 0..500 毫秒
+Time 113..512|时间 113..512
+A quick test which covers basic functionality. |覆盖基本功能的快速测试。 
+A thorough test which randomly enables functions from menu. |从菜单随机启用功能的全面测试。 
+Allocate and free a large block of RAM (16 MB); repeat 1000 times.|分配并释放 16MB 大内存块，重复 1000 次。
+Allocate up to 50000 small blocks, 32K each, until memory gets full.|分配最多 50000 个 32KB 小块，直至内存用尽。
+Allocates 1MB RAM from any source, without freeing it.|从任意来源分配 1MB 内存且不释放。
+Allocates 1MB RAM using AllocateMemory, without freeing it.|用 AllocateMemory 分配 1MB 内存且不释放。
+Benchmarks for focus peaking and menu backend (for now)|峰值对焦和菜单后端性能测试。
+CF or SD card benchmarks|CF 或 SD 存储卡性能测试
+Causes excessive redraws for testing the graphics backend|产生大量重绘以测试图形后端
+Causes intentionally wrong behavior to see DryOS reaction.|故意执行错误行为以观察 DryOS 的反应。
+Check card read/write speed with a 16MB buffer. Uses a 1GB temp file.|使用 16MB 缓冲区测试存储卡读写速度，会创建 1GB 临时文件。
+Check how fast is your camera. Card, CPU, graphics...|测试相机的存储卡、CPU 和图形性能。
+Check how fast peaking runs in PLAY mode (1000 iterations).|测试峰值对焦在回放模式的速度（1000 次）。
+Check memcpy speed using different subsystems.|测试不同子系统的内存复制速度。
+Check memory read/write speed using different methods.|使用不同方法测试内存读写速度。
+Check speed of menu backend.|测试菜单后端速度。
+Checks various buffer sizes. You don't need it for raw video benchmarks,|测试多种缓冲区大小；普通 RAW 视频测试不需要此项，
+Creates a task which will become stuck in an infinite loop.|创建一个会卡在无限循环中的任务。
+Creates a task which will clear the interrupts and execute while(1).|创建清除中断并执行无限循环的任务。
+Detect RAM cache size by benchmarking (look for a sharp speed drop).|通过性能测试检测 RAM 缓存大小（寻找速度骤降点）。
+Detect ROM cache size by benchmarking (look for a sharp speed drop).|通过性能测试检测 ROM 缓存大小（寻找速度骤降点）。
+Dummy variables with various edit ranges.|具有不同编辑范围的测试变量。
+Experiment for finding optimal write buffer sizes.|用于寻找最佳写入缓冲区大小的实验。
+Flood master with RPC requests and print delay. |用大量 RPC 请求冲击主处理器并显示延迟。 
+Freezes main GUI task. Camera will stop reacting to buttons.|冻结主界面任务，相机将不再响应按钮。
+Memory or cache benchmarks|内存或缓存性能测试
+Performs some math operations which will divide by zero.|执行会产生除以零的数学运算。
+Sample EDMAC activity on all channels and save a log file.|采样所有通道的 EDMAC 活动并保存日志。
+Sampling interval (how often EDMAC channels are polled).|采样间隔（轮询 EDMAC 通道的频率）。
+Shift the entire display left and right with EDMAC routines.|使用 EDMAC 程序左右移动整个显示画面。
+Start logging EDMAC activity.|开始记录 EDMAC 活动。
+Stresses graphics bandwith. Run this while recording.|对图形带宽进行压力测试，请在录像时运行。
+Switches INFO screens very quickly.|快速切换 INFO 屏幕。
+Tests Canon functions called by ML. SET=once, PLAY=100x.|测试 ML 调用的佳能函数。SET=一次，回放键=100 次。
+Tests SRM memory allocation routines.|测试 SRM 内存分配程序。
+Tests proper usage of Canon API calls in ML menu backend.|测试 ML 菜单后端是否正确调用佳能 API。
+Tests to confirm our hypothesis on how EDMAC works.|用于验证 EDMAC 工作原理假设的测试。
+Tests to make sure Magic Lantern is stable and won't crash.|测试 Magic Lantern 的稳定性和抗崩溃能力。
+Tests various functions for thread safety. WIP.|测试多种函数的线程安全性，尚未完成。
+This checks if the speed drop is indeed caused by cache overflow.|检查速度下降是否确由缓存溢出引起。
+Useful for finding image buffers.|用于查找图像缓冲区。
+Useful to find which channels can be used in LiveView.\n|用于查找实时取景中可使用的通道。\n
+Write speed on both CF and SD cards at the same time.|同时测试 CF 和 SD 卡写入速度。
+Writes 0xBAADBAAD to address 0 (simulating a null pointer error).|向地址 0 写入 0xBAADBAAD（模拟空指针错误）。
+(cacheable, uncacheable, EDMAC, different data types...)|（可缓存、不可缓存、EDMAC、不同数据类型等）
+(memcpy, dma_memcpy, DMA unit, EDMAC unit)|（memcpy、dma_memcpy、DMA 单元、EDMAC 单元）
+After running this a few times, you'll get ERR70.|运行数次后会出现 ERR70。
+After running this a few times, you'll run out of memory.|运行数次后内存会耗尽。
+Anything still running after that would be secondary CPUs or hardware.|此后仍在运行的内容只可能是辅助 CPU 或硬件。
+Fixme: this will lock up if you change the video mode during the test.|注意：测试期间更改视频模式会导致相机锁死。
+For raw video, you want to run it either in movie mode or in PLAY mode.|测试 RAW 视频时，请在视频模式或回放模式中运行。
+Low priority tasks (prio >= 0x1A) will no longer be able to run.|低优先级任务（优先级 >= 0x1A）将无法继续运行。
+ML should save a crash log about 0xBAADBAAD and should not crash.|ML 应保存关于 0xBAADBAAD 的崩溃日志，且自身不应崩溃。
+Press shutter halfway to choose the exact moment.|半按快门选择准确时刻。
+Results saved in BENCH.LOG.|结果已保存到 BENCH.LOG。
+Should be executed on both camera and QEMU.|应分别在相机和 QEMU 中执行。
+The logging buffer size is fixed at 2048 samples.|日志缓冲区固定为 2048 个样本。
+This used to crash the 500D if the test was run while recording.|在录像时运行此测试曾会导致 500D 崩溃。
+Tip: load the 'plot' module to get a nice graph.|提示：加载 plot 模块可显示图表。
+Useful for figuring out how image capture/processing works.|用于研究图像捕获和处理的工作方式。
+You should have a valid image on the card.|存储卡上应有一张有效图像。
+You'll have to take the battery out after running most of these.|运行其中多数测试后需要取出电池才能恢复。
+but if you want to optimize the video buffering algorithms, try it.|但如需优化视频缓冲算法，可以尝试此项。
+so all your pics look equally exposed, without flicker.|使所有照片曝光一致且无闪烁。
+
+# Module information pages
+Author|作者
+Authors|作者
+License|许可证
+Credits|致谢
+Summary|摘要
+Description|说明
+Forum|论坛
+Website|网站
+Build date|构建日期
+Build user|构建用户
+Help page 1|帮助第 1 页
+Help page 2|帮助第 2 页
+Help page 3|帮助第 3 页
+Help page 4|帮助第 4 页
+Help page 5|帮助第 5 页
+Advanced Intervalometer|高级间隔拍摄
+Advanced ramping and exposure control for the intervalometer|间隔拍摄的高级渐变与曝光控制
+Auto exposure algorithm|自动曝光算法
+Benchmarks (speed tests)|性能测试（速度测试）
+Post deflicker sidecar files|后期去闪烁辅助文件
+Dynamic range improvement by using two ISOs in one picture|在同一画面使用两档 ISO 提升动态范围
+Expose To The Right|向右曝光
+Expose To The Right - auto exposure that minimizes noise|向右曝光——尽量降低噪点的自动曝光
+File manager (browse the files on the card)|文件管理器（浏览存储卡文件）
+Image name preferences|图像文件名设置
+Customize Canon's image file naming (IMG_1234.CR2 -> ABCD1234.CR2)|自定义佳能图像文件命名（IMG_1234.CR2 -> ABCD1234.CR2）
+Raw video v1.1 (MLV Lite)|RAW 视频 v1.1（MLV Lite）
+Records 14-bit RAW video|录制 14 位 RAW 视频
+Play MLV/RAW|播放 MLV/RAW
+MLV Sound Support|MLV 声音支持
+Adds sound recording functionality to mlv_rec|为 mlv_rec 添加声音录制功能
+Self-testing routines|自检程序
+Stability tests|稳定性测试
+Silent Pictures|静音拍摄
+Take pictures in LiveView without shutter actuation|在实时取景中无快门动作拍照
+Advanced ramping and exposure control for the intervalometer\n\nCreate keyframes from current camera settings and specify the\nframe at which the keyframe is applied. You will select which\nparameters you would like to set in the keyframe and which you\nwould like to ignore. The module ramps (linearly) the vaules of\nselected parameters from one keyframe to the next while the\nintervalometer is running.\n\n\n|为间隔拍摄提供高级渐变与曝光控制。\n\n从当前相机设置创建关键帧，并指定应用帧号。\n可选择关键帧中需设置或忽略的参数。\n间隔拍摄时，模块会在相邻关键帧间线性渐变。\n\n
+A stripped-down version of the old 1980s brick breaker-style\ngame "Arkanoid". Use LEFT and RIGHT keys (or joystick) to play.\n\nArkanoid is an old arcade game developed in 1986 in the spirit of\nAtari's Breakout game from the 1970s. The game is pretty\nstraight forward: you have a paddle (it's actually your ship) and\nyou have to keep a ball from falling off the screen by bouncing it\nup and destroying the blocks in your way (from PetaPixel).\n\nTip: with an actor in the scene on hard difficulty (for example\nwhilst playing during a paid shoot) the game becomes much\nmore challenging but no less enjoyable (from EOSHD).\n\n|经典打砖块游戏“Arkanoid”的精简版。使用左右键（或摇杆）操作。\n\n用挡板反弹小球，防止小球掉出屏幕，并击碎上方的砖块。\n\n提示：高难度模式更具挑战性。\n
+Automatic exposure algorithm based on predefined curves. It's\nlike a real 'P' where you actually program what you want the\ncamera to do depending on the light.\nhttp://www.magiclantern.fm/forum/?topic=7208\n\n|基于预设曲线的自动曝光算法。它类似可编程的 P 挡，可按现场光线决定相机的曝光行为。\nhttp://www.magiclantern.fm/forum/?topic=7208\n
+Benchmarks (speed tests):\n\n *  card benchmarks\n *  memory benchmarks\n *  various feature benchmarks\n\nIn particular, the quick card benchmark is useful for diagnosing\nspeed issues when recording RAW video.\n\n|性能测试（速度测试）：\n\n *  存储卡性能\n *  内存性能\n *  各项功能性能\n\n快速存储卡测试尤其适合诊断 RAW 视频录制时的速度问题。\n
+Generate sidecar (XMP/UFRaw) files for post deflicking.\n\n|生成用于后期去闪烁的辅助文件（XMP/UFRaw）。\n
+Increases dynamic range by sampling the sensor at two different\nISOs, switching ISO for every other line pair. This trick cleans up\nshadow noise, resulting in a dynamic range improvement of\naround 3 stops, at the cost of reduced vertical resolution,\naliasing and moire.\n\nWorks for both raw photos (CR2) and raw videos (DNG). You need\nto postprocess these files with a tool called **cr2hdr**.\n\nAfter postprocessing, you will get a DNG that looks like a dark ISO\n100 shot, but you can bring the exposure back up and be\ndelighted by how little noise is present in those recovered\nshadows.\n\n\n|传感器交替使用两档 ISO 采样，降低暗部噪点，\n提升约 3 挡动态范围。代价是垂直分辨率降低，\n并可能出现锯齿和摩尔纹。\n\n适用于 RAW 照片（CR2）和 RAW 视频（DNG），\n拍摄后需使用 cr2hdr 处理。\n\n处理后可大幅提亮暗部，同时保持较低噪点。\n
+ETTR is a techinque that optimizes your exposure for raw\nshooting, with the goal of minimizing noise without blowing the\nhighlights.\n\nAuto ETTR will adjust the exposure for you until the histogram will\ntouch the right side, but - whenever possible - without clipping.\nThis will minimize image noise for your given set of restrictions\n(e.g. slowest shutter, max ISO, or what highlights can be clipped).\n\nYou will usually have to darken the image in post (which is good).\n\nTip: on the raw histogram you will see an ETTR hint that can be\nused for manually exposing the image.\n\n|ETTR 优化 RAW 拍摄曝光，在不过曝高光的前提下\n尽量降低噪点。\n\n自动 ETTR 会使直方图尽量靠右且避免剪切，\n并遵守最慢快门、最高 ISO 等限制。\n\n通常需要在后期压暗图像。\nRAW 直方图上的 ETTR 提示也可用于手动曝光。\n
+Browse the card filesystem from ML menu.\n\nFeatures:\n\n *  Display file name, size and date\n *  Select files (individual or by extension)\n *  Copy and move files\n *  Delete files\n *  View files (text viewer built-in, other file types via custom\n    handlers)\n\n|从 ML 菜单浏览存储卡文件系统。\n\n功能：\n\n *  显示文件名、大小和日期\n *  单独或按扩展名选择文件\n *  复制和移动文件\n *  删除文件\n *  查看文件（内置文本查看器，其他格式使用相应处理模块）\n
+This module lets you customize image file names:\n\n *  custom file prefix (IMG_1234.CR2 -> ABCD1234.CR2)\n *  change file number (IMG_1234.CR2 -> IMG_5678.CR2; requires\n    restart)\n *  change folder number (DCIM/100CANON -> 123CANON)\n\nYou will find the new options under the Shoot menu.\n\n|此模块可自定义图像文件名：\n\n *  自定义文件前缀\n *  更改文件编号（需要重启）\n *  更改文件夹编号\n\n新选项位于“拍摄”菜单。\n
+Module for running Lua scripts on the camera.\n\nThe scripting engine looks for scripts (*.LUA) in ML/SCRIPTS. Any\nscripts found get "loaded" at startup by the scripting engine\nsimply running them. Therefore the main body of the script\nshould simply _define_ the script's menu and behavior, not\nactually _execute_ anything.\n\nThe scripting engine will maintain your script's global state from\nrun to run, so any global variables you declare will persist until\nthe camera is turned off.\n\nAPI documentation: http://davidmilligan.github.io/ml-lua/\n\n|在相机上运行 Lua 脚本。\n\n脚本引擎会查找 ML/SCRIPTS 中的 *.LUA 文件，\n并在启动时运行。脚本主体应定义菜单和行为，\n不应直接执行实际任务。\n\n全局状态会保留到相机关机。\n\nAPI 文档：http://davidmilligan.github.io/ml-lua/\n
+Records 14-bit RAW video.\n\nThis is the original RAW recording module updated to MLV file\nformat (credits: dmilligan), but without the extra features from\nmlv_rec. The performance should be identical to the old raw_rec\nv1.0.\n\nYou may want to load mlv_play for reviewing clips.\n\nFor details, please see the "Raw Video" section on the Magic\nLantern forum.\n\n|录制 14 位 RAW 视频。\n\n这是采用 MLV 格式的原始 RAW 录制模块，\n不包含 mlv_rec 的附加功能，\n性能应与旧版 raw_rec v1.0 相同。\n\n可加载 mlv_play 回看片段。\n详情请参阅 Magic Lantern 论坛的“RAW Video”版块。\n
+Plays Magic Lantern video files (both MLV and RAW). You can\nselect videos for playback in the file_man module, or you can\npress the PLAY key in LV to play the most recent recording.\n\n *  "all": play every video frame\n *  "exact": drop video frames to match recorded FPS\n\nKeys:\n\n *  SET: use the on-screen menu\n *  PLAY: pause or resume playback\n *  INFO: toggle display of video information\n *  wheel: switch to previous or next video\n\n|播放 Magic Lantern 视频文件（MLV 和 RAW）。\n可在文件管理器中选择，或在实时取景中\n按回放键播放最近的录像。\n\n *  “全部”：播放每一帧\n *  “精确”：丢帧以匹配录制帧率\n\n按键：\n\n *  SET：使用屏幕菜单\n *  回放键：暂停或继续\n *  INFO：切换视频信息\n *  拨盘：切换上一个或下一个视频\n
+With this module, mlv_rec is extended by sound recording\nsupport.\n\n|此模块为 mlv_rec 添加声音录制支持。\n
+Simple image viewer that integrates with ML file manager\n(file_man.mo).\n\nUsage: browse the file system with the file manager, select an\nimage file and choose View.\n\nSupported file types:\n\n *  PPM (ML screenshots)\n *  DNG (silent pictures, raw video frames)\n *  BMP (bitmap images with DryOS palette, uncompressed or RLE)\n *  BMH (ML help files, same as BMP)\n *  422 (YUV422 images, e.g. dumps from LiveView buffer)\n\n|与 ML 文件管理器集成的图片查看器。\n\n用法：在文件管理器中浏览文件，选择图片并执行“查看”。\n\n支持的格式：PPM、DNG、BMP、BMH 和 422。\n
+Testing routines for ML internals:\n\n *  stubs tests\n *  memory tests\n *  various burn-in tests\n\nPlease run these tests every now and then; when they fail,\nplease report a bug.\n\n|ML 内部自检程序：\n\n *  桩测试\n *  内存测试\n *  各类老化测试\n\n请定期运行；如有失败，请报告问题。\n
+Take pictures in LiveView without shutter actuations. Format:\n14-bit DNG, low-resolution, depending on LiveView mode (1080p,\n720p, zoom and so on).\n\nYou may want to load pic_view & file_man for reviewing pictures.\n\nModes:\n\n *  Simple: press the shutter halfway to take a picture.\n *  Burst: take pictures until memory gets full, then save to card.\n *  End Trigger: take pics continuously, save last few pics to card.\n *  Best Shots: take pics continuously, save the best (focused) pics.\n *  Slit-Scan: distorted pictures for funky effects.\n\n|在实时取景中无快门动作拍照。格式为低分辨率 14 位 DNG，分辨率取决于实时取景模式。\n\n可加载 pic_view 和 file_man 回看照片。\n\n模式：\n\n *  简单：半按快门拍一张\n *  连拍：拍至内存满后保存\n *  结束触发：连续拍摄并保存最后几张\n *  最佳照片：连续拍摄并保存对焦最佳的照片\n *  狭缝扫描：生成特殊变形效果\n

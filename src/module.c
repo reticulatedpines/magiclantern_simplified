@@ -9,6 +9,7 @@
 #include "property.h"
 #include "beep.h"
 #include "bmp.h"
+#include "rbf_font.h"
 #include "lens.h"
 #include "ml-cbr.h"
 
@@ -1665,7 +1666,7 @@ const char* module_get_string(int mod_number, const char* name)
         {
             if (streq(strings->name, name))
             {
-                return strings->value;
+                return rbf_translate(strings->value);
             }
         }
     }
@@ -2263,4 +2264,3 @@ int module_shutdown()
 TASK_CREATE("module_task", module_load_task, 0, 0x1e, 0x4000 );
 
 INIT_FUNC(__FILE__, module_init);
-

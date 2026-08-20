@@ -39,6 +39,8 @@ CONFIG_QEMU     = n
 # SJE: this is abandoned as far as I can tell, but we need the option, to disable it.
 CONFIG_PIC      = n
 
+BUILD_USER ?= $(shell whoami)@$(shell hostname)
+
 include $(TOP_DIR)/Makefile.globals
 include $(DEPS)
 
@@ -196,7 +198,7 @@ $(BUILD_DIR)/platform_modules_complete: $(MODULES_DIR)/$(BUILD_DIR)/default_modu
 # nothing to do.
 $(ML_PLATFORM_TARGETS): %: $(BUILD_DIR)/platform_modules_complete | $(BUILD_DIR)
 	$(MAKE) -C $(subst /$(BUILD_DIR)/cam_complete,,$*)
-	$(CP) $(subst /cam_complete,/magiclantern.zip,$*) $(BUILD_DIR)/magiclantern.$(BUILD_DATE).$(subst /build/cam_complete,,$*).zip
+	$(CP) $(subst /cam_complete,/magiclantern.zip,$*) $(BUILD_DIR)/$(subst /build/cam_complete,,$*)-$(subst -,,$(BUILD_DATE)).zip
 
 $(BUILD_DIR)/magiclantern.zip: zip_contents | $(BUILD_DIR)
 	cd $(BUILD_DIR)/zip; zip -z ../../$@.tmp < ../../$(SRC_DIR)/zip.txt  -r .
@@ -231,6 +233,8 @@ $(ZIP_DIR): | $(BUILD_DIR)
 
 zip_contents:: $(ZIP_DIR) $(BUILD_DIR)/autoexec.bin $(BUILD_DIR)/magiclantern.bin | $(BUILD_DIR)
 	$(CP) $(BUILD_DIR)/autoexec.bin $(ZIP_DIR)/
+	$(CP) $(TOP_DIR)/data/fonts/FusionPixel-OFL.txt $(BUILD_DIR)/zip/ML/doc
+	$(CP) $(TOP_DIR)/data/languages/zh_cn.bin $(BUILD_DIR)/zip/ML/data
 
 ifeq ($(CONFIG_MODULES),y)
     ifneq ($(CONFIG_TCC),y)
@@ -605,7 +609,7 @@ $(BUILD_DIR)/version.bin: FORCE | $(BUILD_DIR)
 	@printf 'Commit: ' >> $@.tmp
 	$(BUILD_TOOLS_DIR)/git_summary.py >> $@.tmp
 	@echo '' >> $@.tmp
-	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@.tmp
+	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by $(BUILD_USER)' >> $@.tmp
 	@echo '' >> $@.tmp
 	$(MV) $@.tmp $@
 
@@ -615,7 +619,7 @@ $(BUILD_DIR)/version.c: FORCE | $(BUILD_DIR)
 	$(BUILD_TOOLS_DIR)/git_summary.py >> $(BUILD_DIR)/version.tmp
 	@echo '";' >> $(BUILD_DIR)/version.tmp
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $(BUILD_DIR)/version.tmp
-	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $(BUILD_DIR)/version.tmp
+	@echo 'const char build_user[] = "$(BUILD_USER)";'  >> $(BUILD_DIR)/version.tmp
 	mv $(BUILD_DIR)/version.tmp $@
 
 $(BUILD_DIR)/xor_chk: $(BUILD_TOOLS_DIR)/xor_chk.c | $(BUILD_DIR)

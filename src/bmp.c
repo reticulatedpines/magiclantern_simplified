@@ -384,8 +384,12 @@ bmp_puts(
     uint32_t fg_color = fontspec_fg(fontspec);
     uint32_t bg_color = fontspec_bg(fontspec);
     
-    int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap,
-                              *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    const char *translated = rbf_translate(s);
+    int len = translated == s && !rbf_use_utf8_renderer(s)
+        ? rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap,
+                          *x, *y, s, FONT(fontspec, fg_color, bg_color))
+        : rbf_draw_utf8_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap,
+                               *x, *y, translated, FONT(fontspec, fg_color, bg_color));
     *x += len;
     return len;
 }
@@ -450,6 +454,7 @@ bmp_printf(
 
     char bmp_printf_buf[128];
 
+    fmt = rbf_translate(fmt);
     va_start( ap, fmt );
     vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
     va_end( ap );
@@ -473,6 +478,7 @@ big_bmp_printf(
 
         static char bmp_printf_buf[1024];
 
+        fmt = rbf_translate(fmt);
         va_start( ap, fmt );
         vsnprintf( bmp_printf_buf, sizeof(bmp_printf_buf)-1, fmt, ap );
         va_end( ap );
@@ -484,12 +490,18 @@ big_bmp_printf(
 
 int bmp_string_width(int fontspec, const char* str)
 {
-    return rbf_str_width((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str);
+    const char *translated = rbf_translate(str);
+    return translated == str && !rbf_use_utf8_renderer(str)
+        ? rbf_str_width((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str)
+        : rbf_utf8_str_width((void*)font_dynamic[FONT_ID(fontspec)].bitmap, translated);
 }
 
 int bmp_strlen_clipped(int fontspec, const char* str, int maxwidth)
 {
-    return rbf_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth);
+    const char *translated = rbf_translate(str);
+    return translated == str && !rbf_use_utf8_renderer(str)
+        ? rbf_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, str, maxwidth)
+        : rbf_utf8_strlen_clipped((void*)font_dynamic[FONT_ID(fontspec)].bitmap, translated, maxwidth);
 }
 
 #ifdef CONFIG_HEXDUMP

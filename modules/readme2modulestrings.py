@@ -4,6 +4,7 @@
 import sys, re
 import subprocess
 import os
+from shutil import which
 from datetime import datetime
 
 from align_string_proportional import word_wrap
@@ -61,9 +62,7 @@ def declare_string_section():
     
 def is_command_available(name):
     """Check if command `name` is on PATH."""
-    import distutils.spawn
-    from distutils.spawn import find_executable
-    return find_executable(name) is not None
+    return which(name) is not None
 
 # return the first command of the list that can be found on the OS
 def get_command_of(commands):
@@ -191,11 +190,12 @@ if len(last_change_info):
     add_string("Last update", "%s on %s by %s:\n%s" % (last_changeset, last_change_date, author, commit_msg))
 
 build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+build_user = os.environ.get("BUILD_USER")
 
 # echo called from python in Windows behaves differently, better to avoid it.
-if sys.platform == 'win32':
+if not build_user and sys.platform == 'win32':
     build_user = run('whoami').replace("\n", "") + "@" + run('hostname').replace("\n", "")
-else:
+elif not build_user:
     build_user = run("echo `whoami`@`hostname`")
 
 add_string("Build date", build_date)
