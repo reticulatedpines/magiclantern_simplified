@@ -7,6 +7,7 @@
 #include <patch.h>
 #include <console.h>
 #include <config.h>
+#include "digic4_pll.h"
 
 /* camera-specific parameters */
 static uint32_t GPIO = 0;
@@ -34,6 +35,7 @@ static int sd_setup_mode_enable = 0;
 static int turned_on = 0;
 static CONFIG_INT("sd.sd_overclock", sd_overclock, 0);
 static CONFIG_INT("sd.sd_access_mode", access_mode, 1);
+CONFIG_INT("sd.d4_pll_freq", sd_pll_freq, 0);
 
 /* CID info hook, should work on all DIGIC 5 models */
 uint32_t MID;
@@ -652,6 +654,9 @@ static struct menu_entry sd_uhs_menu[] =
 
 static unsigned int sd_uhs_init()
 {
+    if (get_digic_version() == 4)
+        return digic4_pll_init();
+
     if (is_camera("5D3", "*"))
     {
         static const char *sd_choices_5d3[] = {"OFF", "160MHz", "192MHz (H)", "240MHz (H)"};
@@ -868,4 +873,5 @@ MODULE_INFO_END()
 MODULE_CONFIGS_START()
 MODULE_CONFIG(sd_overclock)
 MODULE_CONFIG(access_mode)
+MODULE_CONFIG(sd_pll_freq)
 MODULE_CONFIGS_END()
