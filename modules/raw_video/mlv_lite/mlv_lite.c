@@ -153,6 +153,10 @@ static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_PANNING (dolly_mode == 1)
 
 static CONFIG_INT("raw.preview", preview_mode, 0);
+/* DIGIC 4 lossless soft preview: 0 = off, 1 = gray ~5 fps, 2 = color ~2.5 fps */
+static CONFIG_INT("raw.d4.soft.preview", d4_soft_preview_mode, 1);
+#define D4_SOFT_PREVIEW_OFF   (d4_soft_preview_mode == 0)
+#define D4_SOFT_PREVIEW_COLOR (d4_soft_preview_mode == 2)
 #define PREVIEW_AUTO   (preview_mode == 0)
 #define PREVIEW_CANON  (preview_mode == 1)
 #define PREVIEW_ML     (preview_mode == 2)
@@ -363,6 +367,56 @@ static volatile                 uint32_t skip_frames = 0;
 
 /* for compress_task */
 static struct msg_queue * compress_mq = 0;
+
+/* In-flight compression jobs and first failed frame. Used to drain the queue
+ * cleanly on a compression fault and to drop any later frames already captured. */
+static volatile unsigned int compression_pending_jobs = 0;
+static volatile int compression_first_failed_frame = INT_MAX;
+
+#define COMPRESS_JOB_TRACKED 0x40000000
+#define COMPRESS_JOB_WARMUP  0x20000000
+
+/* Frames the encoder runs over and throws away before a compressed clip starts.
+ *
+ * The first encode of a clip swaps a set of LiveView registers over to our
+ * geometry, and LiveView needs a few frames to relock: in every DIGIC 4 lossless
+ * clip VIDF 1 to 4 came out shredded into bands of about sixteen rows while the
+ * vsync interval wobbled between 37.8 and 45.1 ms, and both the damage and the
+ * wobble stopped at VIDF 5. Uncompressed clips, which never touch those
+ * registers, are clean from VIDF 0.
+ *
+ * Skipping the frames outright would not help, because it is the first encode
+ * that disturbs LiveView - the transient would just move to wherever the first
+ * kept frame is. So encode over the unstable window with the results binned. */
+#define COMPRESS_WARMUP_FRAMES  6
+static volatile int warmup_frames = 0;
+
+static int count_free_slots(void);
+
+static void compression_job_admit(void)
+{
+    uint32_t old_int = cli();
+    compression_pending_jobs++;
+    sei(old_int);
+}
+
+static void compression_job_retire(void)
+{
+    uint32_t old_int = cli();
+    if (compression_pending_jobs)
+        compression_pending_jobs--;
+    sei(old_int);
+}
+
+static void compression_record_fault(int frame_number, int code)
+{
+    uint32_t old_int = cli();
+    if (compression_first_failed_frame == INT_MAX)
+        compression_first_failed_frame = frame_number;
+    buffer_full = 1;
+    sei(old_int);
+    (void) code;
+}
 
 static GUARDED_BY(RawRecTask)   mlv_file_hdr_t file_hdr[CARD_COUNT];
 static GUARDED_BY(RawRecTask)   mlv_rawi_hdr_t rawi_hdr;
@@ -697,6 +751,16 @@ void update_resolution_params()
         res_x = max_res_x;
     }
 
+    /* JPCORE (DIGIC 4) always advances 20 samples past the encoded width, so RD1
+     * has to feed width+20 per source row to keep the rows aligned, and that row
+     * length is only a whole even number of bytes at width = 4 (mod 8).
+     * Narrowing here rather than inside the encoder keeps RAWI, the VIDF
+     * payloads and the uncompressed path describing the same frame. */
+    if (OUTPUT_COMPRESSION)
+    {
+        res_x = lossless_encodable_width(res_x);
+    }
+
     /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
@@ -716,9 +780,18 @@ void update_resolution_params()
     int frame_size_padded = (VIDF_HDR_SIZE + (res_x * res_y * BPP/8) + 4 + 511) & ~511;
     
     /* frame size without padding */
-    /* must be multiple of 4 */
     frame_size_uncompressed = res_x * res_y * BPP/8;
-    ASSERT(frame_size_uncompressed % 4 == 0);
+
+    /* Must be a multiple of 4 only where it is handed to the EDMAC as a slot
+     * payload size, which is the uncompressed path alone; compressed recording
+     * uses it as a compression-ratio denominator and a corrupt-frame bound. The
+     * DIGIC 4 encodable width (4 mod 8) makes the row length odd, so the product
+     * is 4-aligned only at heights that are a multiple of 4 - not a constraint
+     * worth putting on the framing when nothing reads the value that way. */
+    if (!OUTPUT_COMPRESSION)
+    {
+        ASSERT(frame_size_uncompressed % 4 == 0);
+    }
     
     max_frame_size = frame_size_padded;
 
@@ -934,6 +1007,17 @@ void setup_bit_depth_digital_gain(int force_off)
         bpp_d = 14;
     }
 
+    if (OUTPUT_COMPRESSION && get_digic_version() == 4)
+    {
+        /* Attenuate in the encoder's own gain stage instead. raw.c's digital
+         * gain is inert here in the direction it wants and harmful in another:
+         * SHAD_GAIN never reaches the slurp, while the ISO boost that is meant
+         * to compensate for it does reach the sensor data, which is how 12-bit
+         * came out 4x bright and 11-bit 8x. */
+        lossless_d4_set_target_bpp(bpp_d);
+        bpp_d = 14;
+    }
+
     if (bpp_d != prev_bpp_d)
     {
         int div = 1 << (14 - bpp_d);
@@ -962,6 +1046,19 @@ void restore_bit_depth()
 static void measure_compression_ratio()
 {
     ASSERT(RAW_IS_IDLE);
+
+    /* DIGIC 4 borrows Evf's JPCORE to encode, which corrupts the preview until
+     * LiveView is restarted. That is a fair price while recording, but not for a
+     * measurement taken twice a second in standby, so this one keeps the estimate
+     * from the table below. Measured ratio on a 600D is ~53%, against the 60% the
+     * table assumes for 14-bit lossless - the buffer prediction errs large.
+     *
+     * Not is_camera("DIGIC", "4"): that compares the model short name, so it reads
+     * "600D" == "DIGIC" and is never true. */
+    if (get_digic_version() == 4)
+    {
+        return;
+    }
 
     /* compress the current frame to estimate the ratio */
     /* assume we have at least one valid slot */
@@ -1545,8 +1642,13 @@ int setup_buffers()
     /* the EDMAC on old models might copy a little more,
      * depending on how the EDMAC size was interpreted back then
      * todo: double-check (for now, allocate a bit more, just in case)
+     *
+     * The lossless encoder reads further still: its input EDMAC runs past the
+     * bottom of the rectangle to flush the pipeline, so the tail has to stay
+     * inside this buffer rather than in whatever slot the allocator put next.
      */
-    int fullres_buf_size = raw_info.width * (raw_info.height + 2) * BPP/8;
+    int spare_rows = 2 + (OUTPUT_COMPRESSION ? lossless_input_overread_rows() : 0);
+    int fullres_buf_size = raw_info.width * (raw_info.height + spare_rows) * BPP/8;
 
     int pre_recording_settings = pre_record | (rec_trigger << 8);
 
@@ -2090,6 +2192,16 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void unhack_liveview_vsync(int unused);
 
+/* Digic 4 lossless freezes Canon's Evf display branch (shared JPCORE). Defined
+ * early so hack_liveview_vsync can silence the LV EDMACs the same way Frozen LV
+ * does. Soft preview then paints into whatever buffer the LCD is already
+ * scanning (raw_preview dest -1). */
+static int d4_lossless_preview_active(void)
+{
+    return get_digic_version() == 4 && OUTPUT_COMPRESSION && RAW_IS_RECORDING
+        && !D4_SOFT_PREVIEW_OFF;
+}
+
 static REQUIRES(LiveViewTask)
 void FAST hack_liveview_vsync()
 {
@@ -2129,7 +2241,7 @@ void FAST hack_liveview_vsync()
         }
     }
     
-    if (!PREVIEW_HACKED) return;
+    if (!PREVIEW_HACKED && !d4_lossless_preview_active()) return;
     
     if (RAW_IS_RECORDING && frame_count == 0)
     {
@@ -2586,6 +2698,13 @@ int get_frame_save_status(int slot_index)
     ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
+
+    /* empty / failed-compress frame: nothing to validate */
+    if (edmac_size < 4)
+    {
+        return 1;
+    }
+
     uint32_t* frame_end = ptr + edmac_size - 4;
     uint32_t* after_frame = ptr + edmac_size;
     if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
@@ -2698,6 +2817,44 @@ static void edmac_cbr_w(void *ctx)
     edmac_copy_rectangle_adv_cleanup();
 }
 
+/* Output MemorySuite for compressed frames. CreateMemorySuite is not free, and
+ * rolling slot reuse often lands on the same address again, so keep one suite
+ * alive and only rebuild when the pointer or size changes. Cleared at record
+ * start/stop so a stale suite cannot outlive the underlying slot. */
+static struct memSuite * compress_out_suite;
+static void * compress_out_ptr;
+static int compress_out_size;
+
+static void compress_out_suite_reset(void)
+{
+    if (compress_out_suite)
+    {
+        DeleteMemorySuite(compress_out_suite);
+        compress_out_suite = 0;
+    }
+    compress_out_ptr = 0;
+    compress_out_size = 0;
+}
+
+static struct memSuite * compress_out_suite_get(void * out_ptr, int size)
+{
+    if (compress_out_suite &&
+        compress_out_ptr == out_ptr &&
+        compress_out_size == size)
+    {
+        return compress_out_suite;
+    }
+
+    compress_out_suite_reset();
+    compress_out_suite = CreateMemorySuite(out_ptr, size, 0);
+    if (compress_out_suite)
+    {
+        compress_out_ptr = out_ptr;
+        compress_out_size = size;
+    }
+    return compress_out_suite;
+}
+
 static void compress_task()
 {
     ASSERT(compress_mq == 0);
@@ -2717,6 +2874,8 @@ static void compress_task()
         {
             /* start recording */
 
+            compress_out_suite_reset();
+
             if (OUTPUT_COMPRESSION == 0)
             {
                 /* get exclusive access to our edmac channels */
@@ -2731,7 +2890,9 @@ static void compress_task()
 
         if (msg == (uint32_t) INT_MIN)
         {
-            /* stop_recording */
+            /* stop_recording (or end of idle measure) */
+
+            compress_out_suite_reset();
 
             if (OUTPUT_COMPRESSION == 0)
             {
@@ -2744,6 +2905,10 @@ static void compress_task()
 
             continue;
         }
+
+        int tracked_job = (msg & COMPRESS_JOB_TRACKED) != 0;
+        int warmup_job = (msg & COMPRESS_JOB_WARMUP) != 0;
+        msg &= ~(COMPRESS_JOB_TRACKED | COMPRESS_JOB_WARMUP);
 
         int slot_index = msg & 0xFFFF;
         if (slot_index < 0)
@@ -2765,7 +2930,7 @@ static void compress_task()
             /* PackMem appears to require stricter memory alignment */
             ASSERT(((uint32_t)out_ptr & 0x3F) == 0);
             ASSERT((max_frame_size & 0xFFF) == 0);
-            struct memSuite * outSuite = CreateMemorySuite(out_ptr, max_frame_size, 0);
+            struct memSuite * outSuite = compress_out_suite_get(out_ptr, max_frame_size);
             ASSERT(outSuite);
 
             int compressed_size = lossless_compress_raw_rectangle(
@@ -2774,43 +2939,64 @@ static void compress_task()
                 res_x, res_y
             );
 
-            /* only report compression errors while recording
-             * some of them appear during video mode switches
-             * unlikely to cause actual trouble - silence them for now */
-            if (compressed_size < 0 && !RAW_IS_IDLE)
+            if (warmup_job)
             {
-                printf("Compression error %d at frame %d\n", compressed_size, frame_count-1);
-                ASSERT(0);
+                /* The output goes in the bin and a failure is not a fault: the
+                 * point of this frame was to make LiveView relock, not to keep
+                 * an image. The slot was never shrunk, so it goes straight back
+                 * to SLOT_FREE. */
+                free_slot(slot_index);
+                continue;
             }
 
-            DeleteMemorySuite(outSuite);
-
-            if (1)
+            if (compressed_size < 0)
             {
-                if (compressed_size >= frame_size_uncompressed)
+                /* Idle measure does not put the slot on the writing queue. */
+                if (RAW_IS_IDLE)
                 {
-                    printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
-                    printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
-                    buffer_full = 1;
-                    ASSERT(0);
-                }
-                else if (compressed_size > max_frame_size - VIDF_HDR_SIZE - 4)
-                {
-                    printf("Compressed size too high - too much detail or noise?\n");
-                    printf("Consider using uncompressed 10/12-bit.");
-                    buffer_full = 1;
-                    ASSERT(0);
+                    free_slot(slot_index);
+                    if (tracked_job)
+                        compression_job_retire();
+                    continue;
                 }
 
-                /* resize frame slots on the fly, to compressed size */
-                if (!RAW_IS_IDLE)
-                {
-                    shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
-                }
-                
-                /* our old EDMAC check assumes frame sizes known in advance - not the case here */
-                frame_fake_edmac_check(slot_index);
+                bmp_printf(FONT_MED, 30, 110, "Compression error %d ", compressed_size);
+                printf("Compression error %d at frame %d\n",
+                       compressed_size, slots[slot_index].frame_number - 1);
+                compression_record_fault(slots[slot_index].frame_number,
+                                        compressed_size);
+                if (tracked_job)
+                    compression_job_retire();
+                continue;
             }
+
+            if (compressed_size >= frame_size_uncompressed)
+            {
+                printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
+                printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
+                compression_record_fault(slots[slot_index].frame_number, compressed_size);
+                if (tracked_job)
+                    compression_job_retire();
+                continue;
+            }
+            else if (compressed_size > max_frame_size - VIDF_HDR_SIZE - 4)
+            {
+                printf("Compressed size too high - too much detail or noise?\n");
+                printf("Consider using uncompressed 10/12-bit.");
+                compression_record_fault(slots[slot_index].frame_number, compressed_size);
+                if (tracked_job)
+                    compression_job_retire();
+                continue;
+            }
+
+            /* resize frame slots on the fly, to compressed size */
+            if (!RAW_IS_IDLE)
+            {
+                shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
+            }
+
+            /* our old EDMAC check assumes frame sizes known in advance - not the case here */
+            frame_fake_edmac_check(slot_index);
 
             if (compressed_size > 0)
             {
@@ -2831,6 +3017,28 @@ static void compress_task()
         
         /* mark it as completed */
         slots[slot_index].status = SLOT_FULL;
+        if (tracked_job)
+            compression_job_retire();
+    }
+}
+
+/* One encode whose result is discarded; see COMPRESS_WARMUP_FRAMES. */
+static REQUIRES(LiveViewTask) FAST
+void compress_warmup_frame(int next_fullsize_buffer_pos)
+{
+    int slot = choose_next_capture_slot();
+
+    if (slot < 0)
+        return;
+
+    capture_slot = slot;
+    slots[slot].frame_number = 0;
+    slots[slot].status = SLOT_CAPTURING;
+
+    if (msg_queue_post(compress_mq,
+                       slot | (next_fullsize_buffer_pos << 16) | COMPRESS_JOB_WARMUP))
+    {
+        free_slot(slot);
     }
 }
 
@@ -2841,6 +3049,15 @@ void process_frame(int next_fullsize_buffer_pos)
     if (frame_count <= 0)
     {
         frame_count++;
+        return;
+    }
+
+    /* Ahead of MLV_REC_EVENT_STARTED so audio still starts alongside the first
+     * frame that is kept, rather than a quarter of a second before it. */
+    if (warmup_frames > 0)
+    {
+        warmup_frames--;
+        compress_warmup_frame(next_fullsize_buffer_pos);
         return;
     }
 
@@ -2905,7 +3122,7 @@ void process_frame(int next_fullsize_buffer_pos)
     }
     else
     {
-        /* card too slow */
+        /* card too slow / no free slots */
         buffer_full = 1;
         return;
     }
@@ -2925,7 +3142,26 @@ void process_frame(int next_fullsize_buffer_pos)
     /* for some reason, compression cannot be started from vsync */
     /* let's delegate it to another task */
     ASSERT(compress_mq);
-    msg_queue_post(compress_mq, capture_slot | (next_fullsize_buffer_pos << 16));
+    uint32_t compress_msg = capture_slot | (next_fullsize_buffer_pos << 16);
+    if (OUTPUT_COMPRESSION)
+    {
+        compression_job_admit();
+        int post_error = msg_queue_post(
+            compress_mq, compress_msg | COMPRESS_JOB_TRACKED
+        );
+        if (post_error)
+        {
+            compression_job_retire();
+            compression_record_fault(slots[capture_slot].frame_number, -1);
+            printf("Compression queue full at frame %d\n",
+                   slots[capture_slot].frame_number - 1);
+            return;
+        }
+    }
+    else
+    {
+        msg_queue_post(compress_mq, compress_msg);
+    }
 
     /* advance to next frame */
     frame_count++;
@@ -3120,12 +3356,30 @@ void init_mlv_chunk_headers(struct raw_info *raw_info)
     rawi_hdr.raw_info.bits_per_pixel = BPP;
     rawi_hdr.raw_info.pitch = rawi_hdr.raw_info.width * BPP / 8;
 
-    /* scale black and white levels, minimizing the roundoff error */
     int black14 = rawi_hdr.raw_info.black_level;
     int white14 = rawi_hdr.raw_info.white_level;
-    int bpp_scaling = (1 << (14 - BPP));
-    rawi_hdr.raw_info.black_level = (black14 + bpp_scaling/2) / bpp_scaling;
-    rawi_hdr.raw_info.white_level = (white14 + bpp_scaling/2) / bpp_scaling;
+
+    if (OUTPUT_COMPRESSION)
+    {
+        /* The container is 14-bit here whatever the menu says, so nothing is
+         * truncated; what does move the levels is the encoder's input stage,
+         * which on DIGIC 4 re-pedestals and gains. lossless.c owns the gain, so
+         * it owns the mapping; it is the identity elsewhere.
+         *
+         * No BPP_D term either. On DIGIC 4 the reduced depths attenuate in that
+         * same encoder gain stage rather than through raw.c's digital gain, so
+         * raw_info stays at full scale and the whole depth reduction shows up in
+         * the mapping. Adding BPP_D would count it twice. */
+        rawi_hdr.raw_info.black_level = lossless_d4_map_level(black14, black14);
+        rawi_hdr.raw_info.white_level = lossless_d4_map_level(white14, black14);
+    }
+    else
+    {
+        /* scale black and white levels, minimizing the roundoff error */
+        int scaling = 1 << (14 - BPP);
+        rawi_hdr.raw_info.black_level = (black14 + scaling/2) / scaling;
+        rawi_hdr.raw_info.white_level = (white14 + scaling/2) / scaling;
+    }
 
     mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
@@ -3340,9 +3594,13 @@ void init_vsync_vars()
 {
     frame_count = use_h264_proxy() ? -1 : 0;    /* see setparam_cbr */
     capture_slot = -1;
+    warmup_frames = (OUTPUT_COMPRESSION && get_digic_version() == 4)
+                  ? COMPRESS_WARMUP_FRAMES : 0;
     fullsize_buffer_pos = 0;
     edmac_active = 0;
     skipped_frames = 0;
+    compression_pending_jobs = 0;
+    compression_first_failed_frame = INT_MAX;
 }
 
 static REQUIRES(RawRecTask) EXCLUDES(settings_sem)
@@ -3800,8 +4058,18 @@ abort_and_check_early_stop:
     /* wait until the other tasks calm down */
     wait_lv_frames(2);
 
-    /* signal end of recording to the compression task */
-    msg_queue_post(compress_mq, INT_MIN);
+    /* The compression task owns source and destination slots until every admitted
+     * frame retires. Do not flush or free those buffers underneath it. */
+    while (compression_pending_jobs)
+    {
+        msleep(10);
+    }
+
+    /* The frame queue is now drained, so this control message cannot be crowded out. */
+    if (msg_queue_post(compress_mq, INT_MIN))
+    {
+        printf("Could not stop compression task.\n");
+    }
 
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
@@ -3850,12 +4118,19 @@ abort_and_check_early_stop:
             if (slot_index < 0)
                 continue;
 
+            if (!slots[slot_index].is_meta &&
+                slots[slot_index].frame_number >= compression_first_failed_frame)
+            {
+                continue;
+            }
+
             if (slots[slot_index].status != SLOT_FULL)
             {
                 bmp_printf( FONT_MED, 30, 110, 
                     "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number
                 );
                 beep();
+                continue;
             }
 
             /* video frame consistency checks only for VIDF */
@@ -4065,8 +4340,8 @@ static struct menu_entry raw_video_menu[] =
                 .max = 3,
                 .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
                 .help  = "Raw video preview (long half-shutter press to override):",
-                .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Plain old LiveView (color and real-time). Framing is not always correct.\n"
+                .help2 = "Auto: ML chooses what's best for each video mode. On DIGIC 4 lossless, this preview is replaced by 'Soft preview' while recording.\n"
+                         "Plain old LiveView (color and real-time). Freezes during DIGIC 4 lossless; Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
                          "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
                 .depends_on = DEP_GLOBAL_DRAW,
@@ -4136,6 +4411,17 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &small_hacks,
                 .max = 1,
                 .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
+                .advanced = 1,
+            },
+            {
+                .name = "Soft preview",
+                .priv = &d4_soft_preview_mode,
+                .max = 2,
+                .choices = CHOICES("OFF", "Gray (5 fps)", "Color (2.5 fps)"),
+                .help  = "DIGIC 4 lossless only: repaint LiveView while recording.",
+                .help2 = "OFF: Canon LiveView stays frozen from the first encode.\n"
+                         "Gray: cheap grayscale repaint, about 5 fps.\n"
+                         "Color: ~16x the CPU of gray, so it repaints at half the rate.\n",
                 .advanced = 1,
             },
             {
@@ -4348,6 +4634,14 @@ static int raw_rec_should_preview(void)
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
 
+    /* Digic 4 lossless does not use the display-filter preview: the core only
+     * invokes CBR_DISPLAY_FILTER when display_filter_get_buffers() can hand out
+     * a source buffer, and that requires REG_EDMAC_WRITE_LV_ADDR to keep moving.
+     * LiveView is frozen (and we silence those EDMACs ourselves), so the address
+     * is static and the CBR is never called with a paint request.
+     * d4_soft_preview_task paints instead. */
+    if (d4_lossless_preview_active()) return 0;
+
     /* framing is incorrect in modes with high resolutions
      * (e.g. x5 zoom, crop_rec) */
     int raw_active_width = raw_info.active_area.x2 - raw_info.active_area.x1;
@@ -4419,6 +4713,73 @@ static int raw_rec_should_preview(void)
     return 0;
 }
 
+/* Digic 4 lossless soft preview: best-effort ~5 Hz paint from our own task.
+ *
+ * This cannot ride CBR_DISPLAY_FILTER. The core only issues a paint request when
+ * display_filter_get_buffers() yields a source buffer, and that source is "the
+ * previous LV buffer", detected by watching REG_EDMAC_WRITE_LV_ADDR change. Once
+ * the first encode freezes Evf (and once we silence the LV EDMACs), that address
+ * is constant, so src_buf stays NULL and module_display_filter_update() skips
+ * the handler forever.
+ *
+ * Painting from a private task also drops the Global Draw / zebra dependency. */
+static EXCLUDES(settings_sem)
+void d4_soft_preview_paint(void)
+{
+    int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+    int free_slots = count_free_slots();
+
+    /* A non-empty writing queue is the healthy steady state, not backlog.
+     * Skip only on real backlog. */
+    int backlog = queued_frames > valid_slot_count / 2;
+    int slots_low = free_slots <= valid_slot_count / 4;
+    int soft_skip = backlog || slots_low || buffer_full;
+
+    if (soft_skip)
+    {
+        msleep(400);
+        return;
+    }
+
+    static int fi = 0; fi = !fi;
+
+    take_semaphore(settings_sem, 0);
+
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
+    raw_force_aspect_ratio(0, 0);
+
+    /* Color costs roughly 16x gray: full-res vertically, twice the columns, and
+     * 6 raw reads plus rgb2yuv422() per output pixel instead of one LUT. Half
+     * shutter promotes gray to color for a focus check. */
+    int color = D4_SOFT_PREVIEW_COLOR || get_halfshutter_pressed();
+    int quality = color
+        ? RAW_PREVIEW_COLOR_HALFRES
+        : RAW_PREVIEW_GRAY_ULTRA_FAST;
+
+    /* dest -1 resolves to YUV422_LV_BUFFER_DISPLAY_ADDR inside raw.c: one paint,
+     * into the buffer the panel is scanning. */
+    raw_preview_fast_ex(fullsize_buffers[fi], (void *)-1, -1, -1, quality);
+
+    give_semaphore(settings_sem);
+
+    /* color is far heavier, so give the recorder twice as much room between paints */
+    msleep(color ? 400 : 200);
+}
+
+static void d4_soft_preview_task(void)
+{
+    TASK_LOOP
+    {
+        if (!d4_lossless_preview_active())
+        {
+            msleep(200);
+            continue;
+        }
+
+        d4_soft_preview_paint();
+    }
+}
+
 static REQUIRES(LiveVHiPrioTask) EXCLUDES(settings_sem)
 unsigned int raw_rec_update_preview(unsigned int ctx)
 {
@@ -4437,8 +4798,9 @@ unsigned int raw_rec_update_preview(unsigned int ctx)
         return enabled;
     }
 
-    /* only consider speed when the recorder is actually busy */
     int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+
+    /* only consider speed when the recorder is actually busy */
     int need_for_speed = (RAW_IS_RECORDING) && (
         (PREVIEW_HACKED && queued_frames > valid_slot_count / 8) ||
         (queued_frames > valid_slot_count / 4)
@@ -4459,9 +4821,15 @@ unsigned int raw_rec_update_preview(unsigned int ctx)
     /* when recording, preview both full-size buffers,
      * to make sure it's not recording every other frame */
     static int fi = 0; fi = !fi;
+    /* Frozen LV paints into the buffer the LCD is already scanning. */
+    void * dst = buffers->dst_buf;
+    if (PREVIEW_HACKED && RAW_IS_RECORDING)
+    {
+        dst = (void *)-1;
+    }
     raw_preview_fast_ex(
         RAW_IS_RECORDING ? fullsize_buffers[fi] : (void*)-1,
-        PREVIEW_HACKED && RAW_IS_RECORDING ? (void*)-1 : buffers->dst_buf,
+        dst,
         -1,
         -1,
         (need_for_speed && !get_halfshutter_pressed())
@@ -4548,12 +4916,13 @@ static unsigned int raw_rec_init()
         raw_video_menu->children[11].shidden = 1; // Hide "Small hacks"
         small_hacks = 0;
     }
-    if (version != 5)
-    { // so far, only Digic 5 has working lossless compression, hide on other cams
+    if (!lossless_init())
+    { // used to be "Digic 5 only", but it is a per-model question: the 600D is Digic 4 and
+      // its encoder does lossless too, so ask lossless.c whether it knows this body
         if (raw_video_menu->children[2].max > 2)
         {
             raw_video_menu->children[2].max = 2; // hide lossless options, which are 3, 4, 5
-            output_format = 0; // plain 14-bit, no lossless support on D4, D678 (yet)
+            output_format = 0; // plain 14-bit, no lossless support here
         }
     }
 
@@ -4583,13 +4952,16 @@ static unsigned int raw_rec_init()
     /* allocate queue that other modules will fill with blocks to write to the current file */
     mlv_block_queue = msg_queue_create("mlv_block_queue", 100);
 
-    lossless_init();
-
     settings_sem = create_named_semaphore(NULL, SEM_CREATE_UNLOCKED);
     if (is_card_spanning_possible)
         write_queue_sem = create_named_semaphore("queue_sem", SEM_CREATE_UNLOCKED);
 
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
+
+    /* Low priority: the soft preview must never delay capture or encode.
+     * Stack must clear raw_preview_color_work's two 1024-byte gamma tables plus
+     * call frames; a 0x800 stack crashed the camera as soon as Color was picked. */
+    task_create("d4_soft_preview", 0x1F, 0x2000, d4_soft_preview_task, (void*)0);
 
     return 0;
 }
@@ -4624,6 +4996,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(card_spanning)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
+    MODULE_CONFIG(d4_soft_preview_mode)
     MODULE_CONFIG(use_srm_memory)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
