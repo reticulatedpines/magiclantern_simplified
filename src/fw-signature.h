@@ -8,6 +8,7 @@
 
 #define SIG_100D_101 0x3b82b55e // from FF0C0000
 #define SIG_1100D_105 0x46de7624 // from FF010000
+#define SIG_1300D_110 0x3d8461b5 // from FE0C0000
 #define SIG_200D_101 0xf72c729a // from E0040000
 //#define SIG_500D_110 0x4c0e5a7e // from FF010000
 #define SIG_500D_111 0x44f49aef // from FF010000

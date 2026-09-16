@@ -26,7 +26,10 @@
 
 #include "dryos.h"
 
-#ifdef CONFIG_DIGIC_678X
+#if defined(CONFIG_DIGIC_678X) || defined(CONFIG_1300D)
+// Originally we thought this was split based on Digic version,
+// more likely it is DryOS version based, and modern D45 cams
+// have this API too.
 int get_task_info_by_id(int, int, void*);
 extern int _get_task_info_by_id(int, void*);
 #else

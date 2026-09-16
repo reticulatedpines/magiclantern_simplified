@@ -71,6 +71,7 @@ CAM_MODULES_DIR = $(BUILD_DIR)/modules
 ML_CAMS = \
     100D.101 \
     1100D.105 \
+    1300D.110 \
     200D.101 \
     500D.111 \
     50D.109 \
