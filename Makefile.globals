@@ -126,6 +126,11 @@ ifeq ($(CONFIG_PTP_CHDK),y)
     ML_OBJS += $(BUILD_DIR)/ptp-chdk.o
 endif
 
+# Bounded, read-only EOS M USB LiveView preview (no arbitrary memory API).
+ifeq ($(CONFIG_PTP_PREVIEW),y)
+    ML_OBJS += $(BUILD_DIR)/ptp-preview.o
+endif
+
 ifeq ($(CONFIG_PTP_ML),y)
     ML_OBJS += $(BUILD_DIR)/ptp-ml.o
 endif
