@@ -511,11 +511,6 @@ static int dual_iso_enable(uint32_t start_addr, int size, int count, uint32_t* b
         }
 
         uint32_t cmos_bits_mask = ((1 << CMOS_ISO_BITS) - 1) << CMOS_FLAG_BITS;
-        if (is_eosm || is_650d || is_700d || is_100d)
-        {
-            // Clear the MSB to fix line-skipping. 1 -> 8 lines, 0 -> 4 lines
-            cmos_bits_mask |= 0x800;
-        }
 
         if (is_5d2)
         {
@@ -538,6 +533,21 @@ static int dual_iso_enable(uint32_t start_addr, int size, int count, uint32_t* b
             patch_value = backup[i] & (~cmos_bits_mask);
 
             patch_value |= cmos_bits; // add the CMOS bits from our target ISO
+
+            if (is_eosm || is_650d || is_700d || is_100d)
+            {
+                // Clear the "MSB" to fix line-skipping. 1 -> 8 lines, 0 -> 4 lines
+
+                // SJE I don't know why the prior comment thinks this is a MSb,
+                // presumably it means of some sub-field in the message format,
+                // which is not documented anywhere.
+                //
+                // This set of cams has CMOS_ISO_BITS = 3, CMOS_FLAG_BITS = 2,
+                // which accounts for the low (3 + 3 + 2 ==) 8 bits,
+                // as we assume there are two sets of CMOS_ISO_BITS.
+                patch_value &= ~0x800;
+            }
+
             struct patch patch =
             {
                 .addr = (uint8_t *)(start_addr + i * size),
