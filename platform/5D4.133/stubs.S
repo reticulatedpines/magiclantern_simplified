@@ -236,7 +236,7 @@ THUMB_FN(0xfe9fd4a8,  CreateResLockEntry)
 THUMB_FN(     0x1d0,  create_named_semaphore)               /* CreateBinarySemaphore */
 THUMB_FN(     0x33E,  give_semaphore)
 THUMB_FN(     0x2C6,  take_semaphore)
-THUMB_FN(     0x296,  take_semaphore)
+THUMB_FN(     0x296,  take_semaphore_now)
 
 /** Task info **/
 //NSTUB(0x????????,  get_task_info_by_id)
