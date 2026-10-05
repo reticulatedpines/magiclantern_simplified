@@ -2609,7 +2609,7 @@ static const int LOG_INTERVAL = 500;
 static uint32_t edmac_start_clock = 0;
 
 /* from edmac.c */
-extern uint32_t edmac_read_chan;
+extern const uint32_t edmac_read_chan;
 extern uint32_t raw_write_chan;
 
 static uint32_t edmac_read_base;

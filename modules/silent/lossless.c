@@ -75,8 +75,8 @@ static void (*TTL_Stop)(void * TTL_Args) = NULL;
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size) = NULL;
 
 /* edmac.c */
-extern uint32_t edmac_write_chan;
-extern uint32_t edmac_read_chan;
+extern const uint32_t edmac_write_chan;
+extern const uint32_t edmac_read_chan;
 
 static void decompress_init();
 int lossless_init()

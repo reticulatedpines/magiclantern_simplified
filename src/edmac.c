@@ -1,5 +1,6 @@
 #include "dryos.h"
 #include "edmac.h"
+#include "edmac_per_cam.h"
 
 #include "math.h"
 #include "platform/state-object.h"
@@ -400,48 +401,12 @@ static struct semaphore *edmac_read_done_sem = NULL; /* to know when memcpy is f
 /* pick some free (check using debug menu) EDMAC channels
     write: 0x00-0x06, 0x10-0x16, 0x20-0x21.
     read:  0x08-0x0D, 0x18-0x1D, 0x28-0x2B */
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x03;
-/*
-50D
-R 2-15
-W 3-8 10-15
-*/
-#elif defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x13;
-//~ r 2 3 5 7 8 9 10 11-13
-//~ w 3 4 6 10 11-15
-#elif defined(CONFIG_60D)
-uint32_t edmac_read_chan = 0x19;  /* free indices: 2, 3, 4, 5, 6, 7, 8, 9 */
-uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
-#elif defined(CONFIG_6D) || defined(CONFIG_5D3)
-uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
-uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
-#elif defined(CONFIG_70D)
-// 70D uses same read and write channels as 6D and 5D3
-// just keep it separate with the comments
-uint32_t edmac_read_chan = 0x19;  /* Read decimal: 8 25 29 42 43 - hex: 0x08 0x19 0x1D 0x2A 0x2B*/
-uint32_t edmac_write_chan = 0x11; /* Write decimal: 6 17 33 - hex: 0x06 0x11 0x21*/
-#elif defined(CONFIG_7D)
-uint32_t edmac_read_chan = 0x0A;  /*Read 0x19 0x0D 0x0B 0x0A(82MB/S)*/
-uint32_t edmac_write_chan = 0x06; /* Write 0x5 0x6 0x4 (LV) */
-//5 zoom, 6 not - improved performance (no HDMI related tearing)
-#elif defined(CONFIG_500D)
-uint32_t edmac_read_chan = 0x0D;
-uint32_t edmac_write_chan = 0x04;
-#elif defined(CONFIG_550D)
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x05;
-#elif defined(CONFIG_600D)
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x06;
-#elif defined(CONFIG_1100D)
-uint32_t edmac_read_chan = 0x19;
-uint32_t edmac_write_chan = 0x04;
+
+#if defined(EDMAC_READ_CHAN) && defined(EDMAC_WRITE_CHAN)
+const uint32_t edmac_read_chan = EDMAC_READ_CHAN;
+const uint32_t edmac_write_chan = EDMAC_WRITE_CHAN;
 #else
-#error Please find some free EDMAC channels for your camera.
+    #error "You need to find available channels for EDMAC read/write"
 #endif
 
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */

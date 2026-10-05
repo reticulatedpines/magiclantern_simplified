@@ -20,8 +20,8 @@ static int Log(const char * fmt, ...)
     return len;
 }
 
-extern uint32_t edmac_read_chan;
-extern uint32_t edmac_write_chan;
+extern const uint32_t edmac_read_chan;
+extern const uint32_t edmac_write_chan;
 extern uint32_t dmaConnection;
 
 static void edmac_read_complete_cbr (void* ctx)
