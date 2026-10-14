@@ -1090,6 +1090,15 @@ lens_take_picture(
     call("rssRelease");
     #elif defined(CONFIG_40D)
     call("FA_Release");
+    #elif defined(CONFIG_R)
+    /* On the EOS R, call("Release") issues the capture but leaves the shooting
+     * job unfinalized, so the camera hangs on "saving..." at power-off. Driving
+     * the CameraConductor remote-release path (the same one a wireless remote /
+     * the physical shutter uses) finalizes the job cleanly. 1 = press (SW2-on),
+     * 0 = release. Verified on hardware: captures and powers off clean. */
+    SetEventIrRemoteReleaseBtn(1);
+    msleep(300);
+    SetEventIrRemoteReleaseBtn(0);
     #else
     call("Release");
     #endif
