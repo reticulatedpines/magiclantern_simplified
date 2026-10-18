@@ -28,9 +28,7 @@
 #define CONFIG_LIVEVIEW
 #define FEATURE_POWERSAVE_LIVEVIEW
 
-// We can't yet rely on image capture.  Cam crashes due to null pointer,
-// I think?  If it fails to AF lock, for example.
-#define CONFIG_IMAGE_CAPTURE_NOT_WORKING
+#define FEATURE_INTERVALOMETER
 
 #define FEATURE_PICSTYLE
 #define CONFIG_PROP_REQUEST_CHANGE
