@@ -81,6 +81,13 @@ CFLAGS = -Os -D__ARM__ \
     -I$(SRC_DIR) \
     -ggdb3
 
+CC_INCLUDE_DIR := $(shell $(CC) -print-file-name=include)
+CFLAGS += \
+    -nostdinc \
+    -isystem $(CC_INCLUDE_DIR) \
+    -isystem $(CC_INCLUDE_DIR)-fixed \
+    -isystem $(TOP_DIR)/include/newlib
+
 CFLAGS += \
     -DCONFIG_MAGICLANTERN=1 \
     -DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \

@@ -7,6 +7,10 @@
 // I didn't want to call it socket.h, because that conflicts with a system library,
 // and ML code has a bad habit of using <blah.h> for non-system libs
 
+// Only used as a pointer below; including <sys/time.h> for it would also
+// pull in <time.h> with some libc versions, clashing with dryos.h's struct tm
+struct timeval;
+
 static const int16_t SOCK_FAMILY_IPv4 = 0x100; // network order 1
 static const int16_t SOCK_FAMILY_IPv6 = 0x200;
 static const int16_t SOCK_FAMILY_ETH = 0x300;

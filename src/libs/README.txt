@@ -1,26 +1,53 @@
+Prebuilt C libraries linked into Magic Lantern
+=============================================
 
-This directory contains two types of the newlib libraries of which we only use libm.a.
-  source: ftp://sources.redhat.com/pub/newlib/newlib-1.20.0.tar.gz
+ML is built with -nostdlib and does not use the toolchain's libc. Instead,
+the build (platform/Makefile, installer/Makefile, modules/lua/Makefile)
+extracts single objects from the archives in this directory and links those.
+The rest of the usual libc comes from Canon's DryOS (via stubs) or from ML
+itself (src/stdio.c, src/posix.c, src/mem.c ...).
 
-  
-We compiled four versions of the library, one for each ARM_ABI (elf and none-eabi) and -fPIC combination:
+The headers for this code are in include/libc (newlib 1.20.0, see below).
+Headers and archives belong together: if a library here is replaced, its
+headers in include/libc must be replaced as well.
 
- a) One version with flags -O3 and ARM_ABI=elf
-        export CFLAGS="-O3"
-        make clean; make distclean; ./configure --target arm-elf --disable-newlib-supplied-syscalls && make
 
- b) another one with -O3 and -fPIC and ARM_ABI=elf
-        export CFLAGS="-fPIC -O3"
-        make clean; make distclean; ./configure --target arm-elf --disable-newlib-supplied-syscalls && make
- 
- c) another one with -O3 and ARM_ABI=none-eabi
-        export CFLAGS="-O3"
-        make clean; make distclean; ./configure --target arm-none-eabi --disable-newlib-supplied-syscalls && make
+newlib 1.20.0 - arm-none-eabi-O3/
+---------------------------------
 
- d) the last one with -O3 and -fPIC and ARM_ABI=none-eabi
-        export CFLAGS="-fPIC -O3"
-        make clean; make distclean; ./configure --target arm-none-eabi --disable-newlib-supplied-syscalls && make
+  source: https://sourceware.org/pub/newlib/newlib-1.20.0.tar.gz
+  built:  export CFLAGS="-O3"
+          ./configure --target arm-none-eabi --disable-newlib-supplied-syscalls
+          make
 
-Both versions are supplied to make sure that Magic Lantern behaves the same no matter if compiled with or without -fPIC.
+Used:
+  libc.a  only memcpy, memccpy, memset, setjmp / longjmp (and memmove, which
+          is extracted but not linked: dietlibc's memmove comes first)
+  libm.a  passed as is; the linker takes the math functions ML and its
+          modules need (some forced in with -u in platform/Makefile)
 
-Position Independent Code (PIC) allows Magic Lantern to run properly regardless of its base address.
+The code is ARM mode with Thumb-1 interworking, built for the compiler's
+default target, so the same objects run on every DIGIC generation.
+
+
+dietlibc 0.33 - dietlib-0.33-none-eabi-Os/
+------------------------------------------
+
+  built with -Os, for ARM7TDMI / ARMv4T (ARM mode, Thumb-1 interworking);
+  no build notes or source in this repository.
+
+Used:
+  dietlibc.a  string and number functions: strlen, strcpy, strcmp, strchr,
+              strstr, strtol, strtoul, atoi, memcmp, memmove, errno ...
+              (see DIET_OBJS in platform/Makefile)
+  The lua module links its own set of dietlibc objects (its stdio, strtol,
+  strtof, errno ...; see modules/lua/Makefile) and is built against
+  dietlibc's headers in modules/lua/dietlibc/include.
+
+
+Unused
+------
+
+arm-elf-O3/, arm-elf-O3-fPIC/ and arm-none-eabi-O3-fPIC/ are the same newlib
+1.20.0 built for the old arm-elf ABI and/or with -fPIC. No Makefile uses
+them any more.
