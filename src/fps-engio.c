@@ -149,8 +149,8 @@ static int fps_values_x1000[] = {
     5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 12500, 14000, 15000, 16000,
     17000, 18000, 19000, 20000, 21000, 22000, 23000, 23976, 24000, 25000, 26000, 27000,
     28000, 29000, 29970, 30000, 31000, 32000, 33000, 33333, 34000, 35000,
-    // restrict max fps to 35 for 1100D, 5D2, 50D, 500D (others?)
-    #if !defined(CONFIG_1100D) && !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
+    // restrict max fps to 35 for 1100D, 1200D, 5D2, 50D, 500D (others?)
+    #if !defined(CONFIG_1100D) && !defined(CONFIG_1200D) && !defined(CONFIG_5D2) && !defined(CONFIG_50D) && !defined(CONFIG_500D)
     36000, 37000, 38000, 39000, 40000, 41000, 42000, 43000, 44000, 45000, 46000, 47000, 48000,
     50000, 55000, 59940, 60000, 61000, 62000, 63000, 64000, 65000, 70000
     #endif
@@ -396,6 +396,16 @@ static void fps_read_current_timer_values();
     #define SENSOR_TIMING_TABLE MEM(0xce98)
     #define SENSOR_TIMING_TABLE_SIZE 350
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
+#elif defined(CONFIG_1200D)
+    #define NEW_FPS_METHOD 1
+    #define SENSOR_TIMING_TABLE MEM(0xC470)
+    #define SENSOR_TIMING_TABLE_SIZE 350 // unified used 175*2 for all cams, incl. the 1200D nightly
+    #define VIDEO_PARAMETERS_SRC_3 0x72944
+    #define TG_FREQ_BASE 28800000
+    #undef FPS_TIMER_A_MIN
+    #define FPS_TIMER_A_MIN (ZOOM ? 734 : MV1080 ? 546 : 576)
+    #undef FPS_TIMER_B_MIN
+    #define FPS_TIMER_B_MIN (ZOOM ? 1312 : MV480 ? 2000 : MV720 ? 1000 : 2200)
 #elif defined(CONFIG_1300D)
     #define TG_FREQ_BASE 28800000
     #undef FPS_TIMER_A_MIN
@@ -1123,7 +1133,7 @@ static void flip_zoom_twostage(int stage)
                 f0 = video_mode[2];
                 video_mode[2] =
                     f0 == 24 ? 25 :
-#ifndef CONFIG_1100D
+#if !defined(CONFIG_1100D) && !defined(CONFIG_1200D)
                     f0 == 25 ? 24 :
 #else
                     f0 == 25 ? 30 :

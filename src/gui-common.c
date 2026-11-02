@@ -322,6 +322,10 @@ int update_bgmt_av_status(struct event * event) {
     int gmt_int_ev_obj = *(int*)(event->obj);
     switch(shooting_mode) {
         case SHOOTMODE_MOVIE:
+            // reports like P with Auto movie exposure, like M with Manual (checked on 1200D)
+            if(gmt_int_ev_obj == 0x3010040 || gmt_int_ev_obj == 0x1010006) return 1;
+            if(gmt_int_ev_obj == 0x1010040 || gmt_int_ev_obj == 0x3010006) return 0;
+            break;
         case SHOOTMODE_P:
         case SHOOTMODE_ADEP:
             if(gmt_int_ev_obj == 0x3010040) return 1;
