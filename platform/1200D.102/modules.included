@@ -1,0 +1,15 @@
+# Module names in this file will be included in the cam magiclantern.zip
+# Same set as 1100D, minus sd_clock (SD overclock, never tested on 1200D)
+adv_int
+arkanoid
+autoexpo
+bench
+deflick
+dual_iso
+ettr
+file_man
+img_name
+lua
+mlv_play
+mlv_snd
+pic_view

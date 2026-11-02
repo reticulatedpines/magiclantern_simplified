@@ -2,6 +2,13 @@
  * Camera internals for 1200D 1.0.2
  */
 
+// ML is placed into the small AllocateMemory pool (512K, like 1100D).
+// Restrict some size hungry features.
+#define CONFIG_LOW_MEM_CAM
+
+/** This camera has a DIGIC IV chip */
+#define CONFIG_DIGIC_IV
+
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** A few users were running it that way for a couple of months with no issues; additionaly,
  ** we now know how to recover from bad settings stuck into ROM, so let's enable them */ 
@@ -133,4 +140,12 @@
 //~ #define CONFIG_NO_MANUAL_EXPOSURE_MOVIE
 
 /** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
-#define CONFIG_LVAPP_HACK_PATCH
+/** (was CONFIG_LVAPP_HACK_PATCH in unified; the relocated variant is what D4 cams use now) */
+#define CONFIG_LVAPP_HACK_RELOC
+
+/** DryOS struct layouts: same as every other D4/D5 cam except 1300D.
+ ** The unified port called get_task_info_by_id (then: is_taskid_valid) with 3 args, matching V2. */
+#define CONFIG_MALLOC_STRUCT_V2
+
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2

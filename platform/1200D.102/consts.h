@@ -85,6 +85,10 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C10DC
 #define HIJACK_TASK_ADDR 0x1a2c // a1ex
 
+// Used for copying and modifying ROM code before transferring control.
+// Look in HIJACK macros for the highest address, subtract MAIN_FIRMWARE_ADDR, align up.
+#define FIRMWARE_ENTRY_LEN 0x1100
+
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START 0xFF0C9648
 #define ROM_ITASK_END  0xFF0C9820 // mk11174
@@ -192,10 +196,15 @@
 #define FRAME_SHUTTER_TIMER (*(uint16_t*)(VIDEO_PARAMETERS_SRC_3+0xC)) // not sure
 
 // see "Malloc Information"
-#define MALLOC_STRUCT 0x16B48
-#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT_ADDR 0x16B48
+// FIXME 1200D: copied from 600D (same 18MP 5184x3456 sensor); confirm by printing it from srm_malloc_cbr.
+// Only used by SRM allocations (raw video, full-res silent pics); srm_malloc_cbr ASSERTs on mismatch.
+#define SRM_BUFFER_SIZE 0x1F68000   /* print it from srm_malloc_cbr */
+#define SRM_MAX_BUF_COUNT_VIDEO_MODE 16 // probably not the true max, D45 cams all guess 16 and non-fatally fail if using too much
 
-//~ #define ARROW_MODE_TOGGLE_KEY ""
+// LiveView raw: the unified 1200D port used RAW_LV_EDMAC 0xC0F26208 (traditional, non-slurp);
+// new name is the channel base, same mapping as 550D (0xC0F26008 -> 0xC0F26000)
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xC0F26200
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)

@@ -30,7 +30,7 @@
 .text
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )       //0xff0c0000
+NSTUB(MAIN_FIRMWARE_ADDR, firmware_entry)       //0xff0c0000
 NSTUB(0xFF0C1028,  cstart)
 NSTUB(0xFF623B60,  bzero32)
 NSTUB(0xFF0C7DF0,  create_init_task)
@@ -273,10 +273,13 @@ NSTUB(0xFF2A1208,  UnLockEngineResources)
 NSTUB(0xFF12213C,  create_named_semaphore)
 NSTUB(0xFF122384,  give_semaphore)
 NSTUB(0xFF12229C,  take_semaphore)
+// Not in the old unified port. Checked in ROM: validates handle, then calls the same
+// internal wait as take_semaphore (0xFF0C7654) with a pointer to a zeroed timeout (0xFF65CFF8).
+NSTUB(0xFF122244,  take_semaphore_now)
 
 /** Task info **/
 NSTUB(    0x295C,  task_max)
-NSTUB(0xFF417ED4,  is_taskid_valid)
+NSTUB(0xFF417ED4,  get_task_info_by_id)                     // was is_taskid_valid in unified (3-arg form, as on 1100D)
 NSTUB(    0x1A2C,  current_task)
 NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 

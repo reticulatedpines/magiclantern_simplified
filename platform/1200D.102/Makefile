@@ -1,0 +1,26 @@
+MODEL = 1200D
+FW_VERSION = 102
+
+TOP_DIR = ../..
+
+AUTOEXEC_BASE = 0x800000
+FIR_BASE = 0x800120
+
+ML_SRC_SMALL_FONTS = y
+CONFIG_LVAPP_HACK_RELOC = y
+
+ML_MODULES_SYM_NAME = t5_$(FW_VERSION).sym
+
+MAIN_FIRMWARE_ADDR = 0xFF0C0000
+PLATFORM_ARCH = armv5te
+
+# DryOSmemory map
+# ML is loaded into the AllocateMemory pool, like 1100D
+# (old unified 1200D port: ML_SRC_PROFILE=generic, RESTARTSTART 0xC80100)
+RESTARTSTART = 0xC80100
+ML_BOOT_OBJ = boot-d45-am.o
+
+FIRMWARE_ID_1200D = 0x80000327
+
+include ../Makefile
+.DEFAULT_GOAL := $(BUILD_DIR)/cam_complete
