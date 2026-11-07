@@ -34,7 +34,6 @@ CFLAGS += -march=$(MODULE_ARCH)
 ML_MODULES = \
     raw_video/mlv_lite \
     raw_video/mlv_play \
-    raw_video/mlv_rec \
     raw_video/mlv_snd \
     file_man \
     pic_view \
