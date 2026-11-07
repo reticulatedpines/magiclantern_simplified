@@ -131,7 +131,7 @@ static uint32_t edmac_get_block(uint32_t mmio_addr)
     }
 }
 
-uint32_t edmac_get_address(uint32_t channel)
+static uint32_t edmac_get_address(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
     {
@@ -157,7 +157,7 @@ uint32_t edmac_get_length(uint32_t channel)
 #define EDMAC_BYTES_PER_TRANSFER_MASK EDMAC_BYTES_PER_TRANSFER_MASK_D4
 #endif
 
-uint32_t edmac_bytes_per_transfer(uint32_t flags)
+static uint32_t edmac_bytes_per_transfer(uint32_t flags)
 {
     switch (flags & EDMAC_BYTES_PER_TRANSFER_MASK)
     {
@@ -355,7 +355,7 @@ void edmac_copy_rectangle_adv_cleanup()
 /* this function waits for the DMA transfer being finished by blocked wait on the read semaphore.
    as soon the semaphore was taken, cleanup edmac configuration and release global EDMAC semaphore.
  */
-void edmac_copy_rectangle_adv_finish()
+static void edmac_copy_rectangle_adv_finish()
 {
     /* wait until read is finished */
     int r = take_semaphore(edmac_read_done_sem, 1000);
@@ -392,16 +392,6 @@ void* edmac_copy_rectangle_adv(void* dst, void* src,
     return ans;
 }
 
-void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h)
-{
-    return edmac_copy_rectangle_adv(dst, src, src_width, x, y, w, 0, 0, w, h);
-}
-
-static void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h)
-{
-    return edmac_copy_rectangle_adv_start(dst, src, src_width, x, y, w, 0, 0, w, h);
-}
-
 static void edmac_copy_rectangle_finish()
 {
     edmac_copy_rectangle_adv_finish();
@@ -436,7 +426,7 @@ static uint32_t edmac_find_divider(size_t length, size_t transfer_size)
     return 0;
 }
 
-void* edmac_memcpy_start(void* dst, void* src, size_t length)
+static void* edmac_memcpy_start(void* dst, void* src, size_t length)
 {
     int blocksize = edmac_find_divider(length, 0);
 
@@ -460,7 +450,6 @@ static void edmac_memcpy_finish()
 {
     edmac_copy_rectangle_adv_finish();
 }
-
 
 void* edmac_memcpy(void* dst, void* src, size_t length)
 {

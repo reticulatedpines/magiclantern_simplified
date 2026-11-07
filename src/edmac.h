@@ -167,7 +167,7 @@ uint32_t edmac_channel_to_index(uint32_t channel);
 //uint32_t edmac_get_state(uint32_t channel);     /* 0=idle, 1=running (from hardware) */
 uint32_t edmac_get_base(uint32_t channel);      /* base register */
 //uint32_t edmac_get_channel(uint32_t reg);       /* channel from register */
-uint32_t edmac_get_address(uint32_t channel);   /* start address */
+//uint32_t edmac_get_address(uint32_t channel);   /* start address */
 //uint32_t edmac_get_pointer(uint32_t channel);   /* current address (from hardware) */
 uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
 //uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
@@ -181,7 +181,7 @@ uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
 struct edmac_info edmac_get_info(uint32_t channel);
 uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
 
-uint32_t edmac_bytes_per_transfer(uint32_t flags);
+//uint32_t edmac_bytes_per_transfer(uint32_t flags);
 
 /* provided by edmac.mo */
 #if defined(MODULE)
@@ -225,11 +225,11 @@ void* edmac_memcpy(void* dst, void* src, size_t length);
 //uint32_t edmac_find_divider(size_t length, size_t transfer_size);
 
 /* crop a rectangle from an image buffer; all sizes in bytes */
-void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h);
+//void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h);
 void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
 
 /* non-blocking versions */
-void* edmac_memcpy_start(void* dst, void* src, size_t length);
+//void* edmac_memcpy_start(void* dst, void* src, size_t length);
 //void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h);
 //void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
 void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);

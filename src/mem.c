@@ -1398,6 +1398,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
                 bmp_printf(FONT_SMALL, c, 385, common_addresses[i].name);
             }
 
+#if 0
             /* show EDMAC addresses on the memory map */
             for (int i = 0; i < 32; i++)
             {
@@ -1410,6 +1411,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
                     bmp_printf(FONT_SMALL | FONT_ALIGN_CENTER, c, 415, "%s", (const char *) &msg);
                 }
             }
+#endif
             break;
 
         case 6: // srm job
