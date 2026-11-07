@@ -106,28 +106,6 @@ uint32_t edmac_channel_to_index(uint32_t channel)
     return -1;
 }
 
-#if 0
-// SJE unused, removing
-uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
-{
-    if (index >= COUNT(read_edmacs))
-    {
-        return -1;
-    }
-    
-    switch (direction)
-    {
-        case EDMAC_DIR_READ:
-            return read_edmacs[index];
-            
-        case EDMAC_DIR_WRITE:
-            return write_edmacs[index];
-    }
-    
-    return -1;
-}
-#endif
-
 uint32_t edmac_get_base(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -153,43 +131,6 @@ static uint32_t edmac_get_block(uint32_t mmio_addr)
     }
 }
 
-#if 0
-static uint32_t edmac_get_channel(uint32_t mmio_addr)
-{
-    uint32_t block = edmac_get_block(mmio_addr);
-    if (block == 0xFFFFFFFF)
-    {
-        return 0xFFFFFFFF;
-    }
-
-    uint32_t ch = ((mmio_addr >> 8) & 0xF) + block * 16;
-    //ASSERT(edmac_get_dir(ch) != EDMAC_DIR_UNUSED);
-    //ASSERT(edmac_get_base(ch) == reg);
-    return ch;
-}
-
-static uint32_t edmac_get_state(uint32_t channel)
-{
-    if (channel >= NUM_EDMAC_CHANNELS)
-    {
-        return -1;
-    }
-    
-    /* this one is retrieved by EngDrvIn (reading directly from the register, not the cached value) */
-    return MEM(edmac_get_base(channel) + 0x00);
-}
-
-static uint32_t edmac_get_flags(uint32_t channel)
-{
-    if (channel >= NUM_EDMAC_CHANNELS)
-    {
-        return -1;
-    }
-
-    return shamem_read(edmac_get_base(channel) + 0x04);
-}
-#endif
-
 uint32_t edmac_get_address(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -200,18 +141,6 @@ uint32_t edmac_get_address(uint32_t channel)
     return shamem_read(edmac_get_base(channel) + 0x08);
 }
 
-#if 0
-uint32_t edmac_get_pointer(uint32_t channel)
-{
-    if (channel >= NUM_EDMAC_CHANNELS)
-    {
-        return -1;
-    }
-
-    return MEM(edmac_get_base(channel) + 0x08);
-}
-#endif
-
 uint32_t edmac_get_length(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
@@ -221,151 +150,6 @@ uint32_t edmac_get_length(uint32_t channel)
 
     return shamem_read(edmac_get_base(channel) + 0x10);
 }
-
-#if 0
-uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
-{
-    if (channel >= NUM_EDMAC_CHANNELS)
-    {
-        return -1;
-    }
-
-    uint32_t addr = 0;
-    
-    if(direction == EDMAC_DIR_READ)
-    { 
-        uint32_t dest_chan = 0;
-        uint32_t edmac_num = channel & 0x0F;
-        
-        if ( channel >= 24 )
-        {
-            if ( channel < 40 )
-            {
-                dest_chan = edmac_num - 2;
-            }
-            else
-            {
-                dest_chan = edmac_num + 4;
-            }
-        }
-        else
-        {
-            dest_chan = channel - 8;
-        }
-        
-        for(uint32_t pos = 0; pos < NUM_EDMAC_CONNECTIONS; pos++)
-        {
-            addr = 0xC0F05020 + (4 * pos);
-            uint32_t dst = shamem_read(addr);
-            
-            if(dst == dest_chan)
-            {
-                return pos;
-            }
-        }
-        
-        return 0xFF;        
-    }
-    else
-    {
-        if (channel == 16)
-        {
-            addr = 0xC0F0501C;
-        }
-        else if (channel < 16)
-        {
-            addr = 0xC0F05000 + (4 * channel);
-        }
-        else /* channel > 16 */
-        {
-            uint32_t pos = 0;
-            
-            if ( channel < 32 )
-            {
-                pos = channel - 1;
-            }
-            else
-            {
-                pos = channel + 6;
-            }
-            addr = 0xC0F05200 + (4 * (pos & 0x0F));
-        }
-    }
-    return shamem_read(addr);
-}
-#endif
-
-static int edmac_fix_off1(int32_t off)
-{
-    /* the value is signed, but the number of bits is model-dependent */
-#ifdef CONFIG_DIGIC_V
-    const int off1_bits = 19;
-#else
-    const int off1_bits = 17; /* checked on DIGIC 3 and 4 */
-#endif
-
-    return off << (32-off1_bits) >> (32-off1_bits);
-}
-
-static int edmac_fix_off2(int32_t off)
-{
-    /* the value is signed, but the number of bits is model-dependent */
-#ifdef CONFIG_DIGIC_V
-    const int off2_bits = 32;
-#else
-    const int off2_bits = 28; /* checked on DIGIC 3 and 4 */
-#endif
-
-    return off << (32-off2_bits) >> (32-off2_bits);
-}
-
-#if 0
-struct edmac_info edmac_get_info(uint32_t channel)
-{
-    uint32_t base = edmac_get_base(channel);
-    struct edmac_info info = {
-        .xa    = shamem_read(base + 0x14) & 0xFFFF,
-        .xb    = shamem_read(base + 0x10) & 0xFFFF,
-        .xn    = shamem_read(base + 0x0C) & 0xFFFF,
-        .ya    = shamem_read(base + 0x14) >> 16,
-        .yb    = shamem_read(base + 0x10) >> 16,
-        .yn    = shamem_read(base + 0x0C) >> 16,
-        .off1a = edmac_fix_off1(shamem_read(base + 0x20)),
-        .off1b = edmac_fix_off1(shamem_read(base + 0x18)),
-        .off2a = edmac_fix_off2(shamem_read(base + 0x24)),
-        .off2b = edmac_fix_off2(shamem_read(base + 0x1C)),
-        .off3  = edmac_fix_off2(shamem_read(base + 0x28)),
-    };
-    return info;
-}
-
-// Great, a "total size" function that can return two different sizes.
-// FIXME: split this into two different top-level functions.
-uint32_t edmac_get_total_size(struct edmac_info *info, int include_offsets)
-{
-    int xa = info->xa; int xb = info->xb; int xn = info->xn;
-    int ya = info->ya; int yb = info->yb; int yn = info->yn;
-    int off1a = info->off1a; int off1b = info->off1b;
-    int off2a = info->off2a; int off2b = info->off2b;
-    int off3  = info->off3;
-    
-    /* actual amount of data transferred */
-    uint32_t transfer_data_size =
-        (xa * (ya+1) * xn + xb * (ya+1)) * yn +
-        (xa * (yb+1) * xn + xb * (yb+1));
-    
-    /* total size covered, including offsets */
-    uint32_t transfer_data_skip_size =
-        (((xa + off1a) * ya + xa + off2a) * xn +
-         ((xb + off1b) * ya + xb + off3)) * yn +
-        (((xa + off1a) * yb + xa + off2b) * xn +
-          (xb + off1b) * yb + xb + off3);
-    
-    return (include_offsets)
-        ? transfer_data_skip_size
-        : transfer_data_size;
-}
-#endif
 
 #ifdef CONFIG_DIGIC_V
 #define EDMAC_BYTES_PER_TRANSFER_MASK EDMAC_BYTES_PER_TRANSFER_MASK_D5
@@ -623,48 +407,6 @@ void edmac_copy_rectangle_finish()
     edmac_copy_rectangle_adv_finish();
 }
 
-#if 0
-// SJE unused, removing
-void* edmac_memset(void* dst, int value, size_t length)
-{
-    uint32_t blocksize = 64;
-    uint32_t leading = MIN(length, (blocksize - ((uint32_t)dst % blocksize)) % blocksize);
-    uint32_t trailing = (length - leading) % blocksize;
-    uint32_t copyable = length - leading - trailing;
-    
-    /* less makes no sense as it would most probably be slower */
-    if(copyable < 8 * blocksize)
-    {
-        return memset(dst, value, length);
-    }
-    
-    uint32_t copies = copyable / blocksize - 1;
-    
-    /* fill the first line to have a copy source */
-    memset(dst + leading, value, blocksize);
-    
-    /* now copy the first line over the next lines */
-    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading,
-                                   0, 0, 0,
-                                   blocksize, 0, 0,
-                                   blocksize, copies);
-    
-    /* leading or trailing bytes that edmac cannot handle? */
-    if(leading)
-    {
-        memset(dst, value, leading);
-    }
-    if(trailing)
-    {
-        memset(dst + length - trailing, value, trailing);
-    }
-
-    edmac_copy_rectangle_adv_finish();
-    
-    return dst;
-}
-#endif
-
 uint32_t edmac_find_divider(size_t length, size_t transfer_size)
 {
     uint32_t max_width = (uint32_t) sqrtf(length);
@@ -785,3 +527,255 @@ void edmac_raw_slurp(void* dst, int w, int h)
     StartEDmac(raw_write_chan, 0);
 }
 #endif /* CONFIG_EDMAC_RAW_SLURP */
+
+#if 0
+// The old EDMAC API was very complicated.  I'm radically reducing it, so we can
+// start over with fairly low risk.
+//
+// As part of that I'm moving all unused code in this file, into this block,
+// so I can refer to it easily as I work, and as a historical record.
+
+static uint32_t edmac_get_channel(uint32_t mmio_addr)
+{
+    uint32_t block = edmac_get_block(mmio_addr);
+    if (block == 0xFFFFFFFF)
+    {
+        return 0xFFFFFFFF;
+    }
+
+    uint32_t ch = ((mmio_addr >> 8) & 0xF) + block * 16;
+    //ASSERT(edmac_get_dir(ch) != EDMAC_DIR_UNUSED);
+    //ASSERT(edmac_get_base(ch) == reg);
+    return ch;
+}
+
+static uint32_t edmac_get_state(uint32_t channel)
+{
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
+    /* this one is retrieved by EngDrvIn (reading directly from the register, not the cached value) */
+    return MEM(edmac_get_base(channel) + 0x00);
+}
+
+static uint32_t edmac_get_flags(uint32_t channel)
+{
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
+    return shamem_read(edmac_get_base(channel) + 0x04);
+}
+
+uint32_t edmac_get_pointer(uint32_t channel)
+{
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
+    return MEM(edmac_get_base(channel) + 0x08);
+}
+
+uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
+{
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
+    uint32_t addr = 0;
+
+    if(direction == EDMAC_DIR_READ)
+    {
+        uint32_t dest_chan = 0;
+        uint32_t edmac_num = channel & 0x0F;
+
+        if ( channel >= 24 )
+        {
+            if ( channel < 40 )
+            {
+                dest_chan = edmac_num - 2;
+            }
+            else
+            {
+                dest_chan = edmac_num + 4;
+            }
+        }
+        else
+        {
+            dest_chan = channel - 8;
+        }
+
+        for(uint32_t pos = 0; pos < NUM_EDMAC_CONNECTIONS; pos++)
+        {
+            addr = 0xC0F05020 + (4 * pos);
+            uint32_t dst = shamem_read(addr);
+
+            if(dst == dest_chan)
+            {
+                return pos;
+            }
+        }
+
+        return 0xFF;
+    }
+    else
+    {
+        if (channel == 16)
+        {
+            addr = 0xC0F0501C;
+        }
+        else if (channel < 16)
+        {
+            addr = 0xC0F05000 + (4 * channel);
+        }
+        else /* channel > 16 */
+        {
+            uint32_t pos = 0;
+
+            if ( channel < 32 )
+            {
+                pos = channel - 1;
+            }
+            else
+            {
+                pos = channel + 6;
+            }
+            addr = 0xC0F05200 + (4 * (pos & 0x0F));
+        }
+    }
+    return shamem_read(addr);
+}
+
+static int edmac_fix_off1(int32_t off)
+{
+    /* the value is signed, but the number of bits is model-dependent */
+#ifdef CONFIG_DIGIC_V
+    const int off1_bits = 19;
+#else
+    const int off1_bits = 17; /* checked on DIGIC 3 and 4 */
+#endif
+
+    return off << (32-off1_bits) >> (32-off1_bits);
+}
+
+static int edmac_fix_off2(int32_t off)
+{
+    /* the value is signed, but the number of bits is model-dependent */
+#ifdef CONFIG_DIGIC_V
+    const int off2_bits = 32;
+#else
+    const int off2_bits = 28; /* checked on DIGIC 3 and 4 */
+#endif
+
+    return off << (32-off2_bits) >> (32-off2_bits);
+}
+
+struct edmac_info edmac_get_info(uint32_t channel)
+{
+    uint32_t base = edmac_get_base(channel);
+    struct edmac_info info = {
+        .xa    = shamem_read(base + 0x14) & 0xFFFF,
+        .xb    = shamem_read(base + 0x10) & 0xFFFF,
+        .xn    = shamem_read(base + 0x0C) & 0xFFFF,
+        .ya    = shamem_read(base + 0x14) >> 16,
+        .yb    = shamem_read(base + 0x10) >> 16,
+        .yn    = shamem_read(base + 0x0C) >> 16,
+        .off1a = edmac_fix_off1(shamem_read(base + 0x20)),
+        .off1b = edmac_fix_off1(shamem_read(base + 0x18)),
+        .off2a = edmac_fix_off2(shamem_read(base + 0x24)),
+        .off2b = edmac_fix_off2(shamem_read(base + 0x1C)),
+        .off3  = edmac_fix_off2(shamem_read(base + 0x28)),
+    };
+    return info;
+}
+
+// Great, a "total size" function that can return two different sizes.
+// FIXME: split this into two different top-level functions.
+uint32_t edmac_get_total_size(struct edmac_info *info, int include_offsets)
+{
+    int xa = info->xa; int xb = info->xb; int xn = info->xn;
+    int ya = info->ya; int yb = info->yb; int yn = info->yn;
+    int off1a = info->off1a; int off1b = info->off1b;
+    int off2a = info->off2a; int off2b = info->off2b;
+    int off3  = info->off3;
+
+    /* actual amount of data transferred */
+    uint32_t transfer_data_size =
+        (xa * (ya+1) * xn + xb * (ya+1)) * yn +
+        (xa * (yb+1) * xn + xb * (yb+1));
+
+    /* total size covered, including offsets */
+    uint32_t transfer_data_skip_size =
+        (((xa + off1a) * ya + xa + off2a) * xn +
+         ((xb + off1b) * ya + xb + off3)) * yn +
+        (((xa + off1a) * yb + xa + off2b) * xn +
+          (xb + off1b) * yb + xb + off3);
+
+    return (include_offsets)
+        ? transfer_data_skip_size
+        : transfer_data_size;
+}
+
+void* edmac_memset(void* dst, int value, size_t length)
+{
+    uint32_t blocksize = 64;
+    uint32_t leading = MIN(length, (blocksize - ((uint32_t)dst % blocksize)) % blocksize);
+    uint32_t trailing = (length - leading) % blocksize;
+    uint32_t copyable = length - leading - trailing;
+
+    /* less makes no sense as it would most probably be slower */
+    if(copyable < 8 * blocksize)
+    {
+        return memset(dst, value, length);
+    }
+
+    uint32_t copies = copyable / blocksize - 1;
+
+    /* fill the first line to have a copy source */
+    memset(dst + leading, value, blocksize);
+
+    /* now copy the first line over the next lines */
+    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading,
+                                   0, 0, 0,
+                                   blocksize, 0, 0,
+                                   blocksize, copies);
+
+    /* leading or trailing bytes that edmac cannot handle? */
+    if(leading)
+    {
+        memset(dst, value, leading);
+    }
+    if(trailing)
+    {
+        memset(dst + length - trailing, value, trailing);
+    }
+
+    edmac_copy_rectangle_adv_finish();
+
+    return dst;
+}
+
+uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction)
+{
+    if (index >= COUNT(read_edmacs))
+    {
+        return -1;
+    }
+
+    switch (direction)
+    {
+        case EDMAC_DIR_READ:
+            return read_edmacs[index];
+
+        case EDMAC_DIR_WRITE:
+            return write_edmacs[index];
+    }
+
+    return -1;
+}
+#endif
