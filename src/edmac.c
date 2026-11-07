@@ -367,7 +367,7 @@ void edmac_copy_rectangle_adv_finish()
     edmac_copy_rectangle_adv_cleanup();
 }
 
-void* edmac_copy_rectangle_adv_start(void* dst, void* src,
+static void* edmac_copy_rectangle_adv_start(void* dst, void* src,
                                      int src_width, int src_x, int src_y,
                                      int dst_width, int dst_x, int dst_y,
                                      int w, int h)
@@ -397,17 +397,17 @@ void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, in
     return edmac_copy_rectangle_adv(dst, src, src_width, x, y, w, 0, 0, w, h);
 }
 
-void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h)
+static void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h)
 {
     return edmac_copy_rectangle_adv_start(dst, src, src_width, x, y, w, 0, 0, w, h);
 }
 
-void edmac_copy_rectangle_finish()
+static void edmac_copy_rectangle_finish()
 {
     edmac_copy_rectangle_adv_finish();
 }
 
-uint32_t edmac_find_divider(size_t length, size_t transfer_size)
+static uint32_t edmac_find_divider(size_t length, size_t transfer_size)
 {
     uint32_t max_width = (uint32_t) sqrtf(length);
 
@@ -456,7 +456,7 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
                                           blocksize, length / blocksize);
 }
 
-void edmac_memcpy_finish()
+static void edmac_memcpy_finish()
 {
     edmac_copy_rectangle_adv_finish();
 }

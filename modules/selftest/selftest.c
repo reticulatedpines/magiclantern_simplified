@@ -251,7 +251,9 @@ static void stub_test_cache_bmp()
         /* this is generally incorrect; you should use fio_malloc instead. */
         dst = UNCACHEABLE(dst);
 
-        edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
+// FIXME this module was removed from Makefile, I'm commenting it so it's easy to
+// screen out usage of this now removed function
+//        edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
 
         /* wait for EDMAC transfer to finish */
         /* probably not needed, as take_semaphore will re-enable interrupts */
