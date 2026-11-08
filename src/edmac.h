@@ -226,22 +226,27 @@ void* edmac_memcpy(void* dst, void* src, size_t length);
 
 /* crop a rectangle from an image buffer; all sizes in bytes */
 //void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h);
-void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
+void* copy_rectangle(void* dst, int dst_width, int dst_x, int dst_y,
+                     void* src, int src_width, int src_x, int src_y,
+                     int sub_w, int sub_h);
 
 /* non-blocking versions */
 //void* edmac_memcpy_start(void* dst, void* src, size_t length);
 //void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h);
 //void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
-void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
-void edmac_copy_rectangle_adv_cleanup();
+void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
+                                  void* src, int src_width, int src_x, int src_y,
+                                  int sub_w, int sub_h,
+                                  void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
+void copy_rectangle_non_blocking_cleanup(void);
 
 /* these are blocking tho */
 //void edmac_memcpy_finish();
 //void edmac_copy_rectangle_finish();
 
 /* Lock/unlock engine resources used by edmac_memcpy (only if ported for your camera) */
-void edmac_memcpy_res_lock();
-void edmac_memcpy_res_unlock();
+void edmac_memcpy_res_lock(void);
+void edmac_memcpy_res_unlock(void);
 
 /* pulls the raw data from EDMAC without Canon's lv_save_raw (for raw backend) */
 void edmac_raw_slurp(void* dst, int w, int h);

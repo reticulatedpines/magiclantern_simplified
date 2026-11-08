@@ -12,7 +12,7 @@
  *      - use any memory chunks that can contain at least one video frame
  *        (they will only be used when recording is about to stop, so no negative impact in sustained write speed)
  * 
- * - edmac_copy_rectangle: we can crop the image and trim the black borders!
+ * - copy_rectangle: we can crop the image and trim the black borders!
  * - edmac operation done outside the LV task (in background, synchronized)
  * - on buffer overflow, it stops or skips frames (user-selected)
  * - using generic raw routines, no hardcoded stuff (should be easier to port)
@@ -2694,7 +2694,7 @@ static void edmac_cbr_r(void *ctx)
 static void edmac_cbr_w(void *ctx)
 {
     edmac_active = 0;
-    edmac_copy_rectangle_adv_cleanup();
+    copy_rectangle_non_blocking_cleanup();
 }
 
 static void compress_task()
@@ -2819,10 +2819,9 @@ static void compress_task()
         else
         {
             edmac_active = 1;
-            edmac_copy_rectangle_cbr_start(
-                (void*)out_ptr, fullSizeBuffer,
-                raw_info.pitch, (skip_x + 7)/8*BPP, skip_y/2*2,
-                res_x * BPP/8, 0, 0,
+            copy_rectangle_non_blocking(
+                (void*)out_ptr, res_x * BPP/8, 0, 0,
+                fullSizeBuffer, raw_info.pitch, (skip_x + 7)/8*BPP, skip_y/2*2,
                 res_x * BPP/8, res_y,
                 &edmac_cbr_r, &edmac_cbr_w, NULL
             );

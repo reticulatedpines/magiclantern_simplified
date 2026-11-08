@@ -205,7 +205,7 @@ uint32_t edmac_memcpy_flags = EDMAC_16_BYTES_PER_TRANSFER; //Enhanced
 
 static struct LockEntry * resLock = 0;
 
-static void edmac_memcpy_init()
+static void edmac_memcpy_init(void *unused)
 {
     edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", SEM_CREATE_UNLOCKED);
     edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", SEM_CREATE_LOCKED);
@@ -240,7 +240,7 @@ static void edmac_write_complete_cbr(void * ctx)
 {
 }
 
-void edmac_memcpy_res_lock()
+void edmac_memcpy_res_lock(void)
 {
     //~ bmp_printf(FONT_MED, 50, 50, "Locking");
     int r = LockEngineResources(resLock);
@@ -252,16 +252,21 @@ void edmac_memcpy_res_lock()
     //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
 }
 
-void edmac_memcpy_res_unlock()
+void edmac_memcpy_res_unlock(void)
 {
     UnLockEngineResources(resLock);
 }
 
-void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
-                                     int src_width, int src_x, int src_y,
-                                     int dst_width, int dst_x, int dst_y,
-                                     int w, int h,
-                                     void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
+// Similar to copy_rectangle(), but non-blocking, with cbr_w() triggering
+// when the copy is complete.
+//
+// I think on some older cams, cbr_r() triggers (when the read half of the copy
+// is done), but laters ones didn't, so you shouldn't rely on it doing anything.
+// Detecting the completion of the write is generally more useful, anyway.
+void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
+                                  void* src, int src_width, int src_x, int src_y,
+                                  int sub_w, int sub_h,
+                                  void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
     // "src_width" is width of the frame including dark areas, borders etc.
     // "w" is the width of the region to copy out, e.g. if stripping the borders.
@@ -279,9 +284,10 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
      * Do not remove this check, or risk permanent camera bricking.
      */
     uint32_t bpt = edmac_bytes_per_transfer(edmac_memcpy_flags);
-    if ((w * h) % bpt)
+    if ((sub_w * sub_h) % bpt)
     {
-        printf("Invalid EDMAC output size: %d x %d (mod%d = %d)\n", w, h, bpt, (w * h) % bpt);
+        printf("Invalid EDMAC output size: %d x %d (mod%d = %d)\n",
+                sub_w, sub_h, bpt, (sub_w * sub_h) % bpt);
         return 0;
     }
 
@@ -316,16 +322,16 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
     /* yb is height-1 (number of repetitions) */
     /* off1b is the number of bytes to skip after every xb bytes being transferred */
     struct edmac_info src_edmac_info = {
-        .xb = w,
-        .yb = h-1,
-        .off1b = src_width - w,
+        .xb = sub_w,
+        .yb = sub_h - 1,
+        .off1b = src_width - sub_w,
     };
     
     /* destination setup has no special cropping */
     struct edmac_info dst_edmac_info = {
-        .xb = w,
-        .yb = h-1,
-        .off1b = dst_width - w,
+        .xb = sub_w,
+        .yb = sub_h - 1,
+        .off1b = dst_width - sub_w,
     };
     
     SetEDmac(edmac_read_chan, (void*)src_adjusted, &src_edmac_info, edmac_memcpy_flags);
@@ -339,7 +345,7 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
 }
 
 /* cleanup channel configuration and release semaphore */
-void edmac_copy_rectangle_adv_cleanup()
+void copy_rectangle_non_blocking_cleanup(void)
 {
     /* set default CBRs again and stop both DMAs */
     UnregisterEDmacCompleteCBR(edmac_read_chan);
@@ -355,7 +361,7 @@ void edmac_copy_rectangle_adv_cleanup()
 /* this function waits for the DMA transfer being finished by blocked wait on the read semaphore.
    as soon the semaphore was taken, cleanup edmac configuration and release global EDMAC semaphore.
  */
-static void edmac_copy_rectangle_adv_finish()
+static void edmac_copy_rectangle_adv_finish(void)
 {
     /* wait until read is finished */
     int r = take_semaphore(edmac_read_done_sem, 1000);
@@ -364,7 +370,7 @@ static void edmac_copy_rectangle_adv_finish()
         NotifyBox(2000, "EDMAC timeout");
     }
     
-    edmac_copy_rectangle_adv_cleanup();
+    copy_rectangle_non_blocking_cleanup();
 }
 
 static void* edmac_copy_rectangle_adv_start(void* dst, void* src,
@@ -372,27 +378,34 @@ static void* edmac_copy_rectangle_adv_start(void* dst, void* src,
                                      int dst_width, int dst_x, int dst_y,
                                      int w, int h)
 {
-    return edmac_copy_rectangle_cbr_start(dst, src,
-                                          src_width, src_x, src_y,
-                                          dst_width, dst_x, dst_y,
-                                          w, h,
-                                          &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
+    return copy_rectangle_non_blocking(dst, dst_width, dst_x, dst_y,
+                                       src, src_width, src_x, src_y,
+                                       w, h,
+                                       &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
 }
 
-void* edmac_copy_rectangle_adv(void* dst, void* src,
-                               int src_width, int src_x, int src_y,
-                               int dst_width, int dst_x, int dst_y,
-                               int w, int h)
+// "dst" and "src" are the start of a rectangular region, which might have borders
+// we don't want to touch.
+//
+// "src_width" and "dst_width" include borders etc.
+// "sub_w" and "sub_h" are the sub-region we're cropping from the potentially
+// bordered region.
+//
+// the x and y params are offsets into the respective rectangles.
+void* copy_rectangle(void* dst, int dst_width, int dst_x, int dst_y,
+                     void* src, int src_width, int src_x, int src_y,
+                     int sub_w, int sub_h)
 {
     void* ans = edmac_copy_rectangle_adv_start(dst, src,
                                                src_width, src_x, src_y,
                                                dst_width, dst_x, dst_y,
-                                               w, h);
-    if (ans) edmac_copy_rectangle_adv_finish();
+                                               sub_w, sub_h);
+    if (ans)
+        edmac_copy_rectangle_adv_finish();
     return ans;
 }
 
-static void edmac_copy_rectangle_finish()
+static void edmac_copy_rectangle_finish(void)
 {
     edmac_copy_rectangle_adv_finish();
 }
@@ -446,7 +459,7 @@ static void* edmac_memcpy_start(void* dst, void* src, size_t length)
                                           blocksize, length / blocksize);
 }
 
-static void edmac_memcpy_finish()
+static void edmac_memcpy_finish(void)
 {
     edmac_copy_rectangle_adv_finish();
 }

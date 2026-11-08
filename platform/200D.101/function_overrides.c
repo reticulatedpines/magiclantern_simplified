@@ -218,19 +218,18 @@ unsigned int UnLockEngineResources(struct LockEntry *lockEntry)
 // This is much simpler than fixing edmac-memcpy.c to be
 // safe / working for 200D, given 200D has a convenience function
 // in DryOS for doing a rectangular copy.
-void edmac_memcpy_res_lock()
+void edmac_memcpy_res_lock(void)
 {
 }
 
-void edmac_memcpy_res_unlock()
+void edmac_memcpy_res_unlock(void)
 {
 }
 
-void* edmac_copy_rectangle_cbr_start(void *dst, void *src,
-                                     int src_width, int src_x, int src_y,
-                                     int dst_width, int dst_x, int dst_y,
-                                     int w, int h,
-                                     void (*cbr_r)(void *), void (*cbr_w)(void *), void *cbr_ctx)
+void* copy_rectangle_non_blocking(void *dst, int dst_width, int dst_x, int dst_y,
+                                  void *src, int src_width, int src_x, int src_y,
+                                  int w, int h,
+                                  void (*cbr_r)(void *), void (*cbr_w)(void *), void *cbr_ctx)
 {
     // "src_width" is width of the frame including dark areas, borders etc.
     // "w" is the width of the region to copy out, e.g. if stripping the borders.
@@ -330,7 +329,7 @@ void* edmac_copy_rectangle_cbr_start(void *dst, void *src,
     return dst;
 }
 
-void edmac_copy_rectangle_adv_cleanup()
+void copy_rectangle_non_blocking_cleanup(void)
 {
 }
 
