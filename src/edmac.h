@@ -178,17 +178,18 @@ uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
 //int edmac_fix_off1(int32_t off);
 //int edmac_fix_off2(int32_t off);
 
-struct edmac_info edmac_get_info(uint32_t channel);
-uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
+//struct edmac_info edmac_get_info(uint32_t channel);
+//uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
 
 //uint32_t edmac_bytes_per_transfer(uint32_t flags);
 
 /* provided by edmac.mo */
-#if defined(MODULE)
-char * edmac_format_size(struct edmac_info * info);
-#else
-static char * (*edmac_format_size)(struct edmac_info * info) = MODULE_FUNCTION(edmac_format_size);
-#endif
+// We no longer build or support this module
+//#if defined(MODULE)
+//char * edmac_format_size(struct edmac_info * info);
+//#else
+//static char * (*edmac_format_size)(struct edmac_info * info) = MODULE_FUNCTION(edmac_format_size);
+//#endif
 
 // EDMAC mem -> mem copy related, D7.  D7 uses a global for locking
 // the (I assume) mem2mem subsystem.
