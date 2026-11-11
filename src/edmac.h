@@ -235,11 +235,11 @@ void* copy_rectangle(void* dst, int dst_width, int dst_x, int dst_y,
 //void* edmac_memcpy_start(void* dst, void* src, size_t length);
 //void* edmac_copy_rectangle_start(void* dst, void* src, int src_width, int x, int y, int w, int h);
 //void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h);
-void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
-                                  void* src, int src_width, int src_x, int src_y,
-                                  int sub_w, int sub_h,
-                                  void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
-void copy_rectangle_non_blocking_cleanup(void);
+//void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
+//                                  void* src, int src_width, int src_x, int src_y,
+//                                  int sub_w, int sub_h,
+//                                  void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx);
+//void copy_rectangle_non_blocking_cleanup(void);
 
 /* these are blocking tho */
 //void edmac_memcpy_finish();

@@ -6,7 +6,7 @@
 #endif
 
 #include "raw.h"
-#include "edmac-memcpy.h"
+#include "edmac.h"
 
 #include "raw_vid.h"
 #include "raw_vid_worker.h"
@@ -14,9 +14,6 @@
 
 static struct msg_queue *event_q = NULL;
 static FILE *raw_vid_fp = NULL;
-
-// ensures we never attempt an edmac copy while the last is in progress
-static struct semaphore *edmac_sem = NULL;
 
 static enum recording_state recording_state = INACTIVE;
 
@@ -27,7 +24,7 @@ enum recording_state get_recording_state(void)
 
 // lv_save_raw trick (which we trigger indirectly via raw.c, raw_lv_request(),
 // has given us a buffer of whatever size DryOS wants for fullsize LV.  We can
-// crop this down with copy_rectangle_non_blocking(), DMA based and fast enough
+// crop this down with copy_rectangle(), DMA based and fast enough
 // to do each frame.
 struct crop_buf 
 {
@@ -134,19 +131,6 @@ static void alloc_crop_bufs(struct crop_buf crop_bufs[])
     crop_bufs[0].end = crop_bufs[0].start + buf_size;
     crop_bufs[1].cur = crop_bufs[1].start;
     crop_bufs[1].end = crop_bufs[1].start + buf_size;
-}
-
-// Old DryOS used to trigger this, new DryOS
-// seems to only trigger the write complete cbr.
-static void edmac_cbr_r(void *unused_ctx)
-{
-}
-
-// Triggers when EDMAC write operation is complete.
-static void edmac_cbr_w(void *unused_ctx)
-{
-    copy_rectangle_non_blocking_cleanup();
-    give_semaphore(edmac_sem); // signal edmac copy rect as safe to use
 }
 
 static void write_buf_to_disk(struct crop_buf *crop_buf)
@@ -318,23 +302,8 @@ static void worker(void)
             dst = crop_buf->cur;
             crop_buf->cur += event->size;
 
-            int err = take_semaphore_now(edmac_sem);
-            if (err)
-            {
-                // If this happens, it means we're not managing to save a frame
-                // before the next vsync event in event_pusher.c tries to capture one.
-
-                #ifdef RAW_VID_LOG
-                send_log_data_str("ERROR: worker couldn't take edmac_sem\n");
-                #endif
-                // FIXME this break means we're choosing to drop frames
-                // rather than stop recording, I think just stopping is better.
-                // Maybe re-imp the option from mlv_lite.
-                break;
-            }
-
             // here we know the copy rect from the prior IMAGE_DATA has completed,
-            // as we have edmac_sem, so we can safely flush if one of the buffers was full.
+            // so we can safely flush if one of the buffers was full.
             #ifdef RAW_VID_LOG
             session_data_size += event->size;
             #endif
@@ -350,11 +319,10 @@ static void worker(void)
                      event->w, event->h, line_size * event->h);
             send_log_data_str(log_buf);
             #endif
-            copy_rectangle_non_blocking(
+            copy_rectangle(
                 (void*)dst, line_size, 0, 0,
                 event->src, raw_info.pitch, (event->x + 7)/8*BPP, event->y/2*2,
-                line_size, event->h,
-                &edmac_cbr_r, &edmac_cbr_w, NULL
+                line_size, event->h
             );
             // edmac_cbr_w() will release edmac sem, when copy complete
 
@@ -522,14 +490,6 @@ static void worker(void)
 void init_worker(struct msg_queue *q)
 {
     event_q = q;
-    edmac_sem = create_named_semaphore("edmac_raw_worker", SEM_CREATE_UNLOCKED);
-    if (edmac_sem == NULL)
-    {
-        #ifdef RAW_VID_LOG
-        send_log_data_str("ERROR: worker could not create edmac sem\n");
-        #endif
-        return;
-    }
     task_create("raw_v_worker", WORKER_PRIO, 0x800, worker, NULL);
     allow_recording();
 }

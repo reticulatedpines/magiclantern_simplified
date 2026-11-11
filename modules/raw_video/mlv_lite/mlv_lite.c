@@ -2686,17 +2686,6 @@ static void edmac_stop_spy()
     edmac_spy_active = 0;
 }
 
-
-static void edmac_cbr_r(void *ctx)
-{
-}
-
-static void edmac_cbr_w(void *ctx)
-{
-    edmac_active = 0;
-    copy_rectangle_non_blocking_cleanup();
-}
-
 static void compress_task()
 {
     ASSERT(compress_mq == 0);
@@ -2819,12 +2808,12 @@ static void compress_task()
         else
         {
             edmac_active = 1;
-            copy_rectangle_non_blocking(
+            copy_rectangle(
                 (void*)out_ptr, res_x * BPP/8, 0, 0,
                 fullSizeBuffer, raw_info.pitch, (skip_x + 7)/8*BPP, skip_y/2*2,
-                res_x * BPP/8, res_y,
-                &edmac_cbr_r, &edmac_cbr_w, NULL
+                res_x * BPP/8, res_y
             );
+            edmac_active = 0;
         }
         
         /* mark it as completed */
@@ -2857,8 +2846,8 @@ void process_frame(int next_fullsize_buffer_pos)
     
     if (edmac_active)
     {
-        /* EDMAC too slow */
-        NotifyBox(2000, "EDMAC timeout.");
+        // failed to copy frame before next was due
+        NotifyBox(2000, "Frame copy too slow.");
         buffer_full = 1;
         return;
     }

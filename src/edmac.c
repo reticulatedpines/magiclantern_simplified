@@ -263,7 +263,7 @@ void edmac_memcpy_res_unlock(void)
 // I think on some older cams, cbr_r() triggers (when the read half of the copy
 // is done), but laters ones didn't, so you shouldn't rely on it doing anything.
 // Detecting the completion of the write is generally more useful, anyway.
-void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
+static void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
                                   void* src, int src_width, int src_x, int src_y,
                                   int sub_w, int sub_h,
                                   void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
@@ -345,7 +345,7 @@ void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y
 }
 
 /* cleanup channel configuration and release semaphore */
-void copy_rectangle_non_blocking_cleanup(void)
+static void copy_rectangle_non_blocking_cleanup(void)
 {
     /* set default CBRs again and stop both DMAs */
     UnregisterEDmacCompleteCBR(edmac_read_chan);

@@ -226,10 +226,9 @@ void edmac_memcpy_res_unlock(void)
 {
 }
 
-void* copy_rectangle_non_blocking(void *dst, int dst_width, int dst_x, int dst_y,
-                                  void *src, int src_width, int src_x, int src_y,
-                                  int w, int h,
-                                  void (*cbr_r)(void *), void (*cbr_w)(void *), void *cbr_ctx)
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
+                     int w, int h)
 {
     // "src_width" is width of the frame including dark areas, borders etc.
     // "w" is the width of the region to copy out, e.g. if stripping the borders.
@@ -324,13 +323,8 @@ void* copy_rectangle_non_blocking(void *dst, int dst_width, int dst_x, int dst_y
     extern void mem_to_mem_edmac_copy(struct m2m_copy_info *);
     // If channels, or resLock above is wrong, then the following hangs
     mem_to_mem_edmac_copy(&m2m_copy_info);
-    cbr_w(NULL); // clears edmac_active, we have no CBR to do this
 
     return dst;
-}
-
-void copy_rectangle_non_blocking_cleanup(void)
-{
 }
 
 // SJE FIXME these are only here because mlv_lite module has them as deps,
