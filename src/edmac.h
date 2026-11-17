@@ -195,11 +195,11 @@ void UnregisterEDmacAbortCBR(int channel);
 void UnregisterEDmacPopCBR(int channel);
 
 // memcpy stuff:
-void* edmac_memcpy(void* dst, void* src, size_t length);
+void* edmac_memcpy(void *dst, void *src, size_t length);
 
 /* crop a rectangle from an image buffer; all sizes in bytes */
-void* copy_rectangle(void* dst, int dst_width, int dst_x, int dst_y,
-                     void* src, int src_width, int src_x, int src_y,
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
                      int sub_w, int sub_h);
 
 /* Lock/unlock engine resources used by edmac_memcpy (only if ported for your camera) */
@@ -207,6 +207,6 @@ void edmac_memcpy_res_lock(void);
 void edmac_memcpy_res_unlock(void);
 
 /* pulls the raw data from EDMAC without Canon's lv_save_raw (for raw backend) */
-void edmac_raw_slurp(void* dst, int w, int h);
+void edmac_raw_slurp(void *dst, int w, int h);
 
 #endif // _edmac_c

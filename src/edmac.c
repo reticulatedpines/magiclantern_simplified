@@ -51,8 +51,10 @@ static uint32_t edmac_chanlist[] =
 // - some chance these are PwrMng IDs, if those are different from device IDs
 //   - unlikely, given "ELD_PWRMNG_MODULE_MAX_NUM" compares against 14b
 /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
-static uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
-static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
+static uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10,
+                                  0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
+static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19,
+                                  0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
 
 static uint32_t edmac_get_dir(uint32_t channel)
 {
@@ -113,7 +115,7 @@ uint32_t edmac_get_base(uint32_t channel)
         return -1;
     }
 
-    uint32_t bases[] = { 0xC0F04000, 0xC0F26000, 0xC0F30000 };
+    uint32_t bases[] = {0xC0F04000, 0xC0F26000, 0xC0F30000};
     uint32_t edmac_block = channel >> 4;
     uint32_t edmac_num = channel & 0x0F;
     
@@ -203,7 +205,7 @@ uint32_t edmac_memcpy_flags = EDMAC_2_BYTES_PER_TRANSFER; //Original are faster 
 uint32_t edmac_memcpy_flags = EDMAC_16_BYTES_PER_TRANSFER; //Enhanced
 #endif 
 
-static struct LockEntry * resLock = 0;
+static struct LockEntry *resLock = NULL;
 
 static void edmac_memcpy_init(void *unused)
 {
@@ -236,7 +238,7 @@ static void edmac_read_complete_cbr(void *ctx)
     give_semaphore(edmac_read_done_sem);
 }
 
-static void edmac_write_complete_cbr(void * ctx)
+static void edmac_write_complete_cbr(void *ctx)
 {
 }
 
@@ -263,10 +265,10 @@ void edmac_memcpy_res_unlock(void)
 // I think on some older cams, cbr_r() triggers (when the read half of the copy
 // is done), but laters ones didn't, so you shouldn't rely on it doing anything.
 // Detecting the completion of the write is generally more useful, anyway.
-static void* copy_rectangle_non_blocking(void* dst, int dst_width, int dst_x, int dst_y,
-                                  void* src, int src_width, int src_x, int src_y,
-                                  int sub_w, int sub_h,
-                                  void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
+static void* copy_rectangle_non_blocking(void *dst, int dst_width, int dst_x, int dst_y,
+                                         void *src, int src_width, int src_x, int src_y,
+                                         int sub_w, int sub_h,
+                                         void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
     // "src_width" is width of the frame including dark areas, borders etc.
     // "w" is the width of the region to copy out, e.g. if stripping the borders.
@@ -373,10 +375,10 @@ static void edmac_copy_rectangle_adv_finish(void)
     copy_rectangle_non_blocking_cleanup();
 }
 
-static void* edmac_copy_rectangle_adv_start(void* dst, void* src,
-                                     int src_width, int src_x, int src_y,
-                                     int dst_width, int dst_x, int dst_y,
-                                     int w, int h)
+static void* edmac_copy_rectangle_adv_start(void *dst, void *src,
+                                            int src_width, int src_x, int src_y,
+                                            int dst_width, int dst_x, int dst_y,
+                                            int w, int h)
 {
     return copy_rectangle_non_blocking(dst, dst_width, dst_x, dst_y,
                                        src, src_width, src_x, src_y,
@@ -392,8 +394,8 @@ static void* edmac_copy_rectangle_adv_start(void* dst, void* src,
 // bordered region.
 //
 // the x and y params are offsets into the respective rectangles.
-void* copy_rectangle(void* dst, int dst_width, int dst_x, int dst_y,
-                     void* src, int src_width, int src_x, int src_y,
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
                      int sub_w, int sub_h)
 {
     void* ans = edmac_copy_rectangle_adv_start(dst, src,
@@ -439,7 +441,7 @@ static uint32_t edmac_find_divider(size_t length, size_t transfer_size)
     return 0;
 }
 
-static void* edmac_memcpy_start(void* dst, void* src, size_t length)
+static void* edmac_memcpy_start(void *dst, void *src, size_t length)
 {
     int blocksize = edmac_find_divider(length, 0);
 
@@ -464,9 +466,9 @@ static void edmac_memcpy_finish(void)
     edmac_copy_rectangle_adv_finish();
 }
 
-void* edmac_memcpy(void* dst, void* src, size_t length)
+void* edmac_memcpy(void *dst, void *src, size_t length)
 {
-    void * ans = edmac_memcpy_start(dst, src, length);
+    void *ans = edmac_memcpy_start(dst, src, length);
     edmac_memcpy_finish();
     return ans;
 }
@@ -488,7 +490,7 @@ uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://
 uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
 #endif
 
-static void edmac_slurp_complete_cbr (void* ctx)
+static void edmac_slurp_complete_cbr (void *ctx)
 {
     /* set default CBRs again and stop both DMAs */
     /* idk what to do with those; if I uncomment them, the camera crashes at startup in movie mode with raw_rec enabled */
@@ -497,7 +499,7 @@ static void edmac_slurp_complete_cbr (void* ctx)
     //~ UnregisterEDmacPopCBR(raw_write_chan);
 }
 
-void edmac_raw_slurp(void* dst, int w, int h)
+void edmac_raw_slurp(void *dst, int w, int h)
 {
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
 #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
