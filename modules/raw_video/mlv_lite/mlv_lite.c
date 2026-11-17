@@ -80,7 +80,6 @@ THREAD_ROLE(RawRecTask);            /* our raw recording task */
 THREAD_ROLE(ShootTask);             /* polling CBR */
 
 static GUARDED_BY(GuiMainTask) int show_graph = 0;
-static GUARDED_BY(GuiMainTask) int show_edmac = 0;
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -2603,89 +2602,6 @@ int get_frame_save_status(int slot_index)
     return 1;
 }
 
-/* log EDMAC state every X microseconds */
-static const int LOG_INTERVAL = 500;
-
-static uint32_t edmac_start_clock = 0;
-
-/* from edmac.c */
-extern const uint32_t edmac_read_chan;
-extern uint32_t raw_write_chan;
-
-static uint32_t edmac_read_base;
-static uint32_t edmac_wraw_base;
-static uint32_t edmac_frame_duration;
-
-static volatile uint32_t edmac_spy_active = 0;
-
-static void FAST edmac_spy_poll(int last_expiry, void* unused)
-{
-    if (!edmac_spy_active)
-    {
-        /* finished */
-        return;
-    }
-
-    /* schedule next call */
-    SetHPTimerNextTick(last_expiry, LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
-
-    /* this routine requires LCLK enabled */
-    // SJE FIXME this MMIO seems the same on 200D and old cams,
-    // but it should still be turned into a named constant or something.
-    // See usage near string "hSemSio[channel]" by both 200D and 5D3.
-    if (!(MEM(0xC0400008) & 0x2))
-    {
-        return;
-    }
-
-    /* both pointers are operating on raw buffer */
-    /* make sure read is always in advance of write */
-    uint32_t rd = MEM(edmac_read_base + 8);
-    uint32_t wr = MEM(edmac_wraw_base + 8);
-
-    /* only check when the channels are operating on raw buffer */
-    uint32_t buf = (uint32_t) CACHEABLE(raw_info.buffer);
-    uint32_t end = (uint32_t) CACHEABLE(raw_info.buffer) + raw_info.frame_size;
-    if (rd < buf || rd > end) return;
-    if (wr < buf || wr > end) return;
-
-    /* plot the read and write pointers */
-    uint32_t clock = GET_DIGIC_TIMER();
-    uint32_t r_active = MEM(edmac_read_base);
-    uint32_t w_active = MEM(edmac_wraw_base);
-    int x  = 50 + (clock - edmac_start_clock) * 512 / edmac_frame_duration;
-    if (x < 0 || x > 700) return;
-    int yr = 360 - ((rd - buf) / 128) * 200 / (raw_info.frame_size / 128);
-    int yw = 360 - ((wr - buf) / 128) * 200 / (raw_info.frame_size / 128);
-    bmp_putpixel(x, yr, r_active ? COLOR_GREEN1 : COLOR_GRAY(50));
-    bmp_putpixel(x, yw, w_active ? COLOR_RED : COLOR_BLACK);
-}
-
-static void edmac_start_spy()
-{
-    /* double-check whether we can use single-buffering */
-    /* read from raw buffer is done on edmac_read_chan (edmac-memcpy) or 8 (5D3 lossless) */
-    /* write to raw buffer is always done on raw_write_chan (EDMAC_RAW_SLURP) */
-    edmac_read_base = edmac_get_base(OUTPUT_COMPRESSION ? 8 : edmac_read_chan);
-    edmac_wraw_base = edmac_get_base(raw_write_chan);
-    int fps = fps_get_current_x1000();
-    if (fps == 0)
-        return;
-
-    edmac_frame_duration = 1e9 / fps;
-    if (show_edmac && !edmac_spy_active && !RAW_IS_IDLE
-        && edmac_read_base != 0xffffffff && edmac_wraw_base != 0xffffffff)
-    {
-        edmac_spy_active = 1;
-        SetHPTimerAfterNow(LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
-    }
-}
-
-static void edmac_stop_spy()
-{
-    edmac_spy_active = 0;
-}
-
 static void compress_task()
 {
     ASSERT(compress_mq == 0);
@@ -2704,32 +2620,24 @@ static void compress_task()
         if (msg == (uint32_t) INT_MAX)
         {
             /* start recording */
-
             if (OUTPUT_COMPRESSION == 0)
             {
                 /* get exclusive access to our edmac channels */
                 edmac_memcpy_res_lock();
                 printf("EDMAC copy resources locked.\n");
             }
-
-            edmac_start_spy();
-
             continue;
         }
 
         if (msg == (uint32_t) INT_MIN)
         {
             /* stop_recording */
-
             if (OUTPUT_COMPRESSION == 0)
             {
                 /* exclusive edmac access no longer needed */
                 edmac_memcpy_res_unlock();
                 printf("EDMAC copy resources unlocked.\n");
             }
-
-            edmac_stop_spy();
-
             continue;
         }
 
@@ -2745,8 +2653,6 @@ static void compress_task()
 
         void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
         void* fullSizeBuffer = fullsize_buffers[fullsize_index];
-
-        edmac_start_clock = GET_DIGIC_TIMER();
 
         if (OUTPUT_COMPRESSION)
         {
@@ -4138,14 +4044,6 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &sync_beep,
                 .max    = 1,
                 .help = "Beeps on recording start for better sync.",
-                .advanced = 1,
-            },
-            {
-                .name   = "Show EDMAC",
-                .priv   = &show_edmac,
-                .max    = 1,
-                .help   = "Plots the EDMAC read/write pointers within the source raw buffer.",
-                .help2  = "If green (RD) is always above red (WR), it's safe to use single-buffering.",
                 .advanced = 1,
             },
             {
