@@ -427,6 +427,8 @@ void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
     return ans;
 }
 #elif defined(CONFIG_EDMAC_COPY_RECT_V1)
+// This variant is used on cams which have a DryOS convenience
+// function that hides EDMAC internals.  Possibly only 200D?
 
 void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
                      void *src, int src_width, int src_x, int src_y,
@@ -532,6 +534,143 @@ void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
     give_semaphore(edmac_memcpy_sem);
     return dst;
 }
+#elif defined(CONFIG_EDMAC_COPY_RECT_V2)
+// 6D2 uses this variant.  The top-level convenience function of 200D doesn't
+// seem to exist, but the internals are similar, so we can't easily use V0.
+// We could probably stop using the convenience function on 200D and convert
+// it to V2 style.
+
+static struct semaphore *mem2mem_sem = NULL;
+
+static void copy_rectangle_release_sem(void *unused)
+{
+    give_semaphore(mem2mem_sem);
+}
+
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
+                     int w, int h)
+{
+    if ((src == NULL) || (dst == NULL))
+    {
+        ASSERT(0);
+        return NULL;
+    }
+
+    // Old code doesn't explain why it checks this, my guess is
+    // because DMA transfers don't invalidate CPU cache, since
+    // they're outside of the CPU.
+    ASSERT(dst == UNCACHEABLE(dst));
+
+    /* clean the cache before reading from regular (cacheable) memory */
+    if (src == CACHEABLE(src))
+    {
+        sync_caches();
+    }
+
+    void *src_adjusted = (void *)(((uint32_t)src & 0x3FFFFFFF) + src_x + src_y * src_width);
+    void *dst_adjusted = (void *)(((uint32_t)dst & 0x3FFFFFFF) + dst_x + dst_y * dst_width);
+
+    if (mem2mem_sem == NULL)
+        mem2mem_sem = create_named_semaphore("mem2mem", SEM_CREATE_LOCKED);
+    if (edmac_memcpy_sem == NULL)
+        return NULL;
+    if (take_semaphore(edmac_memcpy_sem, 1000))
+    {
+        DryosDebugMsg(0, 15, "copy_rect failed to take edmac_memcpy_sem");
+        return NULL;
+    }
+
+    // Not sure this is essential, but these are the devices locked
+    // by code in 6D2 rom.
+    // This seems to trigger "edmac timeout" from mlv_lite
+//    uint32_t resIDs[3] = {0x00320021,
+//                          0x00320007,
+//                          0x00320035}; // via static analysis, e.g. e0147f64
+
+// fake "magic" values, see notes in V1.
+    uint32_t resIDs[1] = {0x00000080};
+
+    // channels found via edmaclog module, exercising cam, finding ones that
+    // don't seem to be used.
+    // Some of the notes below are probably outdated, we were experiencing
+    // crashes due to an earlier bug in the mask applied to src and dst,
+    // which was inappropriate on cams with >512MB mem.
+    // Tedious to retest, so some of them may work okay.
+
+// This one can, seems to work okay in video mode and record sensor data to MLV.
+    create_mem_to_mem_lock_and_pwrmng_globals(0x21, 0x13, resIDs, COUNT(resIDs));
+
+// These work okay with "magic" res lock in LV, but not video mode:
+//    create_mem_to_mem_lock_and_pwrmng_globals(0x31, 0x10, resIDs, 1);
+// Channel too high for edmac, as expected:
+//    create_mem_to_mem_lock_and_pwrmng_globals(0x35, 0x1a, resIDs, 1);
+
+// defaults:
+// Works okay outside of LV, with 3 resIDs.
+// Hangs waiting for lock in LV, with 3 resIDs?
+// Fast reboot in LV, with 1 resID.
+//    create_mem_to_mem_lock_and_pwrmng_globals(0x2f, 0x15, resIDs, 3);
+
+    // channels that make it angry:
+    // 2nd param:
+
+    // incorrect mode bits:
+    // 2nd param: 1c, 1e
+
+    // "failed to take mem2mem_sem" (edmac doesn't complete)
+    // 2nd param: c, 10
+
+    // D7 DryOS does set_mem_to_mem_cbr() before this,
+    // but that looks wrong.
+    // Seems to me you want to lock before changing the cbr,
+    // or setting the channels for the copy,
+    // to avoid clobbering an active transfer.
+    // R does it in this order, so this may be a bug on D7.
+    lock_and_wake_mem_to_mem(); // blocking
+    set_mem_to_mem_cbr(copy_rectangle_release_sem, NULL);
+
+    struct edmac_info src_region = {
+        .off1b = src_width - w,
+        .xb = w,
+        .yb = h - 1,
+    };
+
+    struct edmac_info dst_region = {
+        .off1b = 0,
+        .xb = w,
+        .yb = h - 1,
+    };
+
+    mem_to_mem_setup_copy(&src_region, &dst_region);
+
+    // start the copy, which on completion should trigger
+    // our cbr, releasing our sem
+    mem_to_mem_set_src_dst_and_start(src_adjusted, dst_adjusted);
+
+    // sem should be freed by copy_rectangle_release_sem() when copy completes
+    if (take_semaphore(mem2mem_sem, 1000))
+    {
+        // EDMAC copy timeout?
+        DryosDebugMsg(0, 15, "copy_rect failed to take mem2mem_sem");
+        return NULL;
+        // This will break all future EDMAC copy usage,
+        // since we aren't releasing edmac_copy_sem
+    }
+
+    // This does several things, including releasing device 6, the Channel Switch.
+    // Asserts if called from an interrupt context, since it calls
+    // edmac_release_channel() and that checks "interrupt_level > 0".
+    cleanup_mem_to_mem();
+
+    unlock_and_sleep_mem_to_mem();
+    set_default_mem_to_mem_cbr();
+    delete_mem_to_mem_lock();
+
+    give_semaphore(edmac_memcpy_sem);
+    return dst;
+}
+
 #endif // CONFIG_EDMAC_COPY_RECT_Vx
 
 static uint32_t edmac_find_divider(size_t length, size_t transfer_size)

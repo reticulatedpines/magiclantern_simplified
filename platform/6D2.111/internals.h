@@ -11,6 +11,11 @@
 // Cam has MMU (by itself, does nothing, see CONFIG_MMU_REMAP)
 #define CONFIG_MMU
 
+// Has a EDMAC unit we can control usefully,
+// uses V2 style code for rectangular copies.
+#define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_COPY_RECT_V2
+
 /** Digic 7 does not have bitmap font in ROM, try to load it from card **/
 #define CONFIG_NO_BFNT
 
