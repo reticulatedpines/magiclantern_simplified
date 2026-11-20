@@ -6258,7 +6258,7 @@ static struct longpress q_longpress = {
 };
 #endif
 
-#if defined(CONFIG_EOSM)
+#if defined(CONFIG_EOSM) || defined(CONFIG_EOSM2)
 static struct longpress erase_longpress = {
     .long_btn_press     = BGMT_TRASH,           /* long press (500ms) opens ML menu */
     .short_btn_press    = BGMT_PRESS_DOWN,      /* short press => do a regular "down/erase" */
@@ -6482,7 +6482,7 @@ int handle_longpress_events(struct event * event)
     }
 #endif
 
-#if defined(CONFIG_EOSM)
+#if defined(CONFIG_EOSM) || defined(CONFIG_EOSM2)
     /* also trigger menu by a long press on ERASE (DOWN) */
     if (event->param == BGMT_PRESS_DOWN)
     {

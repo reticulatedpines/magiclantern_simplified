@@ -162,7 +162,7 @@ static volatile struct edmac_mmio *raw_lv_edmac = (struct edmac_mmio *)RAW_LV_ED
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_70D) || defined(CONFIG_100D)
+#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_EOSM2) || defined(CONFIG_650D) || defined(CONFIG_70D) || defined(CONFIG_100D)
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
@@ -335,7 +335,7 @@ static int get_default_white_level()
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
 
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) // Same sensor
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_EOSM2) || defined(CONFIG_700D) || defined(CONFIG_100D) // Same sensor
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -662,6 +662,10 @@ static int dynamic_ranges[] = {1100, 1094, 1060, 1005, 919, 826, 726, 633};
 
 #ifdef CONFIG_EOSM
 static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
+#endif
+
+#ifdef CONFIG_EOSM2
+static int dynamic_ranges[] = {1068, 1076, 1041, 986, 899, 819, 713, 627, 518};
 #endif
 
 #ifdef CONFIG_7D
@@ -1170,7 +1174,7 @@ int raw_update_params_work()
         skip_top = 54;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_EOSM2) || defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_left = 72;
         skip_top = 52;
         #endif
@@ -1226,7 +1230,7 @@ int raw_update_params_work()
         raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
 #ifdef CONFIG_5D3
         raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
-#elif defined(CONFIG_EOSM)
+#elif defined(CONFIG_EOSM) || defined(CONFIG_EOSM2)
         raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
 #else
         raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;

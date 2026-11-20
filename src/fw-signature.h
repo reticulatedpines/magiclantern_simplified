@@ -41,6 +41,7 @@
 #define SIG_80D_103  0x98ec1433 // from FE0A0000
 #define SIG_850D_100 0xad55d877 // from e0040000
 #define SIG_EOSM_202 0x2D7c6dcf // from FF0C0000
+#define SIG_EOSM2_103 0x1f321405 // from FF0C0000
 //#define SIG_M50_102  0x3b70901c // from E0040000
 #define SIG_M50_110  0x05EDBC80 // from E0040000
 #define SIG_M6II_111 0x3438de7d // from E0040000

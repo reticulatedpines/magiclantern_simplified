@@ -1,0 +1,12 @@
+# Module names in this file will be included in the cam magiclantern.zip
+# Minimal module set for initial EOS M2 (1.0.3) port (592 KB DIGIC 5 AllocateMemory budget).
+autoexpo
+bench
+deflick
+dual_iso
+ettr
+file_man
+img_name
+pic_view
+selftest
+silent
