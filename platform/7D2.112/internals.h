@@ -22,6 +22,13 @@
 // Does the mode *dial* have movie mode?
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
+// Has an EDMAC unit that we have some control over.
+// V3 implies we can't directly do rectangular sub-region
+// copies, but we can do fast copies.  This allows removing
+// top and bottom border easily, but not the sides.
+#define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_COPY_RECT_V3
+
 // enable state objects hooks
 #define CONFIG_STATE_OBJECT_HOOKS
 

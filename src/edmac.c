@@ -670,6 +670,59 @@ void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
     give_semaphore(edmac_memcpy_sem);
     return dst;
 }
+#elif defined(CONFIG_EDMAC_COPY_RECT_V3)
+// This variant is for cams where we can't do a rectangular
+// sub-region copy, but we still have a fast DMA copy.  We can get
+// good resolutions still, but we can't efficiently strip the borders.
+// Tested on 7D2.  On Digic 6 this is the default until we
+// understand Omar more, since it completely changes the ICU side
+// of the DryOS EDMAC API.
+
+void *dma_memcpy(void *dst, void *src, size_t n)
+{
+    extern void *_memcpy_fast(int channel, void *dst, void *src, size_t count);
+    uint32_t dma_channel = 0; // untested if this is safe in all contexts on 7D2
+    return _memcpy_fast(dma_channel, dst, src, n);
+}
+
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
+                     int w, int h)
+{
+    // "src_width" is width of the frame including dark areas, borders etc.
+    // "w" is the width of the region to copy out, e.g. if stripping the borders.
+
+    if ((src == NULL) || (dst == NULL))
+    {
+        ASSERT(0);
+        return NULL;
+    }
+
+    // For 7D2, we copy with a DMA func with sig close to memcpy().
+    // Digic 6 cams seem to use this instead of dma_memcpy(), which they do have,
+    // but it's not initialised correctly so you can't use it; you get a DMA
+    // error logged.
+    //
+    // This can't do a clever rect crop, so we need more checks on call params.
+    //
+    // We do this because we don't have full control of EDMAC from ICU,
+    // Digic 6 cams do EDMAC ops from Omar.  Omar presumably can do it,
+    // (and maybe we can trigger it from ICU), but so far we don't know how.
+
+    // These imply mlv_lite should have raw_info.pitch == (res_x * BPP/8)
+    if (src_width != dst_width || dst_width != w)
+        return NULL;
+
+    // These imply mlv_lite should have skip_x == 0
+    if (src_x != 0 || dst_x != 0)
+        return NULL;
+
+    dma_memcpy(dst + (dst_y * dst_width),
+               src + (src_y * src_width),
+               w * h);
+
+    return dst;
+}
 
 #endif // CONFIG_EDMAC_COPY_RECT_Vx
 
