@@ -13,6 +13,10 @@
 
 #define FEATURE_GLOBAL_DRAW
 
+// Enable remapping ROM pages to RAM
+#define CONFIG_SGI_HANDLERS
+#define CONFIG_MMU_REMAP
+
 #define FEATURE_SCREENSHOT
 
 #define CONFIG_CRASH_LOG

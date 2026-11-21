@@ -9,6 +9,11 @@
 #define LEDON                          0x004D0002
 #define LEDOFF                         0x004C0003
 
+#define CANON_ORIG_MMU_TABLE_ADDR 0xE0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
+
 #define BR_DCACHE_CLN_1      0xE0040068   /* first call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_1      0xE0040072   /* first call to icache_invalidate, before cstart */
 #define BR_DCACHE_CLN_2      0xE00400A0   /* second call to dcache_clean, before cstart */
@@ -38,6 +43,7 @@
 //#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 #define DRYOS_ASSERT_HANDLER 0x4000               // from debug_assert function, hard to miss
+#define DRYOS_SGI_HANDLERS_PTR 0x402C             // holds pointer to base of SGI handlers (each is 8 bytes, a pointer and something else)
 
 #define CURRENT_GUI_MODE (*(int*)0x7a50) // see SetGUIRequestMode
 

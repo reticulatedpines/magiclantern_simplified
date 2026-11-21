@@ -39,6 +39,7 @@ THUMB_FN(0xE0040104,  cstart)                          /* calls bzero32 and crea
 THUMB_FN(0xE05A6CDC,  bzero32)                         /* zeros out a data structure */
 THUMB_FN(0xE05C04A4,  create_init_task)                /* low-level DryOS initialization */
 THUMB_FN(0xE05A9F08,  dcache_clean)                    /* loop with MCR p15 c7,c10,1; DSB */
+THUMB_FN(0xE0064A4C,  dcache_clean_multicore)          /* loop writing to c11007b0, called after dcache_clean by copy_mmu_tables() */
 THUMB_FN(0xE05A9FDC,  icache_invalidate)               /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB */
 THUMB_FN(0xE004022C,  init_task)                       /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 
@@ -47,6 +48,7 @@ DATA_PTR(    0x1010,  current_interrupt)               /* from interrupt handler
 DATA_PTR(    0x1028,  current_task)                    /* from task_create; pointer to the current task structure */
 THUMB_FN(0xE058F77A,  msleep)                          /* argument is always multiple of 10 */
 THUMB_FN(0xE05DA6C2,  task_create)                     /* used to start TaskMain, GuiMainTask etc */
+THUMB_FN(0xE05DA8DA,  task_create_ex)                  /* as task_create, but allows selecting CPU for task*/
 
 /** Misc (Optional) **/
 THUMB_FN(0xE059100C,  uart_printf)                     // The function which prints Kxxx READY.
@@ -118,6 +120,22 @@ THUMB_FN(0xE05AC0DE,  SetHPTimerAfterNow)              // above "comAdapterDelay
 THUMB_FN(0xE057EA20,  SetTimerAfter)                   // function after create semaphore "wlansdcon" string
 THUMB_FN(0xE038AA1A,  CancelDateTimer)                 // "CancelDateTimer" string inside function
 THUMB_FN(0xE057EAD6,  CancelTimer)                     // function call after "CancelTimer FocusProhibit %d"
+
+THUMB_FN(0xDF002C52, _request_RPC) // allows CPU0 or CPU1 to pass a func pointer and param
+                                   // to the other for RPC.
+                                   // Passing a NULL func pointer, will suspend the other
+                                   // CPU until it becomes non-NULL.
+                                   // DryOS seems to use this to deliberately sleep a CPU
+                                   // in some exceptional cases (e.g. asserts).
+                                   //
+                                   // Don't call this directly, because if you do,
+                                   // and you forget to call clear_RPC_request(),
+                                   // the target CPU will repeatedly call the func pointer
+                                   // as fast as possible, forever.
+                                   // Instead use request_RPC().
+
+THUMB_FN(0xDF002C72, clear_RPC_request) // reset the request to prevent calling
+                                        // the function forever
 
 /** MPU communication **/
 // THUMB_FN(0xE05da06c,  mpu_recv)                        // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr
@@ -256,6 +274,13 @@ THUMB_FN(0xe07e066a,  LiveViewShutterApp_handler)           // msg: "StartLiveVi
 DATA_PTR(    0x14844,  LiveViewApp_dialog)                 // in StartLiveViewApp(), 0x14840 + 0x4
 //DATA_PTR(  0x1e488,  LiveViewShutterApp_dialog)          // in StartLiveViewShutterApp(), not sure if needed
 //DATA_PTR(  0x16338,  PlayMovieGuideApp_dialog)           // in PlayMovieGuide_Start()
+
+// MMU related, required by CONFIG_MMU features
+// slightly MMU related, used by CONFIG_MMU_REMAP
+THUMB_FN(0xE05A5792, change_mmu_tables) // Updates TTBRs and does TLB maintenance
+ARM32_FN(0xE05A5C5C, memcpy_dryos) // useful in early contexts when we don't have
+                                   // dietlibc or newlib, and can't use stdio memcpy64 because
+                                   // that wants ML assert handling initialised.
 
 /**
  * STUFF BELOW IS WRONG!
