@@ -8,6 +8,9 @@
 // has inter-core RPC (so far this has always been dependent on SGI, 0xc)
 #define CONFIG_RPC
 
+// Cam has MMU (by itself, does nothing, see CONFIG_MMU_REMAP)
+#define CONFIG_MMU
+
 /** Digic 8 does not have bitmap font in ROM, try to load it from card **/
 #define CONFIG_NO_BFNT
 
