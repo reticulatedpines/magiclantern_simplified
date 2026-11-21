@@ -15,6 +15,7 @@
 
 // Enable remapping ROM pages to RAM
 #define CONFIG_SGI_HANDLERS
+#define CONFIG_MMU_REMAP
 
 #define FEATURE_SCREENSHOT
 
