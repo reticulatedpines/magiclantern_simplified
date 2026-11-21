@@ -47,6 +47,7 @@ DATA_PTR(    0x1010,  current_interrupt)               /* from interrupt handler
 DATA_PTR(    0x1028,  current_task)                    /* from task_create; pointer to the current task structure */
 THUMB_FN(0xE058F77A,  msleep)                          /* argument is always multiple of 10 */
 THUMB_FN(0xE05DA6C2,  task_create)                     /* used to start TaskMain, GuiMainTask etc */
+THUMB_FN(0xE05DA8DA,  task_create_ex)                  /* as task_create, but allows selecting CPU for task*/
 
 /** Misc (Optional) **/
 THUMB_FN(0xE059100C,  uart_printf)                     // The function which prints Kxxx READY.
