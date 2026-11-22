@@ -116,6 +116,7 @@
 
 /** We know how to use edmac_memcpy */
 #define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_COPY_RECT_V0
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP

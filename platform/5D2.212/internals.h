@@ -125,6 +125,7 @@
 
 /** We can use the DMA controller to copy data */
 #define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_COPY_RECT_V0
 
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO

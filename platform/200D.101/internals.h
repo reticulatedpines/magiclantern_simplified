@@ -11,6 +11,11 @@
 // Cam has MMU (by itself, does nothing, see CONFIG_MMU_REMAP)
 #define CONFIG_MMU
 
+// This variant of EDMAC copies has a convenience wrapper so
+// we don't need to deal with channels or resource locks.
+#define CONFIG_EDMAC_COPY_RECT_V1
+#define CONFIG_EDMAC_MEMCPY
+
 // Cam can wrap init1, allowing control of cpu1 before tasks are started
 #define CONFIG_INIT1_HIJACK
 

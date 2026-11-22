@@ -188,11 +188,13 @@ static struct semaphore *edmac_read_done_sem = NULL; /* to know when memcpy is f
     write: 0x00-0x06, 0x10-0x16, 0x20-0x21.
     read:  0x08-0x0D, 0x18-0x1D, 0x28-0x2B */
 
-#if defined(EDMAC_READ_CHAN) && defined(EDMAC_WRITE_CHAN)
-const uint32_t edmac_read_chan = EDMAC_READ_CHAN;
-const uint32_t edmac_write_chan = EDMAC_WRITE_CHAN;
-#else
-    #error "You need to find available channels for EDMAC read/write"
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
+    #if defined(EDMAC_READ_CHAN) && defined(EDMAC_WRITE_CHAN)
+        const uint32_t edmac_read_chan = EDMAC_READ_CHAN;
+        const uint32_t edmac_write_chan = EDMAC_WRITE_CHAN;
+    #else
+        #error "You need to find available channels for EDMAC read/write"
+    #endif
 #endif
 
 /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
@@ -205,13 +207,44 @@ uint32_t edmac_memcpy_flags = EDMAC_2_BYTES_PER_TRANSFER; //Original are faster 
 uint32_t edmac_memcpy_flags = EDMAC_16_BYTES_PER_TRANSFER; //Enhanced
 #endif 
 
+static void edmac_read_complete_cbr(void *ctx)
+{
+    give_semaphore(edmac_read_done_sem);
+}
+
+static void edmac_write_complete_cbr(void *ctx)
+{
+}
+
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
 static struct LockEntry *resLock = NULL;
+#endif
+
+void edmac_memcpy_res_lock(void)
+{
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
+    int r = LockEngineResources(resLock);
+    if (r & 1)
+    {
+        NotifyBox(2000, "ResLock fail %x %x", resLock, r);
+        return;
+    }
+#endif
+}
+
+void edmac_memcpy_res_unlock(void)
+{
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
+    UnLockEngineResources(resLock);
+#endif
+}
 
 static void edmac_memcpy_init(void *unused)
 {
     edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", SEM_CREATE_UNLOCKED);
     edmac_read_done_sem = create_named_semaphore("edmac_read_done_sem", SEM_CREATE_LOCKED);
     
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = edmac_channel_to_index(edmac_read_chan);
     int write_edmac_index = edmac_channel_to_index(edmac_write_chan);
@@ -229,35 +262,13 @@ static void edmac_memcpy_init(void *unused)
 
     /* just to make sure we have this stub */
     static void *AbortEDmac_check __attribute__((used)) = &AbortEDmac;
+#endif
 }
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
 
-static void edmac_read_complete_cbr(void *ctx)
-{
-    give_semaphore(edmac_read_done_sem);
-}
-
-static void edmac_write_complete_cbr(void *ctx)
-{
-}
-
-void edmac_memcpy_res_lock(void)
-{
-    //~ bmp_printf(FONT_MED, 50, 50, "Locking");
-    int r = LockEngineResources(resLock);
-    if (r & 1)
-    {
-        NotifyBox(2000, "ResLock fail %x %x", resLock, r);
-        return;
-    }
-    //~ bmp_printf(FONT_MED, 50, 50, "Locked!");
-}
-
-void edmac_memcpy_res_unlock(void)
-{
-    UnLockEngineResources(resLock);
-}
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
+// This is "old cams": Digic 4 and 5.
 
 // Similar to copy_rectangle(), but non-blocking, with cbr_w() triggering
 // when the copy is complete.
@@ -385,7 +396,13 @@ static void* edmac_copy_rectangle_adv_start(void *dst, void *src,
                                        w, h,
                                        &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
 }
+#endif // CONFIG_EDMAC_COPY_RECT_V0
 
+// How we implement copy_rectangle() varies per cam, digic generation, etc.
+// If EDMAC were understood better we could probably make this code more general.
+//
+// The API must remain the same for any implementation.
+//
 // "dst" and "src" are the start of a rectangular region, which might have borders
 // we don't want to touch.
 //
@@ -394,6 +411,9 @@ static void* edmac_copy_rectangle_adv_start(void *dst, void *src,
 // bordered region.
 //
 // the x and y params are offsets into the respective rectangles.
+
+#if defined(CONFIG_EDMAC_COPY_RECT_V0)
+
 void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
                      void *src, int src_width, int src_x, int src_y,
                      int sub_w, int sub_h)
@@ -406,11 +426,113 @@ void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
         edmac_copy_rectangle_adv_finish();
     return ans;
 }
+#elif defined(CONFIG_EDMAC_COPY_RECT_V1)
 
-static void edmac_copy_rectangle_finish(void)
+void* copy_rectangle(void *dst, int dst_width, int dst_x, int dst_y,
+                     void *src, int src_width, int src_x, int src_y,
+                     int w, int h)
 {
-    edmac_copy_rectangle_adv_finish();
+    if ((src == NULL) || (dst == NULL))
+    {
+        ASSERT(0);
+        return NULL;
+    }
+
+    // Old code doesn't explain why it checks this, my guess is
+    // because DMA transfers don't invalidate CPU cache, since
+    // they're outside of the CPU.
+    ASSERT(dst == UNCACHEABLE(dst));
+
+    // Here I assume that we flush cache on src because DMA
+    // works on underlying phys mem, unaware of cache.
+    if (src == CACHEABLE(src))
+    {
+        sync_caches();
+    }
+
+    // I think the intent here is twofold.  First, to remove the high-bit flags, which
+    // aren't used for addressing, presumably because DMA doesn't understand them.
+    // Second, to offset into the src and dst buffers to reach the first real pixel.
+    // That is, skip the top border, and the first occurence of any left border.
+    //
+    // The bit mask for old cams was 0x1fff_ffff, which looks like a bug;
+    // it removes bits needed for addressing above 512MB.  I've speculatively
+    // widened the check.
+    uint32_t src_adjusted = ((uint32_t)src & 0x3FFFFFFF) + src_x + src_y * src_width;
+    uint32_t dst_adjusted = ((uint32_t)dst & 0x3FFFFFFF) + dst_x + dst_y * dst_width;
+
+    struct m2m_edmac_dst_src_info {
+        struct edmac_info *src_region; // not actually tested which region is dst or src,
+        struct edmac_info *dst_region; // assuming it's the same order as following src + dst args
+        uint8_t *src;
+        uint8_t *dst;
+    };
+
+    struct m2m_channel_res_info {
+        uint32_t *resIds;
+        uint32_t resIdCount;
+        uint32_t channel_1;
+        uint32_t channel_2;
+    };
+
+    struct m2m_copy_info {
+        struct m2m_edmac_dst_src_info *edmac_regions;
+        struct m2m_channel_res_info *res_info; // not a great name
+    };
+
+    struct edmac_info src_region = {
+        .off1b = src_width - w,
+        .xb = w,
+        .yb = h - 1,
+    };
+
+    struct edmac_info dst_region = {
+        .off1b = 0,
+        .xb = w,
+        .yb = h - 1,
+    };
+
+    struct m2m_edmac_dst_src_info m2m_edmac_dst_src_info = {
+        .src_region = &src_region,
+        .dst_region = &dst_region,
+        .src = (uint8_t *)src_adjusted,
+        .dst = (uint8_t *)dst_adjusted
+    };
+
+    uint32_t resIds[1] = {0x00000080}; // "magic" value.  Probably this is any
+                                       // device ID not in the block, so it fails to find,
+                                       // but m2m_copy continues anyway.  Need to confirm.
+
+    struct m2m_channel_res_info m2m_channel_res_info = {
+        .resIds = resIds,
+        .resIdCount = 1,
+// These are the defaults, but they seem to clash with LV usage,
+// and m2m_copy hangs until LV is closed.
+//        .channel_1 = 43,
+//        .channel_2 = 17
+// These were found by logging for channels that never got used
+// (no ram address set in shamem region)
+// while using cam, switching to video mode and recording:
+        .channel_1 = 48,
+        .channel_2 = 19
+    };
+
+    struct m2m_copy_info m2m_copy_info = {
+        .edmac_regions = &m2m_edmac_dst_src_info,
+        .res_info = &m2m_channel_res_info
+    };
+
+    take_semaphore(edmac_memcpy_sem, 0);
+
+    // cross fingers and trigger copy
+    extern void mem_to_mem_edmac_copy(struct m2m_copy_info *);
+    // If channels, or resLock above is wrong, then the following hangs
+    mem_to_mem_edmac_copy(&m2m_copy_info);
+
+    give_semaphore(edmac_memcpy_sem);
+    return dst;
 }
+#endif // CONFIG_EDMAC_COPY_RECT_Vx
 
 static uint32_t edmac_find_divider(size_t length, size_t transfer_size)
 {
@@ -441,47 +563,27 @@ static uint32_t edmac_find_divider(size_t length, size_t transfer_size)
     return 0;
 }
 
-static void* edmac_memcpy_start(void *dst, void *src, size_t length)
+void* edmac_memcpy(void *dst, void *src, size_t length)
 {
     int blocksize = edmac_find_divider(length, 0);
 
     if (!blocksize)
     {
         printf("[edmac] warning: using memcpy (size=%d)\n", length);
-        void * ret = memcpy(dst, src, length);
+        void *ret = memcpy(dst, src, length);
         /* simulate a started copy operation */
-        take_semaphore(edmac_memcpy_sem, 0);
         give_semaphore(edmac_read_done_sem);
         return ret;
     }
-    
-    return edmac_copy_rectangle_adv_start(dst, src,
-                                          blocksize, 0, 0,
-                                          blocksize, 0, 0,
-                                          blocksize, length / blocksize);
-}
 
-static void edmac_memcpy_finish(void)
-{
-    edmac_copy_rectangle_adv_finish();
-}
-
-void* edmac_memcpy(void *dst, void *src, size_t length)
-{
-    void *ans = edmac_memcpy_start(dst, src, length);
-    edmac_memcpy_finish();
-    return ans;
+    return copy_rectangle(dst, blocksize, 0, 0,
+                          src, blocksize, 0, 0,
+                          blocksize, length / blocksize);
 }
 
 #endif // CONFIG_EDMAC_MEMCPY
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
-#ifndef CONFIG_EDMAC_RAW_SLURP
-// mlv_lite requires the symbol to exist regardless of RAW_SLURP support,
-// this value makes edmac_start_spy() fail to start (good, since it requires RAW_SLURP to work)
-uint32_t raw_write_chan = 0xffffffff;
-#endif
-
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
 #if defined(CONFIG_5D3)

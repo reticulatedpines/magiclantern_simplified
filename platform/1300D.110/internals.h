@@ -102,6 +102,7 @@
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
+#define CONFIG_EDMAC_COPY_RECT_V0
 
 /** We should warn the user if movie exposure is Auto **/
 #define CONFIG_MOVIE_AE_WARNING

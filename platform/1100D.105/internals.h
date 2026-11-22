@@ -98,8 +98,6 @@
 
 /** We can use DMA_MEMCPY but it has no real benefit **/
 //~ #define CONFIG_DMA_MEMCPY
-/** We don't know how to use edmac_memcpy. This one is really fast (600MB/s!) */
-//#define CONFIG_EDMAC_MEMCPY
 
 /** We should't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -136,6 +134,7 @@
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_EDMAC_MEMCPY
 #define CONFIG_EDMAC_RAW_SLURP
+#define CONFIG_EDMAC_COPY_RECT_V0
 
 /** There are no manual exposure controls in movie mode => we need expo override */
 #define CONFIG_NO_MANUAL_EXPOSURE_MOVIE
