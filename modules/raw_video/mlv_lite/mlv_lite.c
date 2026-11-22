@@ -84,6 +84,13 @@ static GUARDED_BY(GuiMainTask) int show_graph = 0;
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
+// We may resolve this from lossless.c, which is part of silent module (not my fault!).
+// If we don't, we check later and disable compression.
+extern WEAK_FUNC(ret_1) int lossless_compress_raw_rectangle(struct memSuite *dst_suite, void *src,
+                                                            int src_width, int src_x, int src_y,
+                                                            int width, int height);
+extern WEAK_FUNC(ret_0) int lossless_init(void); // returns 0 for failure
+
 /* camera-specific tricks */
 static int cam_eos_m = 0;
 static int cam_5d2 = 0;
@@ -104,6 +111,8 @@ static int cam_1100d = 0;
 static int cam_5d3 = 0;
 static int cam_5d3_113 = 0;
 static int cam_5d3_123 = 0;
+
+static int lossless_init_failed = 1;
 
 /**
  * resolution (in pixels) should be multiple of 16 horizontally (see http://www.magiclantern.fm/forum/index.php?topic=5839.0)
@@ -4427,14 +4436,18 @@ static unsigned int raw_rec_init()
         }
     }
 
+    lossless_init_failed = !lossless_init();
+
     int version = get_digic_version();
     if (version > 5)
     { // hide features unsupported on modern cams
         raw_video_menu->children[11].shidden = 1; // Hide "Small hacks"
         small_hacks = 0;
     }
-    if (version != 5)
-    { // so far, only Digic 5 has working lossless compression, hide on other cams
+    if (version != 5
+        || lossless_init_failed)
+    { // So far, only Digic 5 has working lossless compression, hide on other cams.
+      // And if we can't init lossless, we can't use it.
         if (raw_video_menu->children[2].max > 2)
         {
             raw_video_menu->children[2].max = 2; // hide lossless options, which are 3, 4, 5
@@ -4467,8 +4480,6 @@ static unsigned int raw_rec_init()
     
     /* allocate queue that other modules will fill with blocks to write to the current file */
     mlv_block_queue = msg_queue_create("mlv_block_queue", 100);
-
-    lossless_init();
 
     settings_sem = create_named_semaphore(NULL, SEM_CREATE_UNLOCKED);
     if (is_card_spanning_possible)

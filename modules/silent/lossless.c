@@ -53,8 +53,8 @@ struct TwoInTwoOutLosslessPath_args
 };
 
 static struct TwoInTwoOutLosslessPath_args TTL_Args;
-static struct LockEntry * TTL_ResLock = 0;
-static struct semaphore * lossless_sem = 0;
+static struct LockEntry *TTL_ResLock = NULL;
+static struct semaphore *lossless_sem = NULL;
 static int verbose = 0;
 
 static void LosslessCompleteCBR()
@@ -78,8 +78,8 @@ static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_siz
 extern const uint32_t edmac_write_chan;
 extern const uint32_t edmac_read_chan;
 
-static void decompress_init();
-int lossless_init()
+static void decompress_init(void);
+int lossless_init(void)
 {
     if (is_camera("5D3", "1.1.3"))
     {
@@ -258,7 +258,12 @@ int lossless_init()
     decompress_init();
 
     /* return 1 if everything looks alright */
-    return TTL_Start && lossless_sem && TTL_ResLock;
+    if (TTL_Start != NULL
+        && lossless_sem != NULL
+        && TTL_ResLock != NULL)
+        return 1;
+    else
+        return 0;
 }
 
 static uint32_t start_time = 0;
@@ -477,7 +482,7 @@ static void (*Start_DecodeLosslessPath) (struct memSuite *a1) = NULL;
 static void (*Cleanup_DecodeLosslessPath) (void) = NULL;
 static struct semaphore *decompress_sem = NULL;
 
-static void decompress_init()
+static void decompress_init(void)
 {
     /* now check for the needed decompression functions */
     if (is_camera("5D3", "1.1.3"))

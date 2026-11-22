@@ -1,8 +1,7 @@
 # define the module name - make sure name is max 8 characters
 MODULE_NAME = mlv_lite
 MODULE_OBJS = $(BUILD_DIR)/mlv_lite.o \
-              $(BUILD_DIR)/mlv.o \
-              $(BUILD_DIR)/lossless.o
+              $(BUILD_DIR)/mlv.o
 TOP_DIR = ../../..
 
 # include modules environment
@@ -13,9 +12,6 @@ R2D_CFLAGS = -I$(SRC_DIR) -m32 -mno-ms-bitfields -D_FILE_OFFSET_BITS=64
 R2D_LFLAGS = -lm -m32
 
 $(BUILD_DIR)/mlv.o: ../mlv_rec/mlv.c
-	$(CC) $(CFLAGS) $(CDEPS_FLAGS) -c -o $@ $<
-
-$(BUILD_DIR)/lossless.o: ../../silent/lossless.c
 	$(CC) $(CFLAGS) $(CDEPS_FLAGS) -c -o $@ $<
 
 # RAW to DNG converter for PC
