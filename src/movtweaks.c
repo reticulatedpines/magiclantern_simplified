@@ -867,6 +867,10 @@ void smooth_iso_step()
 #endif
 
 #ifdef FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+#ifndef MVR_TIME_LIMIT_MAX
+#define MVR_TIME_LIMIT_MAX (180 * 60)
+#endif
+
 static CONFIG_INT("movie.time_limit", mov_time_limit, 30 * 60);
 
 static MENU_UPDATE_FUNC(print_mov_time_limit)
@@ -911,11 +915,15 @@ static void change_mov_time_limit(void* priv, int delta)
             mov_time_limit -= 15 * 60;
         else if (mov_time_limit <= 180 * 60)
             mov_time_limit -= 30 * 60;
+        else
+            mov_time_limit -= 60 * 60;
     }
     else if (delta > 0)
     {
-        if (mov_time_limit >= 180 * 60)
-            mov_time_limit = 180 * 60;
+        if (mov_time_limit >= MVR_TIME_LIMIT_MAX)
+            mov_time_limit = MVR_TIME_LIMIT_MAX;
+        else if (mov_time_limit >= 180 * 60)
+            mov_time_limit += 60 * 60;
         else if (mov_time_limit >= 90 * 60)
             mov_time_limit += 30 * 60;
         else if (mov_time_limit >= 30 * 60)
@@ -933,30 +941,91 @@ static void change_mov_time_limit(void* priv, int delta)
     // We have our target max time. If user requests 30 min,
     // we revert to stock, which technically is 29m 59s.
     // Otherwise, we patch in the new limit.
-    struct patch patches[2] = {
-        {
-            .addr = (uint8_t *)MVR_TIME_LIMIT_NORMAL_FPS,
-            .old_value = 0x1b7358, // 29m59s
-            .new_value = mov_time_limit * 1000,
-            .size = 4,
-            .description = "MOV time limit"
-        },
-        {
-            .addr = (uint8_t *)MVR_TIME_LIMIT_HIGH_FPS,
-            .old_value = 0x6d9e8, // 7m29s
-            .new_value = mov_time_limit * 1000,
-            .size = 4,
-            .description = "MOV time limit, high FPS"
-        }
+    struct patch patches[6];
+    int count = 0;
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_TIME_LIMIT_NORMAL_FPS,
+        .old_value = 0x1b7358, // 29m59s
+        .new_value = mov_time_limit * 1000,
+        .size = 4,
+        .description = "MOV time limit"
     };
-    unpatch_memory((uint32_t)patches[0].addr);
-    unpatch_memory((uint32_t)patches[1].addr);
+#ifdef MVR_TIME_LIMIT_HIGH_FPS
+    // Not all cameras have high fps
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_TIME_LIMIT_HIGH_FPS,
+        .old_value = 0x6d9e8, // 7m29s
+        .new_value = mov_time_limit * 1000,
+        .size = 4,
+        .description = "MOV time limit, high FPS"
+    };
+#endif
+
+    // At record start, Canon allocates per-frame tables sized for
+    // 1800 s * fps. Recording past 30 min overflows them and the MOV
+    // index of the current file gets corrupted. Stopping the
+    // recording fails with an assert in Memory.c (Err 70).
+    // Size them for the new limit plus one minute of margin.
+#if defined(MVR_FRAME_TABLE_SECONDS) || defined(MVR_INDEX_TABLE_SECONDS) || defined(MVR_FILE_INFO_ALLOC)
+    uint32_t table_seconds = MAX(mov_time_limit + 60, 1800);
+#endif
+#ifdef MVR_FRAME_TABLE_SECONDS
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_FRAME_TABLE_SECONDS,
+        .old_value = 1800,
+        .new_value = table_seconds,
+        .size = 4,
+        .description = "MOV frame table size"
+    };
+#endif
+#ifdef MVR_INDEX_TABLE_SECONDS
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_INDEX_TABLE_SECONDS,
+        .old_value = 1800,
+        .new_value = table_seconds,
+        .size = 4,
+        .description = "MOV index table size"
+    };
+#endif
+
+    // MovWriter keeps 512 bytes of info for every file of a recording,
+    // in a buffer with room for 6 files (4 GB splits at the highest
+    // bitrate, i.e. 5 minutes each). When the seventh file is started,
+    // movwCreateFileInfo fails ("MAX_FAILE_INFO"), nothing is written
+    // anymore, the buffer fills up and the camera shows Err 70.
+    // Keep Canon's ratio of one file per 5 minutes.
+#if defined(MVR_FILE_INFO_ALLOC) && defined(MVR_FILE_INFO_MAX)
+    uint32_t max_files = (table_seconds + 299) / 300;
+    max_files = (max_files + 1) & ~1; // the allocation size is encoded as (max_files / 2) << 10
+    max_files = MIN(max_files, 254);
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_FILE_INFO_ALLOC,
+        .old_value = 0xe3a00b03,
+        .new_value = 0xe3a00b00 | (max_files / 2),
+        .size = 4,
+        .description = "MOV file info buffer",
+        .is_instruction = 1
+    };
+    patches[count++] = (struct patch) {
+        .addr = (uint8_t *)MVR_FILE_INFO_MAX,
+        .old_value = 0xe3500006,
+        .new_value = 0xe3500000 | max_files,
+        .size = 4,
+        .description = "MOV max files per recording",
+        .is_instruction = 1
+    };
+#endif
+
+    for (int i = 0; i < count; i++)
+    {
+        unpatch_memory((uint32_t)patches[i].addr);
+    }
     if (mov_time_limit == 30 * 60)
     {
         return;
     }
 
-    apply_patches(patches, 2);
+    apply_patches(patches, count);
     return;
 }
 #endif // FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
@@ -1049,7 +1118,7 @@ static struct menu_entry mov_menus[] = {
         .max = 180,
         .help = "Change 29:59 movie recording limit",
         .help2 = "Too long recording makes empty files on ExFAT, ok on FAT32",
-    }
+    },
     #endif
     #ifdef FEATURE_GRADUAL_EXPOSURE
     {
