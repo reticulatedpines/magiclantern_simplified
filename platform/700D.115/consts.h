@@ -81,6 +81,14 @@
     #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
     #define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
+    // FEATURE_OVERRIDE_MOVIE_30_MIN_LIMIT
+    #define MVR_TIME_LIMIT_NORMAL_FPS 0xff52d978 // 1799000 (29m59s), read in LiveViewApp_handler
+    #define MVR_FRAME_TABLE_SECONDS 0xff0e0980 // 1800, read in MOVW_GetMaxFrameCount (called by mvrRecStart)
+    #define MVR_INDEX_TABLE_SECONDS 0xff1eae00 // 1800, size of the MovWriter index tables (called by mvrRecStart)
+    #define MVR_FILE_INFO_ALLOC 0xff1ea9a8 // mov r0, #0xC00: 6 * 512 bytes of per-file info, is allocated at the start of a record
+    #define MVR_FILE_INFO_MAX 0xff1f2124 // cmp r0, #6 in movwCreateFileInfo ("MAX_FAILE_INFO" on the seventh file)
+    #define MVR_TIME_LIMIT_MAX (8 * 60 * 60) // 8 h tested: allocation at record start still succeeds
+
     #define MOV_RES_AND_FPS_COMBINATIONS 9
     #define MOV_OPT_NUM_PARAMS 2
     #define MOV_GOP_OPT_NUM_PARAMS 5
